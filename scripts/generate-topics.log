@@ -1,0 +1,19 @@
+[2026-09-28 09:31:26] FAILED: Gemini API returned HTTP 404 — response: {
+  "error": {
+    "code": 404,
+    "message": "This model models/gemini-2.0-flash is no longer available. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://ai.google.dev/gemini-api/docs/get-started).",
+    "status": "NOT_FOUND"
+  }
+}
+ — keeping previous trending-topics.json unchanged.
+[2026-09-28 09:34:20] FAILED: Gemini API returned HTTP 429 — response: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. ",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quota — keeping previous trending-topics.json unchanged.
