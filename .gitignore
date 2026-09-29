@@ -35,9 +35,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IDE & Editor directories
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-nbproject/
+# Node.js dependencies
+node_modules/
+package-lock.json

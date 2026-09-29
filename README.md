@@ -16,7 +16,8 @@ administators.bps1310.cloud/
 │   ├── auth.php                 # Middleware otentikasi admin
 │   └── config.php               # Konfigurasi sistem, environment loader & PDO
 ├── database/
-│   └── schema.sql               # Skema database lengkap & seed data awal
+│   ├── bps_solsel.sql           # Database dump produksi (data lengkap kategori, layanan & admin)
+│   └── schema.sql               # Skema DDL struktur database & template seed awal
 ├── PHPMailer/                   # Library pengiriman email notifikasi & verifikasi
 ├── public/
 │   ├── api/
@@ -118,3 +119,57 @@ Project ini telah diamankan dan disiapkan agar aman di-push ke GitHub / GitLab:
 6. **Keamanan Sesi & HTTP Headers**:
    - Sesi menggunakan flag cookie `HttpOnly`, `SameSite=Lax`, dan `Secure` (saat HTTPS aktif).
    - Proteksi header HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`).
+
+---
+
+## 🌐 Panduan Deployment / Hosting ke VPS
+
+Saat nanti mendeploy project ini ke VPS (Ubuntu / Debian / AlmaLinux dengan Apache/Nginx/aaPanel/cPanel):
+
+### 1. Buat Database di MySQL VPS
+```sql
+CREATE DATABASE `bps-solsel` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'admin-bps-solsel'@'localhost' IDENTIFIED BY 'PasswordKuatAnda123!';
+GRANT ALL PRIVILEGES ON `bps-solsel`.* TO 'admin-bps-solsel'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 2. Impor Database Dump Produksi
+Jalankan impor dump database:
+```bash
+mysql -u admin-bps-solsel -p bps-solsel < database/bps_solsel.sql
+```
+
+### 3. Buat File `.env` di VPS
+Salin template `.env.example` menjadi `.env` di root direktori project pada VPS:
+```bash
+cp .env.example .env
+nano .env
+```
+Sesuaikan variabel berikut untuk VPS:
+```env
+# Mode Produksi VPS
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://administators.bps1310.cloud
+
+# Koneksi Database VPS
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=bps-solsel
+DB_USER=admin-bps-solsel
+DB_PASS=PasswordKuatAnda123!
+
+# URL Endpoint API Produksi
+API_URL=https://administators.bps1310.cloud/api/layanan.php
+```
+
+### 4. Konfigurasi Cron Job untuk Trending Topics AI
+Jalankan generator trending topics otomatis setiap hari jam 06:00 pagi:
+```bash
+crontab -e
+```
+Tambahkan baris berikut:
+```cron
+0 6 * * * /usr/bin/php /var/www/administators.bps1310.cloud/scripts/generate-topics.php >> /var/www/administators.bps1310.cloud/scripts/generate-topics.log 2>&1
+```

@@ -27,27 +27,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SELECT
                 id_admin,
                 username,
+                email,
                 password,
                 status,
                 email_verified
             FROM admin
-            WHERE username = ?
+            WHERE username = ? OR email = ?
             LIMIT 1
         ");
 
-        $stmt->execute([$username]);
+        $stmt->execute([$username, $username]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$admin) {
+        $passwordValid = false;
+        if ($admin) {
+            $sha256 = hash('sha256', $password);
+            if (hash_equals($admin['password'], $sha256)) {
+                $passwordValid = true;
+            } elseif (password_verify($password, $admin['password'])) {
+                $passwordValid = true;
+            }
+        }
 
-            $error = 'Username atau password salah.';
-
-        } elseif (
-            !hash_equals(
-                $admin['password'],
-                hash('sha256', $password)
-            )
-        ) {
+        if (!$admin || !$passwordValid) {
 
             $error = 'Username atau password salah.';
 
