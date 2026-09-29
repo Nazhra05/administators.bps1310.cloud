@@ -1,0 +1,40 @@
+# ==========================================================
+# Apache Security Configuration
+# ==========================================================
+
+# Prevent Directory Browsing
+Options -Indexes
+
+# Protect Sensitive Files and Hidden Files
+<FilesMatch "^\.|\.(env|log|sql|ini|sh|bak|md|json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Allow public trending-topics.json via public/
+<Files "trending-topics.json">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+</Files>
+
+# Protect Internal Directories from Direct Access
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block direct access to config, scripts, app directories
+    RewriteRule ^(config|scripts|app|database)/ - [F,L]
+</IfModule>
+
+# Security HTTP Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

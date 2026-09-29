@@ -1,0 +1,43 @@
+# ==========================================================
+# Git Ignore Configuration - BPS Solok Selatan Admin
+# ==========================================================
+
+# Environment variables & local secrets
+.env
+.env.*
+.env.local
+scripts/.env
+!.env.example
+
+# Logs and error reports
+*.log
+scripts/*.log
+logs/
+
+# Uploaded user media (keep directories and essential logos)
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/logo_bps.jpg
+!public/uploads/1790220841_logo bps solsel.jpg
+
+# Automated generated scripts output
+scripts/trending-topics.json
+
+# Backup & temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE & Editor directories
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+nbproject/
