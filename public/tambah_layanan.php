@@ -1,0 +1,849 @@
+
+<?php
+
+require_once '../config/config.php';
+
+/* =========================
+   AMBIL DATA KATEGORI
+========================= */
+
+$stmt = $conn->query("
+    SELECT id_kategori, nama_kategori
+    FROM kategori
+    ORDER BY nama_kategori ASC
+");
+
+$kategori = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$pesan = '';
+
+/* =========================
+   PROSES SIMPAN
+========================= */
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $nama_layanan = trim($_POST['nama_layanan'] ?? '');
+    $deskripsi_layanan = trim($_POST['deskripsi_layanan'] ?? '');
+    $url = trim($_POST['url'] ?? '');
+    $id_kategori = $_POST['id_kategori'] ?? '';
+
+    $logo = '';
+
+    /* =========================
+       VALIDASI
+    ========================= */
+
+    if (
+        $nama_layanan === '' ||
+        $deskripsi_layanan === '' ||
+        $url === '' ||
+        $id_kategori === ''
+    ) {
+
+        $pesan = 'Semua data wajib diisi.';
+
+    } else {
+
+        /* =========================
+           UPLOAD LOGO
+        ========================= */
+
+        if (
+            isset($_FILES['logo']) &&
+            $_FILES['logo']['error'] === UPLOAD_ERR_OK
+        ) {
+
+            $folder_upload = __DIR__ . '/uploads/';
+
+            if (!is_dir($folder_upload)) {
+                mkdir($folder_upload, 0777, true);
+            }
+
+            $nama_asli = basename($_FILES['logo']['name']);
+
+            $ekstensi = strtolower(
+                pathinfo($nama_asli, PATHINFO_EXTENSION)
+            );
+
+            $format_diizinkan = [
+                'jpg',
+                'jpeg',
+                'png',
+                'webp'
+            ];
+
+            if (in_array($ekstensi, $format_diizinkan, true)) {
+
+                $nama_file =
+                    time() . '_' .
+                    preg_replace(
+                        '/[^A-Za-z0-9._-]/',
+                        '_',
+                        $nama_asli
+                    );
+
+                $target = $folder_upload . $nama_file;
+
+                if (
+                    move_uploaded_file(
+                        $_FILES['logo']['tmp_name'],
+                        $target
+                    )
+                ) {
+
+                    $logo = $nama_file;
+                }
+            }
+        }
+
+        /* =========================
+           SIMPAN LANGSUNG KE DATABASE
+        ========================= */
+
+        try {
+
+            $stmt_insert = $conn->prepare("
+                INSERT INTO layanan
+                (
+                    id_kategori,
+                    nama_layanan,
+                    deskripsi_layanan,
+                    url,
+                    logo
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+            ");
+
+            $stmt_insert->execute([
+                (int) $id_kategori,
+                $nama_layanan,
+                $deskripsi_layanan,
+                $url,
+                $logo
+            ]);
+
+            /* =========================
+               KEMBALI KE KELOLA LAYANAN
+            ========================= */
+
+            header('Location: layanan.php');
+            exit;
+
+        } catch (PDOException $e) {
+
+            $pesan = 'Gagal menyimpan data layanan ke database.';
+        }
+    }
+}
+
+?>
+
+<!DOCTYPE html>
+
+<html lang="id">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Tambah Layanan - BPS Solok Selatan</title>
+
+<style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f4f8fc;
+        color: #333;
+        overflow-x: hidden;
+    }
+
+
+    /* =========================
+       SIDEBAR
+    ========================= */
+
+    .sidebar {
+        width: 240px;
+        height: 100vh;
+        background: #0066b3;
+        color: white;
+        position: fixed;
+        left: 0;
+        top: 0;
+        padding: 25px 15px;
+        z-index: 9999;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease;
+    }
+
+    .logo {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 40px;
+        padding: 0 15px;
+    }
+
+    .menu {
+        list-style: none;
+    }
+
+    .menu li {
+        margin-bottom: 8px;
+        width: 100%;
+    }
+
+    .menu a {
+        display: block;
+        width: 100%;
+        color: #dceeff;
+        text-decoration: none;
+        padding: 12px 15px;
+        border-radius: 8px;
+        transition: 0.2s;
+    }
+
+    .menu a:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+    }
+
+    .menu .active {
+        background: white;
+        color: #0066b3;
+        font-weight: bold;
+    }
+
+
+    /* =========================
+       MOBILE MENU
+    ========================= */
+
+    .mobile-menu-button {
+        display: none;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        width: 45px;
+        height: 45px;
+        border: none;
+        border-radius: 9px;
+        background: #0066b3;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 10001;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 9998;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+
+    /* =========================
+       MAIN
+    ========================= */
+
+    .main {
+        margin-left: 240px;
+        padding: 30px;
+        min-width: 0;
+    }
+
+    .header {
+        margin-bottom: 25px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        color: #005a9c;
+    }
+
+    .header p {
+        color: #6b7280;
+        line-height: 1.5;
+    }
+
+
+    /* =========================
+       ALERT
+    ========================= */
+
+    .alert {
+        max-width: 850px;
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+
+    /* =========================
+       FORM
+    ========================= */
+
+    .form-container {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 102, 179, 0.08);
+        border-left: 4px solid #0066b3;
+        max-width: 850px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #005a9c;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #d6e3ef;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        font-family: inherit;
+        resize: vertical;
+    }
+
+    textarea {
+        min-height: 100px;
+        line-height: 1.5;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #0066b3;
+        box-shadow: 0 0 0 2px rgba(0, 102, 179, 0.08);
+    }
+
+
+    /* =========================
+       BUTTON
+    ========================= */
+
+    .buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 25px;
+    }
+
+    .btn {
+        padding: 11px 18px;
+        border-radius: 6px;
+        border: none;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .btn-save {
+        background: #0066b3;
+        color: white;
+    }
+
+    .btn-save:hover {
+        background: #005a9c;
+    }
+
+    .btn-cancel {
+        background: #e5edf5;
+        color: #005a9c;
+    }
+
+    .btn-cancel:hover {
+        background: #d6e5f2;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE MOBILE
+    ===================================================== */
+
+    @media (max-width: 768px) {
+
+        /* SIDEBAR */
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            transform: translateX(-100%);
+            padding: 25px 15px;
+        }
+
+        .sidebar.mobile-open {
+            transform: translateX(0);
+        }
+
+
+        /* TOMBOL MENU */
+
+        .mobile-menu-button {
+            display: flex;
+        }
+
+
+        /* MAIN */
+
+        .main {
+            margin-left: 0;
+            padding: 75px 15px 25px;
+            width: 100%;
+        }
+
+
+        /* HEADER */
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header p {
+            font-size: 14px;
+        }
+
+
+        /* ALERT */
+
+        .alert {
+            width: 100%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+        /* FORM */
+
+        .form-container {
+            width: 100%;
+            max-width: none;
+            padding: 20px;
+            border-left: 4px solid #0066b3;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            font-size: 14px;
+        }
+
+        input,
+        select,
+        textarea {
+            font-size: 14px;
+            padding: 12px;
+        }
+
+
+        /* BUTTON */
+
+        .buttons {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+        }
+
+    }
+
+
+    /* =====================================================
+       HP SANGAT KECIL
+    ===================================================== */
+
+    @media (max-width: 480px) {
+
+        .main {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+        }
+
+        .header p {
+            font-size: 13px;
+        }
+
+        .form-container {
+            padding: 18px 15px;
+        }
+
+    }
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =====================================================
+     TOMBOL MENU MOBILE
+===================================================== -->
+
+<button
+    type="button"
+    class="mobile-menu-button"
+    id="mobileMenuButton"
+    onclick="toggleMobileSidebar()"
+    aria-label="Buka menu"
+>
+    ☰
+</button>
+
+
+<!-- =====================================================
+     OVERLAY MOBILE
+===================================================== -->
+
+<div
+    class="sidebar-overlay"
+    id="sidebarOverlay"
+    onclick="closeMobileSidebar()"
+></div>
+
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="logo">
+        Dashboard Admin
+    </div>
+
+    <ul class="menu">
+
+        <li>
+            <a href="index.php">
+                Dashboard
+            </a>
+        </li>
+
+        <li>
+            <a href="layanan.php" class="active">
+                Kelola Layanan
+            </a>
+        </li>
+
+        <li>
+            <a href="kategori.php">
+                Kategori
+            </a>
+        </li>
+
+        <li>
+            <a href="kelola_admin.php">
+                Kelola Admin
+            </a>
+        </li>
+
+        <li>
+            <a href="pengaturan.php">
+                Pengaturan
+            </a>
+        </li>
+
+    </ul>
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="main">
+
+    <div class="header">
+
+        <h1>Tambah Layanan</h1>
+
+        <p>
+            Tambahkan layanan baru BPS Kabupaten Solok Selatan.
+        </p>
+
+    </div>
+
+
+    <?php if ($pesan !== ''): ?>
+
+        <div class="alert">
+            <?= htmlspecialchars($pesan); ?>
+        </div>
+
+    <?php endif; ?>
+
+
+    <div class="form-container">
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <!-- =========================
+                 1. NAMA LAYANAN
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Nama Layanan
+                </label>
+
+                <input
+                    type="text"
+                    name="nama_layanan"
+                    placeholder="Contoh: Dashboard Sensus Ekonomi 2026"
+                    required
+                >
+
+            </div>
+
+
+            <!-- =========================
+                 2. DESKRIPSI LAYANAN
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Deskripsi Layanan
+                </label>
+
+                <textarea
+                    name="deskripsi_layanan"
+                    placeholder="Masukkan deskripsi layanan"
+                    rows="4"
+                    required
+                ></textarea>
+
+            </div>
+
+
+            <!-- =========================
+                 3. URL / LINK
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    URL / Link
+                </label>
+
+                <input
+                    type="url"
+                    name="url"
+                    placeholder="https://contoh.bps.go.id"
+                    required
+                >
+
+            </div>
+
+
+            <!-- =========================
+                 4. KATEGORI
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Kategori
+                </label>
+
+                <select
+                    name="id_kategori"
+                    required
+                >
+
+                    <option value="">
+                        -- Pilih Kategori --
+                    </option>
+
+                    <?php foreach ($kategori as $k): ?>
+
+                        <option
+                            value="<?= $k['id_kategori']; ?>"
+                        >
+                            <?= htmlspecialchars($k['nama_kategori']); ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+
+            </div>
+
+
+            <!-- =========================
+                 5. LOGO
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Logo
+                </label>
+
+                <input
+                    type="file"
+                    name="logo"
+                    accept=".jpg,.jpeg,.png,.webp"
+                >
+
+            </div>
+
+
+            <!-- =========================
+                 BUTTON
+            ========================= -->
+
+            <div class="buttons">
+
+                <button
+                    type="submit"
+                    class="btn btn-save"
+                >
+                    Simpan Layanan
+                </button>
+
+                <a
+                    href="layanan.php"
+                    class="btn btn-cancel"
+                >
+                    Batal
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</main>
+
+
+<script>
+
+/* =========================
+   SIDEBAR MOBILE
+========================= */
+
+function toggleMobileSidebar() {
+
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const button = document.getElementById('mobileMenuButton');
+
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+
+    if (sidebar.classList.contains('mobile-open')) {
+
+        button.innerHTML = '✕';
+        button.setAttribute('aria-label', 'Tutup menu');
+
+    } else {
+
+        button.innerHTML = '☰';
+        button.setAttribute('aria-label', 'Buka menu');
+
+    }
+
+}
+
+
+/* =========================
+   TUTUP SIDEBAR MOBILE
+========================= */
+
+function closeMobileSidebar() {
+
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const button = document.getElementById('mobileMenuButton');
+
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('show');
+
+    button.innerHTML = '☰';
+    button.setAttribute('aria-label', 'Buka menu');
+
+}
+
+
+/* =========================
+   TUTUP SIDEBAR SETELAH PILIH MENU
+========================= */
+
+document.querySelectorAll('.menu a').forEach(function(link) {
+
+    link.addEventListener('click', function() {
+
+        if (window.innerWidth <= 768) {
+            closeMobileSidebar();
+        }
+
+    });
+
+});
+
+</script>
+
+</body>
+
+</html>
