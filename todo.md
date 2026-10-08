@@ -85,15 +85,15 @@ Gunakan perangkat yang sudah terpasang di `.agents/` supaya kerja konsisten dan 
 ## FASE 0 — Fondasi Lokal (XAMPP)
 
 ### 0.1 [W] Baseline Git
-- [ ] Buat tag `baseline-sebelum-refactor` pada commit saat ini.
-- [ ] Repo hanya punya branch `dipuy`. Ganti namanya menjadi `main` (`git branch -m dipuy main`), lalu kerjakan tiap fase di branch turunannya.
+- [x] Buat tag `baseline-sebelum-refactor` pada commit saat ini.
+- [x] Repo hanya punya branch `dipuy`. Ganti namanya menjadi `main` (`git branch -m dipuy main`), lalu kerjakan tiap fase di branch turunannya.
 - **Selesai jika:** tag ada, `git status` bersih, nama branch kerja jelas.
 
 ### 0.2 [W] Higienis file sensitif di repo
-- [ ] Jalankan `git ls-files` dan laporkan file yang tidak seharusnya ada di Git: `.env`, `*.sql` berisi data nyata, `*.log`, `vendor/`, `node_modules/`.
-- [ ] `database/bps_solsel.sql` (dump produksi): **keluarkan dari working tree** ke folder di luar repo (mis. `..\private\`), tambahkan pola ke `.gitignore`, dan commit penghapusannya. Riwayat Git dibersihkan di task 0.2b.
-- [ ] Perbarui `.gitignore`: `.env`, `.env.*` (kecuali `*.example`), `vendor/`, `storage/logs/*`, `storage/uploads/*` (simpan `.gitkeep`), `*.sql` di `database/` kecuali `migrations/` dan `seeds/`, `*.log`, `.phpunit.cache/`, `node_modules/`.
-- [ ] Tambahkan `.editorconfig` (UTF-8, LF, indent 4 spasi untuk PHP) dan `.gitattributes` (`* text=auto eol=lf`).
+- [x] Jalankan `git ls-files` dan laporkan file yang tidak seharusnya ada di Git: `.env`, `*.sql` berisi data nyata, `*.log`, `vendor/`, `node_modules/`.
+- [x] `database/bps_solsel.sql` (dump produksi): **keluarkan dari working tree** ke folder di luar repo (mis. `..\private\`), tambahkan pola ke `.gitignore`, dan commit penghapusannya. Riwayat Git dibersihkan di task 0.2b.
+- [x] Perbarui `.gitignore`: `.env`, `.env.*` (kecuali `*.example`), `vendor/`, `storage/logs/*`, `storage/uploads/*` (simpan `.gitkeep`), `*.sql` di `database/` kecuali `migrations/` dan `seeds/`, `*.log`, `.phpunit.cache/`, `node_modules/`.
+- [x] Tambahkan `.editorconfig` (UTF-8, LF, indent 4 spasi untuk PHP) dan `.gitattributes` (`* text=auto eol=lf`).
 - **Selesai jika:** `git ls-files | Select-String "\.env$|\.sql$|\.log$"` hanya menampilkan file migrasi/seed/example yang sah.
 
 ### 0.2b [W] Bersihkan riwayat Git dari data sensitif
@@ -729,7 +729,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 ## 13. Log Agent
 
 ```
-[tanggal] [task] [commit] ringkasan | catatan/hambatan | pertanyaan baru
+[2026-10-09] [0.1] chore(baseline): tag baseline-sebelum-refactor, rename branch dipuy ke main, checkout fix/fase-0-fondasi | git status bersih, branch kerja siap | -
+[2026-10-09] [0.2] chore(repo): remove production sql dumps from git, add .editorconfig and .gitattributes, update .gitignore | dump dipindah ke ../private, git ls-files bersih | -
 ```
 
 ---
