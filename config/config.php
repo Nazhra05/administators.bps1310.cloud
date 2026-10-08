@@ -1,5 +1,9 @@
 <?php
 
+if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
+
 /* =====================================================
    ENVIRONMENT CONFIGURATION LOADER
 ===================================================== */
@@ -43,6 +47,23 @@ function env(string $key, $default = null)
     return $val;
 }
 
+/* =====================================================
+   BOOT VALIDATION: CHECK REQUIRED ENV VARIABLES
+===================================================== */
+$requiredEnv = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER'];
+$missingEnv = [];
+foreach ($requiredEnv as $req) {
+    if (env($req) === null || env($req) === '') {
+        $missingEnv[] = $req;
+    }
+}
+if (!empty($missingEnv)) {
+    http_response_code(500);
+    die("Konfigurasi server tidak lengkap. Variabel lingkungan berikut wajib diisi pada .env: " . implode(', ', $missingEnv));
+}
+
+date_default_timezone_set(env('APP_TIMEZONE', 'Asia/Jakarta'));
+
 
 /* =====================================================
    APPLICATION SETTINGS
@@ -51,7 +72,8 @@ function env(string $key, $default = null)
 defined('APP_NAME') or define('APP_NAME', env('APP_NAME', 'Dashboard Admin BPS Solok Selatan'));
 defined('APP_ENV') or define('APP_ENV', env('APP_ENV', 'development'));
 defined('APP_DEBUG') or define('APP_DEBUG', filter_var(env('APP_DEBUG', true), FILTER_VALIDATE_BOOLEAN));
-defined('APP_URL') or define('APP_URL', rtrim(env('APP_URL', 'https://administators.bps1310.cloud'), '/'));
+defined('APP_URL') or define('APP_URL', rtrim(env('APP_URL', 'http://admin.test'), '/'));
+defined('APP_BASE_PATH') or define('APP_BASE_PATH', rtrim(env('APP_BASE_PATH', ''), '/'));
 
 if (APP_DEBUG) {
     error_reporting(E_ALL);
@@ -71,14 +93,16 @@ defined('DB_HOST') or define('DB_HOST', env('DB_HOST', '127.0.0.1'));
 defined('DB_PORT') or define('DB_PORT', env('DB_PORT', '3306'));
 defined('DB_USER') or define('DB_USER', env('DB_USER', 'root'));
 defined('DB_PASS') or define('DB_PASS', env('DB_PASS', ''));
-defined('DB_NAME') or define('DB_NAME', env('DB_NAME', 'bps_solsel'));
+defined('DB_NAME') or define('DB_NAME', env('DB_NAME', 'bps_solsel_dev'));
 
 
 /* =====================================================
    API CONFIGURATION
 ===================================================== */
 
-defined('API_KEY') or define('API_KEY', env('API_KEY', 'BPS_SOLSEL_API_2026_KEY_RAHASIA'));
+$appApiKey = env('API_KEY_APP_B', env('API_KEY', 'BPS_SOLSEL_API_2026_GANTI_DENGAN_KEY_RAHASIA'));
+defined('API_KEY') or define('API_KEY', $appApiKey);
+defined('API_KEY_APP_B') or define('API_KEY_APP_B', $appApiKey);
 defined('API_URL') or define('API_URL', env('API_URL', APP_URL . '/api/layanan.php'));
 
 

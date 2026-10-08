@@ -1,0 +1,3 @@
+# Tambahkan baris ini ke C:\Windows\System32\drivers\etc\hosts (Buka Notepad sebagai Administrator)
+
+127.0.0.1  admin.test

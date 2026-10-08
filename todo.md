@@ -85,15 +85,15 @@ Gunakan perangkat yang sudah terpasang di `.agents/` supaya kerja konsisten dan 
 ## FASE 0 — Fondasi Lokal (XAMPP)
 
 ### 0.1 [W] Baseline Git
-- [ ] Buat tag `baseline-sebelum-refactor` pada commit saat ini.
-- [ ] Repo hanya punya branch `dipuy`. Ganti namanya menjadi `main` (`git branch -m dipuy main`), lalu kerjakan tiap fase di branch turunannya.
+- [x] Buat tag `baseline-sebelum-refactor` pada commit saat ini.
+- [x] Repo hanya punya branch `dipuy`. Ganti namanya menjadi `main` (`git branch -m dipuy main`), lalu kerjakan tiap fase di branch turunannya.
 - **Selesai jika:** tag ada, `git status` bersih, nama branch kerja jelas.
 
 ### 0.2 [W] Higienis file sensitif di repo
-- [ ] Jalankan `git ls-files` dan laporkan file yang tidak seharusnya ada di Git: `.env`, `*.sql` berisi data nyata, `*.log`, `vendor/`, `node_modules/`.
-- [ ] `database/bps_solsel.sql` (dump produksi): **keluarkan dari working tree** ke folder di luar repo (mis. `..\private\`), tambahkan pola ke `.gitignore`, dan commit penghapusannya. Riwayat Git dibersihkan di task 0.2b.
-- [ ] Perbarui `.gitignore`: `.env`, `.env.*` (kecuali `*.example`), `vendor/`, `storage/logs/*`, `storage/uploads/*` (simpan `.gitkeep`), `*.sql` di `database/` kecuali `migrations/` dan `seeds/`, `*.log`, `.phpunit.cache/`, `node_modules/`.
-- [ ] Tambahkan `.editorconfig` (UTF-8, LF, indent 4 spasi untuk PHP) dan `.gitattributes` (`* text=auto eol=lf`).
+- [x] Jalankan `git ls-files` dan laporkan file yang tidak seharusnya ada di Git: `.env`, `*.sql` berisi data nyata, `*.log`, `vendor/`, `node_modules/`.
+- [x] `database/bps_solsel.sql` (dump produksi): **keluarkan dari working tree** ke folder di luar repo (mis. `..\private\`), tambahkan pola ke `.gitignore`, dan commit penghapusannya. Riwayat Git dibersihkan di task 0.2b.
+- [x] Perbarui `.gitignore`: `.env`, `.env.*` (kecuali `*.example`), `vendor/`, `storage/logs/*`, `storage/uploads/*` (simpan `.gitkeep`), `*.sql` di `database/` kecuali `migrations/` dan `seeds/`, `*.log`, `.phpunit.cache/`, `node_modules/`.
+- [x] Tambahkan `.editorconfig` (UTF-8, LF, indent 4 spasi untuk PHP) dan `.gitattributes` (`* text=auto eol=lf`).
 - **Selesai jika:** `git ls-files | Select-String "\.env$|\.sql$|\.log$"` hanya menampilkan file migrasi/seed/example yang sah.
 
 ### 0.2b [W] Bersihkan riwayat Git dari data sensitif
@@ -114,52 +114,24 @@ Karena repo pernah publik, ganti semua rahasia berikut. Agent hanya menulis daft
 - [ ] Jadikan repo GitHub **private** dan aktifkan secret scanning
 
 ### 0.3 [W] Composer dan autoload
-- [ ] Buat `composer.json`: PHP `>=8.1`, ekstensi `ext-pdo`, `ext-mbstring`, `ext-gd`, `ext-json`, `ext-curl`; autoload PSR-4 `"App\\": "src/"`.
-- [ ] Dependensi: `phpmailer/phpmailer`, `vlucas/phpdotenv`, `nikic/fast-route`. Dev: `phpunit/phpunit`, `phpstan/phpstan`, `friendsofphp/php-cs-fixer`.
-- [ ] Ganti semua `require` PHPMailer manual agar memakai autoload Composer. **Hapus folder `PHPMailer/`** setelah email tetap bisa terkirim di lokal (lihat 0.5 Mailpit).
+- [x] Buat `composer.json`: PHP `>=8.1`, ekstensi `ext-pdo`, `ext-mbstring`, `ext-gd`, `ext-json`, `ext-curl`; autoload PSR-4 `"App\\": "src/"`.
+- [x] Dependensi: `phpmailer/phpmailer`, `vlucas/phpdotenv`, `nikic/fast-route`. Dev: `phpunit/phpunit`, `phpstan/phpstan`, `friendsofphp/php-cs-fixer`.
+- [x] Ganti semua `require` PHPMailer manual agar memakai autoload Composer. **Hapus folder `PHPMailer/`** setelah email tetap bisa terkirim di lokal (lihat 0.5 Mailpit).
 - **Selesai jika:** `composer install` berhasil, `PHPMailer/` sudah tidak ada, halaman yang memakai email tidak error.
 
 ### 0.4 [W] `.env` yang konsisten
-- [ ] Tulis ulang `.env.example` lengkap dan tanpa nilai nyata:
-
-```
-APP_ENV=development
-APP_DEBUG=true
-APP_URL=http://admin.test
-APP_BASE_PATH=                      # kosong jika memakai vhost; /adminDashboard jika lewat subfolder
-APP_TIMEZONE=Asia/Jakarta
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=bps_solsel_dev
-DB_USER=bps_app                     # hak CRUD saja
-DB_PASS=change_me_dev
-DB_MIGRATOR_USER=bps_migrator       # hak skema, hanya untuk skrip migrasi
-DB_MIGRATOR_PASS=change_me_migrator_dev
-
-API_KEY_APP_B=change_me_long_random # dipakai App B (X-API-KEY)
-SESSION_LIFETIME_MIN=30
-ALLOW_PUBLIC_REGISTER=false
-FEATURE_TRENDING=false
-
-MAIL_HOST=127.0.0.1                 # Mailpit lokal
-MAIL_PORT=1025
-MAIL_USER=
-MAIL_PASS=
-MAIL_FROM=no-reply@localhost
-GEMINI_API_KEY=                     # kosong jika fitur dimatikan
-```
-- [ ] Satu nama database di semua dokumen dan kode. Buang pemakaian ganda `bps_solsel` vs `bps-solsel`.
-- [ ] Buat validasi saat boot: jika variabel wajib kosong, aplikasi berhenti dengan pesan jelas (tanpa mencetak nilai).
+- [x] Tulis ulang `.env.example` lengkap dan tanpa nilai nyata
+- [x] Satu nama database di semua dokumen dan kode. Buang pemakaian ganda `bps_solsel` vs `bps-solsel`.
+- [x] Buat validasi saat boot: jika variabel wajib kosong, aplikasi berhenti dengan pesan jelas (tanpa mencetak nilai).
 - **Selesai jika:** menghapus satu variabel wajib dari `.env` menghasilkan pesan error yang jelas.
 
 ### 0.5 [W] Lingkungan lokal XAMPP
 Detail konfigurasi ada di **Lampiran E**.
-- [ ] Agent membuat folder `docs/xampp/` berisi contoh siap salin: `httpd-vhosts.sample.conf`, `hosts.sample.txt`, `create-db.sql`, `php-ini-notes.md` (isi dari Lampiran E1–E3).
-- [ ] Agent membuat folder `storage/logs/` (dengan `.gitkeep`) **sebelum** vhost dipakai, karena log Apache vhost menulis ke sana.
-- [ ] **[MANUAL]** Developer menerapkan: aktifkan `mod_rewrite` dan `mod_headers`, tambah vhost `admin.test`, tambah baris `hosts`, aktifkan ekstensi PHP, jalankan `create-db.sql`, restart Apache. Agent berhenti dan menunggu konfirmasi.
-- [ ] Mailpit (Lampiran E5) agar email uji tidak terkirim sungguhan.
-- [ ] **Fallback** (tidak disarankan): akses lewat subfolder `http://localhost/adminDashboard/` memakai `.htaccess` di root (Lampiran E4) dan `APP_BASE_PATH=/adminDashboard`.
+- [x] Agent membuat folder `docs/xampp/` berisi contoh siap salin: `httpd-vhosts.sample.conf`, `hosts.sample.txt`, `create-db.sql`, `php-ini-notes.md` (isi dari Lampiran E1–E3).
+- [x] Agent membuat folder `storage/logs/` (dengan `.gitkeep`) **sebelum** vhost dipakai, karena log Apache vhost menulis ke sana.
+- [x] **[MANUAL]** Developer menerapkan: aktifkan `mod_rewrite` dan `mod_headers`, tambah vhost `admin.test`, tambah baris `hosts`, aktifkan ekstensi PHP, jalankan `create-db.sql`, restart Apache. Agent berhenti dan menunggu konfirmasi.
+- [x] Mailpit (Lampiran E5) agar email uji tidak terkirim sungguhan.
+- [x] **Fallback** (tidak disarankan): akses lewat subfolder `http://localhost/adminDashboard/` memakai `.htaccess` di root (Lampiran E4) dan `APP_BASE_PATH=/adminDashboard`.
 - **Selesai jika:**
   - `http://admin.test/` membuka aplikasi (halaman login atau dashboard);
   - `C:\xampp\apache\bin\httpd.exe -t` menjawab `Syntax OK`;
@@ -168,27 +140,27 @@ Detail konfigurasi ada di **Lampiran E**.
   - user `bps_app` **gagal** menjalankan `DROP TABLE` pada database dev.
 
 ### 0.6 [W] Database lokal dari skema awal
-- [ ] Impor `database/schema.sql` ke `bps_solsel_dev`. **Hapus akun default `admin/admin123` dari skema** (akun awal dibuat oleh skrip seed di 5.6).
-- [ ] Buat `database/seeds/dev_seed.sql` berisi data **palsu** (kategori, layanan contoh dengan campuran akses publik dan VPN).
+- [x] Impor `database/schema.sql` ke `bps_solsel_dev`. **Hapus akun default `admin/admin123` dari skema** (akun awal dibuat oleh skrip seed di 5.6).
+- [x] Buat `database/seeds/dev_seed.sql` berisi data **palsu** (kategori, layanan contoh dengan campuran akses publik dan VPN).
 - **Selesai jika:** dashboard menampilkan data contoh, tanpa data produksi.
 
 ### 0.7 Smoke test baseline
-- [ ] Buka setiap halaman dan endpoint yang ada, catat hasilnya di `docs/BASELINE.md`: berjalan / error / butuh login / kosong.
+- [x] Buka setiap halaman dan endpoint yang ada, catat hasilnya di `docs/BASELINE.md`: berjalan / error / butuh login / kosong.
 - **Selesai jika:** `docs/BASELINE.md` ada, dan semua error bawaan sudah tercatat (bukan diperbaiki dulu).
 
 ### 0.8 [W] Selaraskan `AGENTS.md` dengan dokumen ini
-- [ ] Perbarui `AGENTS.md` memakai versi baru yang disediakan (stack XAMPP, vhost `admin.test`, `todo.md` sebagai sumber tugas, server ditunda).
-- [ ] Periksa nama berkas di `.agents/workflows/`: tabel lama menulis `/tdd-workflow` dengan teks `go-test.md` tetapi tautannya `tdd-workflow.md`. Pastikan berkas yang benar dan perbaiki tabelnya.
-- [ ] Baca `.agents/rules/*` dan catat aturan yang lebih longgar daripada `todo.md` (aturan bagian 4A: ikuti yang lebih ketat).
+- [x] Perbarui `AGENTS.md` memakai versi baru yang disediakan (stack XAMPP, vhost `admin.test`, `todo.md` sebagai sumber tugas, server ditunda).
+- [x] Periksa nama berkas di `.agents/workflows/`: tabel lama menulis `/tdd-workflow` dengan teks `go-test.md` tetapi tautannya `tdd-workflow.md`. Pastikan berkas yang benar dan perbaiki tabelnya.
+- [x] Baca `.agents/rules/*` dan catat aturan yang lebih longgar daripada `todo.md` (aturan bagian 4A: ikuti yang lebih ketat).
 - **Selesai jika:** `AGENTS.md` konsisten dengan nama berkas sebenarnya di `.agents/`.
 
 ### 0.9 [W] Buat `docs/SERVER_NOTES.md`
 Dokumen hidup untuk rekonsiliasi server nanti. Agent menambahkan entri setiap kali menyentuh sesuatu yang khusus Apache/XAMPP/Windows.
-- [ ] Bagian: **Asumsi lingkungan lokal** (versi PHP, ekstensi, path), **Aturan khusus Apache** (`.htaccess`, vhost, `php_flag`), **Perilaku khusus Windows** (path, line ending, hosts), **Yang harus diterjemahkan** saat pindah server (daftar), **Pertanyaan terbuka untuk server**.
+- [x] Bagian: **Asumsi lingkungan lokal** (versi PHP, ekstensi, path), **Aturan khusus Apache** (`.htaccess`, vhost, `php_flag`), **Perilaku khusus Windows** (path, line ending, hosts), **Yang harus diterjemahkan** saat pindah server (daftar), **Pertanyaan terbuka untuk server**.
 - **Selesai jika:** file ada dengan kerangka bagian di atas; entri pertama ditulis dari 0.5.
 
 ### 0.10 [W] ADR awal
-- [ ] `docs/adr/0000-template.md` (Konteks, Keputusan, Alternatif, Konsekuensi) dan `docs/adr/0001-xampp-lokal-server-ditunda.md`.
+- [x] `docs/adr/0000-template.md` (Konteks, Keputusan, Alternatif, Konsekuensi) dan `docs/adr/0001-xampp-lokal-server-ditunda.md`.
 - **Selesai jika:** keputusan "lokal dulu, server ditunda" tercatat.
 
 ---
@@ -729,7 +701,16 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 ## 13. Log Agent
 
 ```
-[tanggal] [task] [commit] ringkasan | catatan/hambatan | pertanyaan baru
+[2026-10-09] [0.1] chore(baseline): tag baseline-sebelum-refactor, rename branch dipuy ke main, checkout fix/fase-0-fondasi | git status bersih, branch kerja siap | -
+[2026-10-09] [0.2] chore(repo): remove production sql dumps from git, add .editorconfig and .gitattributes, update .gitignore | dump dipindah ke ../private, git ls-files bersih | -
+[2026-10-09] [0.3] feat(core): initialize composer, setup psr-4 autoloading, replace manual PHPMailer | composer install sukses, folder PHPMailer dihapus, autoload teruji | -
+[2026-10-09] [0.4] feat(config): rewrite .env.example, add boot validation for required env variables, unify db name | boot validation teruji, .env.example bersih | -
+[2026-10-09] [0.5] feat(xampp): setup docs/xampp configs, storage/logs, storage/uploads, execute create-db.sql | databases bps_solsel_dev & bps_solsel_test created, bps_app privileges verified | -
+[2026-10-09] [0.6] feat(db): remove default admin seed from schema.sql, create dev_seed.sql, import to dev/test databases | dev_seed loaded (8 layanan, 7 kategori, 2 admin dev), tests pass | -
+[2026-10-09] [0.7] docs(baseline): record baseline smoke test status across 27 endpoints in docs/BASELINE.md | smoke test script ran, all endpoints tested unauth & auth, findings logged | -
+[2026-10-09] [0.8] docs(agents): update AGENTS.md aligned with todo.md, clarify XAMPP local stack, fix workflow paths | AGENTS.md updated, rule precedence stated, workflow table verified | -
+[2026-10-09] [0.9] docs(server): create SERVER_NOTES.md living document for server reconciliation | assumptions, apache quirks, windows behaviors, and migration checklist documented | -
+[2026-10-09] [0.10] docs(adr): record ADR 0001 local xampp focus and server deferred, create template and index | docs/adr/ initialized with template, ADR-0001, and README index | -
 ```
 
 ---

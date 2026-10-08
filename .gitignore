@@ -5,23 +5,37 @@
 # Environment variables & local secrets
 .env
 .env.*
-.env.local
-scripts/.env
 !.env.example
 
-# Logs and error reports
-*.log
-scripts/*.log
-logs/
+# Composer & Node dependencies
+vendor/
+node_modules/
+package-lock.json
 
-# Uploaded user media (keep directories and essential logos)
+# Storage and uploads
+storage/logs/*
+!storage/logs/.gitkeep
+storage/uploads/*
+!storage/uploads/.gitkeep
 public/uploads/*
 !public/uploads/.gitkeep
 !public/uploads/logo_bps.jpg
 !public/uploads/1790220841_logo bps solsel.jpg
 
-# Automated generated scripts output
-scripts/trending-topics.json
+# Database dumps (only schema, migrations, and seeds are allowed in repo)
+database/*.sql
+!database/schema.sql
+!database/migrations/
+!database/seeds/
+
+# Logs and error reports
+*.log
+scripts/*.log
+/logs/
+
+# Test cache & temporary data
+.phpunit.cache/
+.vitest/
 
 # Backup & temporary files
 *.tmp
@@ -34,7 +48,3 @@ scripts/trending-topics.json
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# Node.js dependencies
-node_modules/
-package-lock.json
