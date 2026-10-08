@@ -127,11 +127,11 @@ Karena repo pernah publik, ganti semua rahasia berikut. Agent hanya menulis daft
 
 ### 0.5 [W] Lingkungan lokal XAMPP
 Detail konfigurasi ada di **Lampiran E**.
-- [ ] Agent membuat folder `docs/xampp/` berisi contoh siap salin: `httpd-vhosts.sample.conf`, `hosts.sample.txt`, `create-db.sql`, `php-ini-notes.md` (isi dari Lampiran E1–E3).
-- [ ] Agent membuat folder `storage/logs/` (dengan `.gitkeep`) **sebelum** vhost dipakai, karena log Apache vhost menulis ke sana.
-- [ ] **[MANUAL]** Developer menerapkan: aktifkan `mod_rewrite` dan `mod_headers`, tambah vhost `admin.test`, tambah baris `hosts`, aktifkan ekstensi PHP, jalankan `create-db.sql`, restart Apache. Agent berhenti dan menunggu konfirmasi.
-- [ ] Mailpit (Lampiran E5) agar email uji tidak terkirim sungguhan.
-- [ ] **Fallback** (tidak disarankan): akses lewat subfolder `http://localhost/adminDashboard/` memakai `.htaccess` di root (Lampiran E4) dan `APP_BASE_PATH=/adminDashboard`.
+- [x] Agent membuat folder `docs/xampp/` berisi contoh siap salin: `httpd-vhosts.sample.conf`, `hosts.sample.txt`, `create-db.sql`, `php-ini-notes.md` (isi dari Lampiran E1–E3).
+- [x] Agent membuat folder `storage/logs/` (dengan `.gitkeep`) **sebelum** vhost dipakai, karena log Apache vhost menulis ke sana.
+- [x] **[MANUAL]** Developer menerapkan: aktifkan `mod_rewrite` dan `mod_headers`, tambah vhost `admin.test`, tambah baris `hosts`, aktifkan ekstensi PHP, jalankan `create-db.sql`, restart Apache. Agent berhenti dan menunggu konfirmasi.
+- [x] Mailpit (Lampiran E5) agar email uji tidak terkirim sungguhan.
+- [x] **Fallback** (tidak disarankan): akses lewat subfolder `http://localhost/adminDashboard/` memakai `.htaccess` di root (Lampiran E4) dan `APP_BASE_PATH=/adminDashboard`.
 - **Selesai jika:**
   - `http://admin.test/` membuka aplikasi (halaman login atau dashboard);
   - `C:\xampp\apache\bin\httpd.exe -t` menjawab `Syntax OK`;
@@ -705,6 +705,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.2] chore(repo): remove production sql dumps from git, add .editorconfig and .gitattributes, update .gitignore | dump dipindah ke ../private, git ls-files bersih | -
 [2026-10-09] [0.3] feat(core): initialize composer, setup psr-4 autoloading, replace manual PHPMailer | composer install sukses, folder PHPMailer dihapus, autoload teruji | -
 [2026-10-09] [0.4] feat(config): rewrite .env.example, add boot validation for required env variables, unify db name | boot validation teruji, .env.example bersih | -
+[2026-10-09] [0.5] feat(xampp): setup docs/xampp configs, storage/logs, storage/uploads, execute create-db.sql | databases bps_solsel_dev & bps_solsel_test created, bps_app privileges verified | -
 ```
 
 ---
