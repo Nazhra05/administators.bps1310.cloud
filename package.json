@@ -4,11 +4,13 @@
   "description": "Dashboard administrasi berbasis web BPS Kabupaten Solok Selatan",
   "type": "module",
   "scripts": {
+    "start": "powershell -ExecutionPolicy Bypass -File scripts/start-local.ps1",
     "test": "vitest run"
   },
   "devDependencies": {
     "@vitest/ui": "^5.0.2",
     "happy-dom": "^20.14.5",
+    "vite": "^8.3.4",
     "vitest": "^5.0.2"
   }
 }

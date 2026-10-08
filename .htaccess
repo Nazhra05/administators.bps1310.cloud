@@ -1,5 +1,5 @@
 # ==========================================================
-# Apache Security Configuration
+# Apache Security Configuration - Root
 # ==========================================================
 
 # Prevent Directory Browsing
@@ -27,8 +27,8 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Block direct access to config, scripts, app directories
-    RewriteRule ^(config|scripts|app|database)/ - [F,L]
+    # Block direct access to sensitive directories
+    RewriteRule ^(config|scripts|app|database|\.agents|\.git)/ - [F,L]
 </IfModule>
 
 # Security HTTP Headers

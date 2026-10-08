@@ -4,51 +4,105 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../config/config.php';
 
+
 /* =====================================================
-   CORS & PREFLIGHT
+   CORS
 ===================================================== */
 
-$envOrigins = array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', ''))));
-$allowedOrigins = array_unique(array_merge([
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-], $envOrigins));
+$envOrigins = array_filter(
+    array_map(
+        'trim',
+        explode(
+            ',',
+            env('CORS_ALLOWED_ORIGINS', '')
+        )
+    )
+);
+
+
+$allowedOrigins = array_unique(
+    array_merge(
+        [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ],
+        $envOrigins
+    )
+);
+
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins, true)) {
-    header("Access-Control-Allow-Origin: $origin");
+
+
+if (
+    $origin !== '' &&
+    in_array(
+        $origin,
+        $allowedOrigins,
+        true
+    )
+) {
+
+    header(
+        "Access-Control-Allow-Origin: {$origin}"
+    );
+
     header('Vary: Origin');
 }
 
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-API-KEY');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
+header(
+    'Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS'
+);
+
+header(
+    'Access-Control-Allow-Headers: Content-Type, X-API-KEY'
+);
 
 
 /* =====================================================
-   FUNGSI RESPONSE
+   PREFLIGHT
 ===================================================== */
 
-function responseJson($status, $message, $data = null, $httpCode = 200)
-{
-    http_response_code($httpCode);
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS'
+) {
 
-    echo json_encode([
-        'status'  => $status,
-        'message' => $message,
-        'data'    => $data
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    http_response_code(204);
 
     exit;
 }
 
 
 /* =====================================================
-   FUNGSI NORMALISASI URL
+   FUNGSI RESPONSE JSON
+===================================================== */
+
+function responseJson(
+    $status,
+    $message,
+    $data = null,
+    $httpCode = 200
+) {
+
+    http_response_code($httpCode);
+
+    echo json_encode(
+        [
+            'status'  => $status,
+            'message' => $message,
+            'data'    => $data
+        ],
+        JSON_UNESCAPED_UNICODE |
+        JSON_UNESCAPED_SLASHES
+    );
+
+    exit;
+}
+
+
+/* =====================================================
+   NORMALISASI URL
 ===================================================== */
 
 function normalizeUrl($url)
@@ -59,6 +113,7 @@ function normalizeUrl($url)
         return '';
     }
 
+
     if (
         preg_match(
             '/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i',
@@ -66,19 +121,24 @@ function normalizeUrl($url)
             $matches
         )
     ) {
+
         return trim($matches[2]);
     }
+
 
     return $url;
 }
 
 
 /* =====================================================
-   FUNGSI VALIDASI KATEGORI
+   CEK KATEGORI
 ===================================================== */
 
-function kategoriExists($conn, $id_kategori)
-{
+function kategoriExists(
+    $conn,
+    $id_kategori
+) {
+
     $stmt = $conn->prepare("
         SELECT id_kategori
         FROM kategori
@@ -86,19 +146,62 @@ function kategoriExists($conn, $id_kategori)
         LIMIT 1
     ");
 
-    $stmt->execute([$id_kategori]);
 
-    return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([
+        $id_kategori
+    ]);
+
+
+    return (bool) $stmt->fetch(
+        PDO::FETCH_ASSOC
+    );
 }
 
 
 /* =====================================================
-   FUNGSI CEK API KEY
+   VALIDASI AKSES
+===================================================== */
+
+function validateAkses($akses)
+{
+    return in_array(
+        $akses,
+        [
+            'Internal',
+            'Public'
+        ],
+        true
+    );
+}
+
+
+/* =====================================================
+   VALIDASI VPN
+===================================================== */
+
+function validateVpn($vpn)
+{
+    return in_array(
+        $vpn,
+        [
+            'Yes',
+            'No'
+        ],
+        true
+    );
+}
+
+
+/* =====================================================
+   CEK API KEY
 ===================================================== */
 
 function checkApiKey()
 {
-    $apiKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
+
+    $apiKey =
+        $_SERVER['HTTP_X_API_KEY'] ?? '';
+
 
     if ($apiKey === '') {
 
@@ -110,7 +213,11 @@ function checkApiKey()
         );
     }
 
-    if (!defined('API_KEY')) {
+
+    if (
+        !defined('API_KEY') ||
+        API_KEY === ''
+    ) {
 
         responseJson(
             false,
@@ -120,7 +227,13 @@ function checkApiKey()
         );
     }
 
-    if (!hash_equals(API_KEY, $apiKey)) {
+
+    if (
+        !hash_equals(
+            API_KEY,
+            $apiKey
+        )
+    ) {
 
         responseJson(
             false,
@@ -136,7 +249,8 @@ function checkApiKey()
    METHOD REQUEST
 ===================================================== */
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method =
+    $_SERVER['REQUEST_METHOD'] ?? '';
 
 
 /* =====================================================
@@ -147,18 +261,22 @@ checkApiKey();
 
 
 /* =====================================================
-   GET - AMBIL DATA
+   GET
 ===================================================== */
 
 if ($method === 'GET') {
 
-    $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+    $id =
+        isset($_GET['id'])
+            ? (int) $_GET['id']
+            : 0;
+
 
     try {
 
-        /* ---------------------------------------------
+        /* =============================================
            GET SATU DATA
-        --------------------------------------------- */
+        ============================================= */
 
         if ($id > 0) {
 
@@ -166,7 +284,10 @@ if ($method === 'GET') {
                 SELECT
                     l.id_layanan,
                     l.id_kategori,
+                    l.akses,
+                    l.vpn,
                     l.nama_layanan,
+                    l.deskripsi_layanan,
                     l.url,
                     l.logo,
                     k.nama_kategori
@@ -177,9 +298,17 @@ if ($method === 'GET') {
                 LIMIT 1
             ");
 
-            $stmt->execute([$id]);
 
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->execute([
+                $id
+            ]);
+
+
+            $data =
+                $stmt->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
 
             if (!$data) {
 
@@ -191,7 +320,19 @@ if ($method === 'GET') {
                 );
             }
 
-            $data['url'] = normalizeUrl($data['url']);
+
+            $data['id_layanan'] =
+                (int) $data['id_layanan'];
+
+            $data['id_kategori'] =
+                (int) $data['id_kategori'];
+
+
+            $data['url'] =
+                normalizeUrl(
+                    $data['url']
+                );
+
 
             responseJson(
                 true,
@@ -201,15 +342,18 @@ if ($method === 'GET') {
         }
 
 
-        /* ---------------------------------------------
+        /* =============================================
            GET SEMUA DATA
-        --------------------------------------------- */
+        ============================================= */
 
         $stmt = $conn->query("
             SELECT
                 l.id_layanan,
                 l.id_kategori,
+                l.akses,
+                l.vpn,
                 l.nama_layanan,
+                l.deskripsi_layanan,
                 l.url,
                 l.logo,
                 k.nama_kategori
@@ -219,12 +363,47 @@ if ($method === 'GET') {
             ORDER BY l.id_layanan DESC
         ");
 
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $data =
+            $stmt->fetchAll(
+                PDO::FETCH_ASSOC
+            );
 
 
         foreach ($data as &$item) {
-            $item['url'] = normalizeUrl($item['url']);
+
+            $item['id_layanan'] =
+                (int) $item['id_layanan'];
+
+            $item['id_kategori'] =
+                (int) $item['id_kategori'];
+
+
+            $item['url'] =
+                normalizeUrl(
+                    $item['url']
+                );
+
+
+            $item['akses'] =
+                $item['akses'] ?? 'Public';
+
+            $item['vpn'] =
+                $item['vpn'] ?? 'No';
+
+            $item['nama_layanan'] =
+                $item['nama_layanan'] ?? '';
+
+            $item['deskripsi_layanan'] =
+                $item['deskripsi_layanan'] ?? '';
+
+            $item['logo'] =
+                $item['logo'] ?? '';
+
+            $item['nama_kategori'] =
+                $item['nama_kategori'] ?? '';
         }
+
 
         unset($item);
 
@@ -249,7 +428,7 @@ if ($method === 'GET') {
 
 
 /* =====================================================
-   POST - TAMBAH DATA
+   POST
 ===================================================== */
 
 if ($method === 'POST') {
@@ -258,6 +437,7 @@ if ($method === 'POST') {
         file_get_contents('php://input'),
         true
     );
+
 
     if (!is_array($input)) {
 
@@ -270,19 +450,50 @@ if ($method === 'POST') {
     }
 
 
-    $id_kategori  = $input['id_kategori'] ?? null;
-    $nama_layanan = trim($input['nama_layanan'] ?? '');
-    $url          = normalizeUrl($input['url'] ?? '');
-    $logo         = trim($input['logo'] ?? '');
+    $id_kategori =
+        $input['id_kategori'] ?? null;
+
+    $akses =
+        trim(
+            $input['akses'] ?? 'Public'
+        );
+
+    $vpn =
+        trim(
+            $input['vpn'] ?? 'No'
+        );
+
+    $nama_layanan =
+        trim(
+            $input['nama_layanan'] ?? ''
+        );
+
+    $deskripsi_layanan =
+        trim(
+            $input['deskripsi_layanan'] ?? ''
+        );
+
+    $url =
+        normalizeUrl(
+            $input['url'] ?? ''
+        );
+
+    $logo =
+        trim(
+            $input['logo'] ?? ''
+        );
 
 
-    /* ---------------------------------------------
-       VALIDASI ID KATEGORI
-    --------------------------------------------- */
+    /* =============================================
+       VALIDASI KATEGORI
+    ============================================= */
 
     if (
         $id_kategori === null ||
-        filter_var($id_kategori, FILTER_VALIDATE_INT) === false ||
+        filter_var(
+            $id_kategori,
+            FILTER_VALIDATE_INT
+        ) === false ||
         (int) $id_kategori <= 0
     ) {
 
@@ -294,12 +505,44 @@ if ($method === 'POST') {
         );
     }
 
-    $id_kategori = (int) $id_kategori;
+
+    $id_kategori =
+        (int) $id_kategori;
 
 
-    /* ---------------------------------------------
+    /* =============================================
+       VALIDASI AKSES
+    ============================================= */
+
+    if (!validateAkses($akses)) {
+
+        responseJson(
+            false,
+            'akses harus berupa Internal atau Public',
+            null,
+            400
+        );
+    }
+
+
+    /* =============================================
+       VALIDASI VPN
+    ============================================= */
+
+    if (!validateVpn($vpn)) {
+
+        responseJson(
+            false,
+            'vpn harus berupa Yes atau No',
+            null,
+            400
+        );
+    }
+
+
+    /* =============================================
        VALIDASI NAMA
-    --------------------------------------------- */
+    ============================================= */
 
     if ($nama_layanan === '') {
 
@@ -312,13 +555,33 @@ if ($method === 'POST') {
     }
 
 
+    /* =============================================
+       VALIDASI DESKRIPSI
+    ============================================= */
+
+    if ($deskripsi_layanan === '') {
+
+        responseJson(
+            false,
+            'deskripsi_layanan wajib diisi',
+            null,
+            400
+        );
+    }
+
+
     try {
 
-        /* ---------------------------------------------
+        /* =============================================
            CEK KATEGORI
-        --------------------------------------------- */
+        ============================================= */
 
-        if (!kategoriExists($conn, $id_kategori)) {
+        if (
+            !kategoriExists(
+                $conn,
+                $id_kategori
+            )
+        ) {
 
             responseJson(
                 false,
@@ -329,15 +592,18 @@ if ($method === 'POST') {
         }
 
 
-        /* ---------------------------------------------
+        /* =============================================
            INSERT
-        --------------------------------------------- */
+        ============================================= */
 
         $stmt = $conn->prepare("
             INSERT INTO layanan
             (
                 id_kategori,
+                akses,
+                vpn,
                 nama_layanan,
+                deskripsi_layanan,
                 url,
                 logo
             )
@@ -346,25 +612,35 @@ if ($method === 'POST') {
                 ?,
                 ?,
                 ?,
+                ?,
+                ?,
+                ?,
                 ?
             )
         ");
 
+
         $stmt->execute([
             $id_kategori,
+            $akses,
+            $vpn,
             $nama_layanan,
+            $deskripsi_layanan,
             $url,
             $logo
         ]);
 
-        $idBaru = $conn->lastInsertId();
+
+        $idBaru =
+            $conn->lastInsertId();
 
 
         responseJson(
             true,
             'Layanan berhasil ditambahkan',
             [
-                'id_layanan' => (int) $idBaru
+                'id_layanan' =>
+                    (int) $idBaru
             ],
             201
         );
@@ -383,12 +659,15 @@ if ($method === 'POST') {
 
 
 /* =====================================================
-   PUT - EDIT DATA
+   PUT
 ===================================================== */
 
 if ($method === 'PUT') {
 
-    $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+    $id =
+        isset($_GET['id'])
+            ? (int) $_GET['id']
+            : 0;
 
 
     if ($id <= 0) {
@@ -419,19 +698,50 @@ if ($method === 'PUT') {
     }
 
 
-    $id_kategori  = $input['id_kategori'] ?? null;
-    $nama_layanan = trim($input['nama_layanan'] ?? '');
-    $url          = normalizeUrl($input['url'] ?? '');
-    $logo         = trim($input['logo'] ?? '');
+    $id_kategori =
+        $input['id_kategori'] ?? null;
+
+    $akses =
+        trim(
+            $input['akses'] ?? 'Public'
+        );
+
+    $vpn =
+        trim(
+            $input['vpn'] ?? 'No'
+        );
+
+    $nama_layanan =
+        trim(
+            $input['nama_layanan'] ?? ''
+        );
+
+    $deskripsi_layanan =
+        trim(
+            $input['deskripsi_layanan'] ?? ''
+        );
+
+    $url =
+        normalizeUrl(
+            $input['url'] ?? ''
+        );
+
+    $logo =
+        trim(
+            $input['logo'] ?? ''
+        );
 
 
-    /* ---------------------------------------------
+    /* =============================================
        VALIDASI KATEGORI
-    --------------------------------------------- */
+    ============================================= */
 
     if (
         $id_kategori === null ||
-        filter_var($id_kategori, FILTER_VALIDATE_INT) === false ||
+        filter_var(
+            $id_kategori,
+            FILTER_VALIDATE_INT
+        ) === false ||
         (int) $id_kategori <= 0
     ) {
 
@@ -443,12 +753,44 @@ if ($method === 'PUT') {
         );
     }
 
-    $id_kategori = (int) $id_kategori;
+
+    $id_kategori =
+        (int) $id_kategori;
 
 
-    /* ---------------------------------------------
+    /* =============================================
+       VALIDASI AKSES
+    ============================================= */
+
+    if (!validateAkses($akses)) {
+
+        responseJson(
+            false,
+            'akses harus berupa Internal atau Public',
+            null,
+            400
+        );
+    }
+
+
+    /* =============================================
+       VALIDASI VPN
+    ============================================= */
+
+    if (!validateVpn($vpn)) {
+
+        responseJson(
+            false,
+            'vpn harus berupa Yes atau No',
+            null,
+            400
+        );
+    }
+
+
+    /* =============================================
        VALIDASI NAMA
-    --------------------------------------------- */
+    ============================================= */
 
     if ($nama_layanan === '') {
 
@@ -461,13 +803,33 @@ if ($method === 'PUT') {
     }
 
 
+    /* =============================================
+       VALIDASI DESKRIPSI
+    ============================================= */
+
+    if ($deskripsi_layanan === '') {
+
+        responseJson(
+            false,
+            'deskripsi_layanan wajib diisi',
+            null,
+            400
+        );
+    }
+
+
     try {
 
-        /* ---------------------------------------------
+        /* =============================================
            CEK KATEGORI
-        --------------------------------------------- */
+        ============================================= */
 
-        if (!kategoriExists($conn, $id_kategori)) {
+        if (
+            !kategoriExists(
+                $conn,
+                $id_kategori
+            )
+        ) {
 
             responseJson(
                 false,
@@ -478,9 +840,9 @@ if ($method === 'PUT') {
         }
 
 
-        /* ---------------------------------------------
+        /* =============================================
            CEK LAYANAN
-        --------------------------------------------- */
+        ============================================= */
 
         $cek = $conn->prepare("
             SELECT id_layanan
@@ -489,9 +851,17 @@ if ($method === 'PUT') {
             LIMIT 1
         ");
 
-        $cek->execute([$id]);
 
-        if (!$cek->fetch(PDO::FETCH_ASSOC)) {
+        $cek->execute([
+            $id
+        ]);
+
+
+        if (
+            !$cek->fetch(
+                PDO::FETCH_ASSOC
+            )
+        ) {
 
             responseJson(
                 false,
@@ -502,23 +872,30 @@ if ($method === 'PUT') {
         }
 
 
-        /* ---------------------------------------------
+        /* =============================================
            UPDATE
-        --------------------------------------------- */
+        ============================================= */
 
         $stmt = $conn->prepare("
             UPDATE layanan
             SET
                 id_kategori = ?,
+                akses = ?,
+                vpn = ?,
                 nama_layanan = ?,
+                deskripsi_layanan = ?,
                 url = ?,
                 logo = ?
             WHERE id_layanan = ?
         ");
 
+
         $stmt->execute([
             $id_kategori,
+            $akses,
+            $vpn,
             $nama_layanan,
+            $deskripsi_layanan,
             $url,
             $logo,
             $id
@@ -544,12 +921,15 @@ if ($method === 'PUT') {
 
 
 /* =====================================================
-   DELETE - HAPUS DATA
+   DELETE
 ===================================================== */
 
 if ($method === 'DELETE') {
 
-    $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+    $id =
+        isset($_GET['id'])
+            ? (int) $_GET['id']
+            : 0;
 
 
     if ($id <= 0) {
@@ -565,9 +945,9 @@ if ($method === 'DELETE') {
 
     try {
 
-        /* ---------------------------------------------
-           CEK LAYANAN
-        --------------------------------------------- */
+        /* =============================================
+           CEK DATA
+        ============================================= */
 
         $cek = $conn->prepare("
             SELECT id_layanan
@@ -576,9 +956,17 @@ if ($method === 'DELETE') {
             LIMIT 1
         ");
 
-        $cek->execute([$id]);
 
-        if (!$cek->fetch(PDO::FETCH_ASSOC)) {
+        $cek->execute([
+            $id
+        ]);
+
+
+        if (
+            !$cek->fetch(
+                PDO::FETCH_ASSOC
+            )
+        ) {
 
             responseJson(
                 false,
@@ -589,16 +977,19 @@ if ($method === 'DELETE') {
         }
 
 
-        /* ---------------------------------------------
+        /* =============================================
            DELETE
-        --------------------------------------------- */
+        ============================================= */
 
         $stmt = $conn->prepare("
             DELETE FROM layanan
             WHERE id_layanan = ?
         ");
 
-        $stmt->execute([$id]);
+
+        $stmt->execute([
+            $id
+        ]);
 
 
         responseJson(

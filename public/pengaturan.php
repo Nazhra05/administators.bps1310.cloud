@@ -1,10 +1,10 @@
 <?php
 
-require_once '../config/config.php';
 require_once '../config/auth.php';
 
 /* Username admin */
-$admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_username = auth_username();
+$admin_role = auth_role();
 
 ?>
 
@@ -27,7 +27,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Segoe UI", Arial, sans-serif;
             background: #f4f8fc;
             color: #333;
         }
@@ -47,7 +47,13 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             padding: 25px 15px;
             z-index: 9999;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+
+            transform: translateX(-100%);
             transition: transform 0.3s ease;
+        }
+
+        .sidebar.sidebar-open {
+            transform: translateX(0);
         }
 
         .logo {
@@ -72,6 +78,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             padding: 12px 15px;
             border-radius: 8px;
             transition: 0.2s ease;
+            font-size: 16px;
         }
 
         .menu a:hover {
@@ -90,21 +97,38 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         ========================= */
 
         .menu-toggle {
-            display: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
             position: fixed;
             top: 15px;
             left: 15px;
+
             width: 44px;
             height: 44px;
+
             border: none;
             border-radius: 8px;
+
             background: #0066b3;
             color: white;
+
             font-size: 23px;
             cursor: pointer;
+
             z-index: 10001;
+
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
         }
+
+        .menu-toggle:hover {
+            background: #00589c;
+        }
+
+        /* =========================
+           SIDEBAR OVERLAY
+        ========================= */
 
         .sidebar-overlay {
             display: none;
@@ -123,9 +147,14 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         ========================= */
 
         .main {
-            margin-left: 240px;
+            margin-left: 0;
             padding: 30px;
             min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main.sidebar-open {
+            margin-left: 240px;
         }
 
         /* =========================
@@ -252,10 +281,20 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         }
 
         /* =========================
-           CARD
+           SETTINGS GRID
         ========================= */
 
-        .card {
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        /* =========================
+           SETTINGS CARD
+        ========================= */
+
+        .settings-card {
             background: white;
             padding: 25px;
             border-radius: 10px;
@@ -263,54 +302,113 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             border-left: 4px solid #0066b3;
         }
 
-        /* =========================
-           INFORMATION
-        ========================= */
-
-        .info {
+        .settings-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 22px;
         }
 
-        .info:last-child {
-            margin-bottom: 0;
+        .settings-icon {
+            width: 38px;
+            height: 38px;
+            background: #eaf4fb;
+            color: #0066b3;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
         }
 
-        .info strong {
-            display: block;
-            margin-bottom: 7px;
+        .settings-title h2 {
+            font-size: 18px;
             color: #005a9c;
-            font-size: 15px;
-        }
-
-        .info span {
-            color: #555;
-            font-size: 14px;
-            line-height: 1.5;
         }
 
         /* =========================
-           RESPONSIVE TABLET / MOBILE
+           INFO ITEM
+        ========================= */
+
+        .info-item {
+            padding: 13px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .info-item:first-child {
+            padding-top: 0;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            display: block;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* =========================
+           SECURITY
+        ========================= */
+
+        .security-text {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .logout-main {
+            display: inline-block;
+            padding: 10px 16px;
+            background: #0066b3;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .logout-main:hover {
+            background: #00589c;
+        }
+
+        /* =========================
+           RESPONSIVE TABLET
+        ========================= */
+
+        @media (max-width: 900px) {
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        /* =========================
+           RESPONSIVE MOBILE
         ========================= */
 
         @media (max-width: 768px) {
 
-            .menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
             .main {
                 margin-left: 0;
                 padding: 80px 20px 30px;
+            }
+
+            .main.sidebar-open {
+                margin-left: 0;
             }
 
             .header {
@@ -342,7 +440,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
                 width: 100%;
             }
 
-            .card {
+            .settings-card {
                 padding: 20px;
             }
 
@@ -353,6 +451,13 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         ========================= */
 
         @media (max-width: 480px) {
+
+            .menu-toggle {
+                top: 12px;
+                left: 12px;
+                width: 42px;
+                height: 42px;
+            }
 
             .main {
                 padding: 75px 15px 25px;
@@ -366,28 +471,16 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
                 font-size: 13px;
             }
 
-            .card {
+            .settings-card {
                 padding: 18px;
                 border-radius: 9px;
             }
 
-            .info {
-                margin-bottom: 20px;
+            .settings-title h2 {
+                font-size: 17px;
             }
 
-            .info strong {
-                font-size: 14px;
-            }
-
-            .info span {
-                font-size: 13px;
-            }
-
-            .admin-status {
-                padding: 9px 12px;
-            }
-
-            .admin-name {
+            .info-value {
                 font-size: 13px;
             }
 
@@ -408,7 +501,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
     type="button"
     class="menu-toggle"
     id="menuToggle"
-    onclick="toggleSidebar()"
+    onclick="openSidebar()"
     aria-label="Buka menu"
 >
     ☰
@@ -422,7 +515,6 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 <div
     class="sidebar-overlay"
     id="sidebarOverlay"
-    onclick="closeSidebar()"
 ></div>
 
 
@@ -456,11 +548,21 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             </a>
         </li>
 
-        <li>
-            <a href="kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
+        <?php if ($admin_role === 'ADMIN IT'): ?>
+
+            <li>
+                <a href="kelola_admin.php">
+                    Kelola Admin
+                </a>
+            </li>
+
+            <li>
+                <a href="kelola_user.php">
+                    Kelola User
+                </a>
+            </li>
+
+        <?php endif; ?>
 
         <li>
             <a href="pengaturan.php" class="active">
@@ -477,16 +579,18 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
      MAIN
 ========================= -->
 
-<main class="main">
+<main class="main" id="mainContent">
 
     <div class="header">
 
         <div>
 
-            <h1>Pengaturan</h1>
+            <h1>
+                Pengaturan
+            </h1>
 
             <p>
-                Informasi sistem Dashboard Admin BPS Kabupaten Solok Selatan.
+                Kelola informasi admin dan keamanan akun.
             </p>
 
         </div>
@@ -549,40 +653,83 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 
 
     <!-- =========================
-         INFORMATION CARD
+         SETTINGS
     ========================= -->
 
-    <div class="card">
+    <div class="settings-grid">
 
-        <div class="info">
 
-            <strong>Nama Sistem</strong>
+        <!-- =========================
+             INFORMASI SISTEM & PROFIL ADMIN
+        ========================= -->
 
-            <span>
-                Dashboard Admin BPS Kabupaten Solok Selatan
-            </span>
+        <div class="settings-card card">
+
+            <div class="settings-title">
+
+                <div class="settings-icon">
+                    ⚙️
+                </div>
+
+                <h2>
+                    Informasi Sistem
+                </h2>
+
+            </div>
+
+            <div class="info-item">
+                <span class="info-label">Nama Sistem</span>
+                <span class="info-value">Dashboard Admin BPS Kabupaten Solok Selatan</span>
+            </div>
+
+            <div class="info-item">
+                <span class="info-label">Database</span>
+                <span class="info-value">MySQL / MariaDB (bps_solsel)</span>
+            </div>
+
+            <div class="info-item">
+                <span class="info-label">Username</span>
+                <span class="info-value"><?= htmlspecialchars($admin_username); ?> (<?= htmlspecialchars($admin_role); ?>)</span>
+            </div>
+
+            <div class="info-item">
+                <span class="info-label">Lingkungan</span>
+                <span class="info-value"><?= htmlspecialchars(defined('APP_ENV') ? APP_ENV : 'development'); ?></span>
+            </div>
 
         </div>
 
 
-        <div class="info">
+        <!-- =========================
+             KEAMANAN
+        ========================= -->
 
-            <strong>Database</strong>
+        <div class="settings-card">
 
-            <span>
-                bps_solsel
-            </span>
+            <div class="settings-title">
 
-        </div>
+                <div class="settings-icon">
+                    🔐
+                </div>
+
+                <h2>
+                    Keamanan
+                </h2>
+
+            </div>
 
 
-        <div class="info">
+            <p class="security-text">
+                Pastikan kamu selalu keluar dari akun setelah selesai menggunakan dashboard, terutama jika menggunakan komputer bersama.
+            </p>
 
-            <strong>Teknologi</strong>
 
-            <span>
-                PHP, MySQL, XAMPP
-            </span>
+            <a
+                href="logout.php"
+                class="logout-main"
+            >
+                🚪 Logout dari Akun
+            </a>
 
         </div>
 
@@ -594,42 +741,23 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 <script>
 
 /* =========================
-   SIDEBAR MOBILE
+   BUKA SIDEBAR
 ========================= */
 
-function toggleSidebar() {
+function openSidebar() {
 
     const sidebar = document.getElementById('sidebar');
+    const main = document.getElementById('mainContent');
     const overlay = document.getElementById('sidebarOverlay');
 
-    sidebar.classList.toggle('show');
-    overlay.classList.toggle('show');
+    sidebar.classList.add('sidebar-open');
+    main.classList.add('sidebar-open');
+
+    if (window.innerWidth <= 768) {
+        overlay.classList.add('show');
+    }
 
 }
-
-
-function closeSidebar() {
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    sidebar.classList.remove('show');
-    overlay.classList.remove('show');
-
-}
-
-
-/* Tutup sidebar setelah klik menu */
-
-document.querySelectorAll('.menu a').forEach(function(link) {
-
-    link.addEventListener('click', function() {
-
-        closeSidebar();
-
-    });
-
-});
 
 
 /* =========================
@@ -645,7 +773,10 @@ function toggleAdminMenu() {
 }
 
 
-/* Tutup dropdown jika klik di luar */
+/* =========================
+   TUTUP DROPDOWN JIKA
+   KLIK DI LUAR
+========================= */
 
 document.addEventListener('click', function(event) {
 

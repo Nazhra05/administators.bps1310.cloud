@@ -1,17 +1,26 @@
 <?php
 
 require_once '../config/config.php';
-require_once '../config/auth.php';
+
+/* =========================
+   CEK LOGIN ADMIN
+========================= */
+
+if (empty($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$admin_role = $_SESSION['admin_role'] ?? '';
 
 /* =========================
    AMBIL ID
 ========================= */
 
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$id = $_GET['id'] ?? null;
 
-if (!$id || $id <= 0) {
-    header('Location: layanan.php');
-    exit;
+if (!$id) {
+    die('ID layanan tidak ditemukan.');
 }
 
 
@@ -25,8 +34,11 @@ $stmt_layanan = $conn->prepare("
         l.id_layanan,
         l.id_kategori,
         l.nama_layanan,
+        l.deskripsi_layanan,
         l.url,
         l.logo,
+        l.akses,
+        l.vpn,
         k.nama_kategori
     FROM layanan l
     LEFT JOIN kategori k
@@ -60,17 +72,29 @@ $pesan = '';
 
 
 /* =========================
+   NILAI FORM
+========================= */
+
+$nama_layanan = $layanan['nama_layanan'] ?? '';
+$deskripsi_layanan = $layanan['deskripsi_layanan'] ?? '';
+$url = $layanan['url'] ?? '';
+$id_kategori = $layanan['id_kategori'] ?? '';
+$akses = $layanan['akses'] ?? '';
+$vpn = $layanan['vpn'] ?? '';
+
+
+/* =========================
    PROSES UPDATE
 ========================= */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    if (!csrf_verify()) {
-        $pesan = 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang halaman.';
-    } else {
-        $nama_layanan = trim($_POST['nama_layanan'] ?? '');
+    $nama_layanan = trim($_POST['nama_layanan'] ?? '');
+    $deskripsi_layanan = trim($_POST['deskripsi_layanan'] ?? '');
     $url = trim($_POST['url'] ?? '');
     $id_kategori = $_POST['id_kategori'] ?? '';
+    $akses = $_POST['akses'] ?? '';
+    $vpn = $_POST['vpn'] ?? '';
 
     $logo = $layanan['logo'] ?? '';
 
@@ -79,13 +103,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        VALIDASI
     ========================= */
 
-    if (
+    if (isset($_POST['csrf_token']) && !csrf_verify()) {
+
+        $pesan = 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang halaman.';
+
+    } elseif (
         $nama_layanan === '' ||
+        $deskripsi_layanan === '' ||
         $url === '' ||
-        $id_kategori === ''
+        $id_kategori === '' ||
+        $akses === '' ||
+        $vpn === ''
     ) {
 
         $pesan = 'Semua data wajib diisi.';
+
+    } elseif (!in_array($akses, ['Internal', 'Public'], true)) {
+
+        $pesan = 'Pilihan akses tidak valid.';
+
+    } elseif (!in_array($vpn, ['Yes', 'No'], true)) {
+
+        $pesan = 'Pilihan VPN tidak valid.';
 
     } else {
 
@@ -98,41 +137,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             isset($_FILES['logo']) &&
             $_FILES['logo']['error'] === UPLOAD_ERR_OK
         ) {
+
             $folder_upload = __DIR__ . '/uploads/';
 
             if (!is_dir($folder_upload)) {
-                mkdir($folder_upload, 0755, true);
+                mkdir($folder_upload, 0777, true);
             }
 
             $nama_asli = basename($_FILES['logo']['name']);
-            $ekstensi = strtolower(pathinfo($nama_asli, PATHINFO_EXTENSION));
-            $format_diizinkan = ['jpg', 'jpeg', 'png', 'webp'];
 
-            if (!in_array($ekstensi, $format_diizinkan, true)) {
-                $pesan = 'Format logo harus berupa JPG, JPEG, PNG, atau WEBP.';
-            } elseif ($_FILES['logo']['size'] > 5 * 1024 * 1024) {
-                $pesan = 'Ukuran file logo maksimal 5 MB.';
-            } else {
-                $imageInfo = @getimagesize($_FILES['logo']['tmp_name']);
-                if ($imageInfo === false) {
-                    $pesan = 'File yang diupload bukan gambar yang valid.';
-                } else {
-                    $nama_file = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ekstensi;
-                    $target = $folder_upload . $nama_file;
+            $ekstensi = strtolower(
+                pathinfo($nama_asli, PATHINFO_EXTENSION)
+            );
 
-                    if (move_uploaded_file($_FILES['logo']['tmp_name'], $target)) {
-                        // Hapus file logo lama jika ada dan bukan default
-                        if (!empty($layanan['logo'])) {
-                            $oldLogo = basename($layanan['logo']);
-                            if ($oldLogo !== 'logo_bps.jpg') {
-                                $oldFile = $folder_upload . $oldLogo;
-                                if (is_file($oldFile)) {
-                                    @unlink($oldFile);
-                                }
-                            }
-                        }
-                        $logo = $nama_file;
-                    }
+            $format_diizinkan = [
+                'jpg',
+                'jpeg',
+                'png',
+                'webp'
+            ];
+
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime_tipe = $finfo->file($_FILES['logo']['tmp_name']);
+            $mime_diizinkan = [
+                'image/jpeg',
+                'image/png',
+                'image/webp'
+            ];
+
+            if (
+                in_array($ekstensi, $format_diizinkan, true) &&
+                in_array($mime_tipe, $mime_diizinkan, true) &&
+                $_FILES['logo']['size'] <= 2 * 1024 * 1024
+            ) {
+
+                $nama_file =
+                    time() . '_' .
+                    preg_replace(
+                        '/[^A-Za-z0-9._-]/',
+                        '_',
+                        $nama_asli
+                    );
+
+                $target = $folder_upload . $nama_file;
+
+                if (
+                    move_uploaded_file(
+                        $_FILES['logo']['tmp_name'],
+                        $target
+                    )
+                ) {
+
+                    $logo = $nama_file;
                 }
             }
         }
@@ -149,16 +205,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SET
                     id_kategori = ?,
                     nama_layanan = ?,
+                    deskripsi_layanan = ?,
                     url = ?,
-                    logo = ?
+                    logo = ?,
+                    akses = ?,
+                    vpn = ?
                 WHERE id_layanan = ?
             ");
 
             $stmt_update->execute([
                 (int) $id_kategori,
                 $nama_layanan,
+                $deskripsi_layanan,
                 $url,
                 $logo,
+                $akses,
+                $vpn,
                 (int) $id
             ]);
 
@@ -171,11 +233,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
 
         } catch (PDOException $e) {
-            error_log('Gagal memperbarui data layanan: ' . $e->getMessage());
+
             $pesan = 'Gagal memperbarui data layanan.';
         }
     }
-}
 }
 
 ?>
@@ -204,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: "Segoe UI", Arial, sans-serif;
     background: #f4f8fc;
     color: #333;
     overflow-x: hidden;
@@ -369,17 +430,26 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid #d6e3ef;
     border-radius: 6px;
     font-size: 14px;
     background: white;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+textarea {
+    min-height: 110px;
+    resize: vertical;
+    line-height: 1.5;
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
     outline: none;
     border-color: #0066b3;
     box-shadow: 0 0 0 2px rgba(0, 102, 179, 0.08);
@@ -527,7 +597,8 @@ select:focus {
     }
 
     input,
-    select {
+    select,
+    textarea {
         font-size: 14px;
         padding: 12px;
     }
@@ -648,11 +719,21 @@ select:focus {
             </a>
         </li>
 
-        <li>
-            <a href="kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
+        <?php if ($admin_role === 'ADMIN IT'): ?>
+
+            <li>
+                <a href="kelola_admin.php">
+                    Kelola Admin
+                </a>
+            </li>
+
+            <li>
+                <a href="kelola_user.php">
+                    Kelola User
+                </a>
+            </li>
+
+        <?php endif; ?>
 
         <li>
             <a href="pengaturan.php">
@@ -696,6 +777,11 @@ select:focus {
         <form method="POST" enctype="multipart/form-data">
             <?= csrf_field(); ?>
 
+
+            <!-- =========================
+                 1. NAMA LAYANAN
+            ========================= -->
+
             <div class="form-group">
 
                 <label>
@@ -705,12 +791,36 @@ select:focus {
                 <input
                     type="text"
                     name="nama_layanan"
-                    value="<?= htmlspecialchars($layanan['nama_layanan'] ?? ''); ?>"
+                    value="<?= htmlspecialchars($nama_layanan); ?>"
                     required
                 >
 
             </div>
 
+
+            <!-- =========================
+                 2. DESKRIPSI LAYANAN
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Deskripsi Layanan
+                </label>
+
+                <textarea
+                    name="deskripsi_layanan"
+                    placeholder="Masukkan deskripsi layanan"
+                    rows="4"
+                    required
+                ><?= htmlspecialchars($deskripsi_layanan); ?></textarea>
+
+            </div>
+
+
+            <!-- =========================
+                 3. URL / LINK
+            ========================= -->
 
             <div class="form-group">
 
@@ -721,12 +831,16 @@ select:focus {
                 <input
                     type="url"
                     name="url"
-                    value="<?= htmlspecialchars($layanan['url'] ?? ''); ?>"
+                    value="<?= htmlspecialchars($url); ?>"
                     required
                 >
 
             </div>
 
+
+            <!-- =========================
+                 4. KATEGORI
+            ========================= -->
 
             <div class="form-group">
 
@@ -743,7 +857,7 @@ select:focus {
 
                         <option
                             value="<?= $k['id_kategori']; ?>"
-                            <?= $k['id_kategori'] == ($layanan['id_kategori'] ?? '') ? 'selected' : ''; ?>
+                            <?= $k['id_kategori'] == $id_kategori ? 'selected' : ''; ?>
                         >
                             <?= htmlspecialchars($k['nama_kategori']); ?>
                         </option>
@@ -754,6 +868,86 @@ select:focus {
 
             </div>
 
+
+            <!-- =========================
+                 5. AKSES
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    Akses
+                </label>
+
+                <select
+                    name="akses"
+                    required
+                >
+
+                    <option value="">
+                        -- Pilih Akses --
+                    </option>
+
+                    <option
+                        value="Internal"
+                        <?= $akses === 'Internal' ? 'selected' : ''; ?>
+                    >
+                        Internal
+                    </option>
+
+                    <option
+                        value="Public"
+                        <?= $akses === 'Public' ? 'selected' : ''; ?>
+                    >
+                        Public
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- =========================
+                 6. VPN
+            ========================= -->
+
+            <div class="form-group">
+
+                <label>
+                    VPN
+                </label>
+
+                <select
+                    name="vpn"
+                    required
+                >
+
+                    <option value="">
+                        -- Pilih VPN --
+                    </option>
+
+                    <option
+                        value="Yes"
+                        <?= $vpn === 'Yes' ? 'selected' : ''; ?>
+                    >
+                        Yes
+                    </option>
+
+                    <option
+                        value="No"
+                        <?= $vpn === 'No' ? 'selected' : ''; ?>
+                    >
+                        No
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- =========================
+                 7. LOGO
+            ========================= -->
 
             <div class="form-group">
 
@@ -784,6 +978,10 @@ select:focus {
 
             </div>
 
+
+            <!-- =========================
+                 BUTTON
+            ========================= -->
 
             <div class="buttons">
 

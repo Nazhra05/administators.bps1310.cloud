@@ -36,54 +36,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $nama_kategori = trim($_POST['nama_kategori'] ?? '');
 
-    /* Cek kosong */
-    if ($nama_kategori === '') {
+        /* Cek kosong */
+        if ($nama_kategori === '') {
 
-        $error = 'Nama kategori wajib diisi.';
-
-    } else {
-
-        /* Cek apakah nama kategori sudah digunakan */
-        $cek = $conn->prepare("
-            SELECT COUNT(*)
-            FROM kategori
-            WHERE nama_kategori = ?
-            AND id_kategori != ?
-        ");
-
-        $cek->execute([
-            $nama_kategori,
-            $id
-        ]);
-
-        if ($cek->fetchColumn() > 0) {
-
-            $error = 'Nama kategori tersebut sudah digunakan.';
+            $error = 'Nama kategori wajib diisi.';
 
         } else {
 
-            /* Update kategori */
-            $update = $conn->prepare("
-                UPDATE kategori
-                SET nama_kategori = ?
-                WHERE id_kategori = ?
+            /* Cek apakah nama kategori sudah digunakan */
+            $cek = $conn->prepare("
+                SELECT COUNT(*)
+                FROM kategori
+                WHERE nama_kategori = ?
+                AND id_kategori != ?
             ");
 
-            $update->execute([
+            $cek->execute([
                 $nama_kategori,
                 $id
             ]);
 
-            /* Kembali ke halaman kategori */
-            header('Location: kategori.php');
-            exit;
+            if ($cek->fetchColumn() > 0) {
+
+                $error = 'Nama kategori tersebut sudah digunakan.';
+
+            } else {
+
+                /* Update kategori */
+                $update = $conn->prepare("
+                    UPDATE kategori
+                    SET nama_kategori = ?
+                    WHERE id_kategori = ?
+                ");
+
+                $update->execute([
+                    $nama_kategori,
+                    $id
+                ]);
+
+                /* Kembali ke halaman kategori */
+                header('Location: kategori.php');
+                exit;
+            }
         }
     }
-}
 }
 
 /* Username admin */
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_role = $_SESSION['admin_role'] ?? '';
 
 ?>
 
@@ -588,11 +589,21 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             </a>
         </li>
 
-        <li>
-            <a href="kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
+        <?php if ($admin_role === 'ADMIN IT'): ?>
+
+            <li>
+                <a href="kelola_admin.php">
+                    Kelola Admin
+                </a>
+            </li>
+
+            <li>
+                <a href="kelola_user.php">
+                    Kelola User
+                </a>
+            </li>
+
+        <?php endif; ?>
 
         <li>
             <a href="pengaturan.php">

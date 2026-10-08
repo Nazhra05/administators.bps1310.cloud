@@ -1,6 +1,7 @@
 -- =========================================================
 -- Database Schema for Dashboard Admin BPS Solok Selatan
 -- Database: bps_solsel
+-- Compatible with MySQL 5.7+, MySQL 8.x, and MariaDB 10.x
 -- =========================================================
 
 CREATE DATABASE IF NOT EXISTS `bps_solsel` 
@@ -14,14 +15,15 @@ USE `bps_solsel`;
 
 CREATE TABLE IF NOT EXISTS `admin` (
   `id_admin` int(11) NOT NULL AUTO_INCREMENT,
-  `first_name` varchar(50) DEFAULT 'Admin',
-  `last_name` varchar(50) DEFAULT 'Utama',
-  `username` varchar(50) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-  `email_verified` tinyint(1) NOT NULL DEFAULT 0,
-  `verification_token` varchar(64) DEFAULT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `username` varchar(50) DEFAULT NULL,
+  `email` varchar(150) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'approved',
+  `role` enum('ADMIN IT','ADMIN DASHBOARD','USER APP PORTAL') NOT NULL DEFAULT 'USER APP PORTAL',
+  `email_verified` tinyint(1) NOT NULL DEFAULT 1,
+  `verification_token` varchar(255) DEFAULT NULL,
   `verification_expires` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_admin`),
@@ -48,9 +50,13 @@ CREATE TABLE IF NOT EXISTS `kategori` (
 CREATE TABLE IF NOT EXISTS `layanan` (
   `id_layanan` int(11) NOT NULL AUTO_INCREMENT,
   `id_kategori` int(11) NOT NULL,
+  `akses` enum('Internal','Public') NOT NULL DEFAULT 'Public',
+  `vpn` enum('Yes','No') NOT NULL DEFAULT 'No',
   `nama_layanan` varchar(200) NOT NULL,
+  `deskripsi_layanan` text DEFAULT NULL,
   `url` varchar(500) DEFAULT NULL,
   `logo` varchar(255) DEFAULT NULL,
+  `keyword` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_layanan`),
   KEY `fk_layanan_kategori` (`id_kategori`),
   CONSTRAINT `fk_layanan_kategori` FOREIGN KEY (`id_kategori`) 
@@ -63,13 +69,13 @@ CREATE TABLE IF NOT EXISTS `layanan` (
 -- --------------------------------------------------------
 
 INSERT IGNORE INTO `kategori` (`id_kategori`, `nama_kategori`, `deskripsi`) VALUES
-(1, 'Distribusi', 'Perdagangan, harga, transportasi, pariwisata, dan distribusi barang/jasa.'),
-(2, 'Produksi', 'Pertanian, industri, pertambangan, energi, konstruksi, peternakan, kehutanan, perikanan.'),
-(3, 'Neraca', 'PDRB, neraca wilayah, neraca produksi/pengeluaran, dan analisis ekonomi makro.'),
-(4, 'Sosial', 'Penduduk, ketenagakerjaan, kemiskinan, pendidikan, kesehatan, sosial, dan kesejahteraan.'),
-(5, 'TI', 'Sistem dan infrastruktur/alat BPS — bukan data statistik bidang tertentu, melainkan sistem nasional.'),
-(6, 'Umum', 'Administrasi, kepegawaian, pengadaan, regulasi, dan urusan internal.'),
-(7, 'Diseminasi', 'Kategori dengan isi paling banyak — tugasnya menyebarkan data ke pengguna.');
+(1, 'Distribusi', 'Layanan yang berkaitan dengan pelaporan perusahaan dan kegiatan sensus ekonomi.'),
+(2, 'Produksi', 'Layanan yang berkaitan dengan pendataan dan statistik sektor pertanian serta produksi.'),
+(3, 'Neraca', 'Layanan yang berkaitan dengan data PDRB, neraca wilayah, dan kompilasi data ekonomi daerah.'),
+(4, 'Sosial', 'Layanan yang berkaitan dengan data kependudukan, pembangunan manusia, dan kondisi sosial masyarakat.'),
+(5, 'TI', 'Sistem dan layanan teknologi informasi untuk pengelolaan, integrasi, pemetaan, serta penyediaan data statistik.'),
+(6, 'Umum', 'Layanan pendukung administrasi, kepegawaian, kemitraan, dan keterbukaan informasi BPS.'),
+(7, 'Diseminasi', 'Layanan penyebaran, akses, dan pelayanan data statistik kepada pengguna.');
 
 -- --------------------------------------------------------
 -- Seed Data: Default Administrator
@@ -85,6 +91,7 @@ INSERT IGNORE INTO `admin` (
   `email`,
   `password`,
   `status`,
+  `role`,
   `email_verified`,
   `created_at`
 ) VALUES (
@@ -93,9 +100,10 @@ INSERT IGNORE INTO `admin` (
   'Utama',
   'admin',
   'admin@bps1310.cloud',
-  -- SHA-256 hash of 'admin123'
+  -- SHA-256 hash of 'admin123' (will be automatically upgraded to bcrypt on login)
   '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
   'approved',
+  'ADMIN IT',
   1,
   NOW()
 );

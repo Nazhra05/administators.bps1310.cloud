@@ -5,6 +5,7 @@ require_once '../config/auth.php';
 
 /* Username admin */
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_role = $_SESSION['admin_role'] ?? '';
 
 $error = '';
 
@@ -16,40 +17,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $nama_kategori = trim($_POST['nama_kategori'] ?? '');
 
-    if ($nama_kategori === '') {
+        if ($nama_kategori === '') {
 
-        $error = 'Nama kategori wajib diisi.';
-
-    } else {
-
-        /* Cek apakah kategori sudah ada */
-        $cek = $conn->prepare("
-            SELECT COUNT(*)
-            FROM kategori
-            WHERE nama_kategori = ?
-        ");
-
-        $cek->execute([$nama_kategori]);
-
-        if ($cek->fetchColumn() > 0) {
-
-            $error = 'Kategori tersebut sudah ada.';
+            $error = 'Nama kategori wajib diisi.';
 
         } else {
 
-            /* Simpan kategori */
-            $stmt = $conn->prepare("
-                INSERT INTO kategori (nama_kategori)
-                VALUES (?)
+            /* Cek apakah kategori sudah ada */
+            $cek = $conn->prepare("
+                SELECT COUNT(*)
+                FROM kategori
+                WHERE nama_kategori = ?
             ");
 
-            $stmt->execute([$nama_kategori]);
+            $cek->execute([$nama_kategori]);
 
-            header('Location: kategori.php');
-            exit;
+            if ($cek->fetchColumn() > 0) {
+
+                $error = 'Kategori tersebut sudah ada.';
+
+            } else {
+
+                /* Simpan kategori */
+                $stmt = $conn->prepare("
+                    INSERT INTO kategori (nama_kategori)
+                    VALUES (?)
+                ");
+
+                $stmt->execute([$nama_kategori]);
+
+                header('Location: kategori.php');
+                exit;
+            }
         }
     }
-}
 }
 
 ?>
@@ -554,11 +555,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
         </li>
 
-        <li>
-            <a href="kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
+        <?php if ($admin_role === 'ADMIN IT'): ?>
+
+            <li>
+                <a href="kelola_admin.php">
+                    Kelola Admin
+                </a>
+            </li>
+
+            <li>
+                <a href="kelola_user.php">
+                    Kelola User
+                </a>
+            </li>
+
+        <?php endif; ?>
 
         <li>
             <a href="pengaturan.php">

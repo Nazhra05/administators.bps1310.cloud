@@ -1,15 +1,38 @@
 <?php
 
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/auth.php';
+require_once '../config/config.php';
 
-/* Ambil username admin yang sedang login */
+/* =========================
+   CEK LOGIN ADMIN
+========================= */
+
+if (empty($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_role = $_SESSION['admin_role'] ?? '';
+
+
+/* =========================
+   CEK ROLE DASHBOARD
+========================= */
+
+if (
+    $admin_role !== 'ADMIN IT' &&
+    $admin_role !== 'ADMIN DASHBOARD'
+) {
+    session_unset();
+    session_destroy();
+
+    header('Location: login.php');
+    exit;
+}
 
 
 /* =========================
    AMBIL DATA LAYANAN
-   LANGSUNG DARI DATABASE
 ========================= */
 
 $stmt_layanan = $conn->query("
@@ -28,75 +51,109 @@ $stmt_layanan = $conn->query("
 
 $layanan_terbaru = $stmt_layanan->fetchAll(PDO::FETCH_ASSOC);
 
-
-/* =========================
-   HITUNG TOTAL LAYANAN
-========================= */
-
 $total_layanan = count($layanan_terbaru);
+
+$filter_kategori = $_GET['kategori'] ?? '';
 
 
 /* =========================
    AMBIL DATA KATEGORI
-   DARI DATA API
 ========================= */
 
-$data_kategori = [];
+$stmt_kategori = $conn->query("
+    SELECT
+        k.id_kategori,
+        k.nama_kategori,
+        COUNT(l.id_layanan) AS jumlah_layanan
+    FROM kategori k
+    LEFT JOIN layanan l
+        ON k.id_kategori = l.id_kategori
+    GROUP BY
+        k.id_kategori,
+        k.nama_kategori
+    ORDER BY k.id_kategori ASC
+");
 
-foreach ($layanan_terbaru as $item) {
-
-    if (
-        isset($item['id_kategori']) &&
-        isset($item['nama_kategori'])
-    ) {
-
-        $id_kategori = $item['id_kategori'];
-
-        if (!isset($data_kategori[$id_kategori])) {
-
-            $data_kategori[$id_kategori] = [
-                'id_kategori' => $item['id_kategori'],
-                'nama_kategori' => $item['nama_kategori']
-            ];
-
-        }
-
-    }
-
-}
-
-
-/* Ubah menjadi array biasa */
-
-$data_kategori = array_values($data_kategori);
-
-
-/* Urutkan berdasarkan ID kategori */
-
-usort($data_kategori, function ($a, $b) {
-
-    return $a['id_kategori'] <=> $b['id_kategori'];
-
-});
-
-
-/* Total kategori */
+$data_kategori = $stmt_kategori->fetchAll(PDO::FETCH_ASSOC);
 
 $total_kategori = count($data_kategori);
 
 
 /* =========================
-   AMBIL FILTER KATEGORI
+   DESKRIPSI KATEGORI
 ========================= */
 
-$filter_kategori = isset($_GET['kategori'])
-    ? $_GET['kategori']
-    : '';
+$deskripsi_kategori = [
+
+    'Distribusi' =>
+        'Perdagangan, harga, transportasi, pariwisata, distribusi barang/jasa.',
+
+    'Produksi' =>
+        'Pertanian, industri, pertambangan, energi, konstruksi, peternakan, kehutanan, perikanan.',
+
+    'Neraca' =>
+        'PDRB, neraca wilayah, neraca produksi/pengeluaran, analisis ekonomi.',
+
+    'Sosial' =>
+        'Penduduk, ketenagakerjaan, pendidikan, kesehatan, kemiskinan, dan sosial.',
+
+    'TI' =>
+        'Teknologi informasi, sistem, aplikasi, dan layanan digital statistik.',
+
+    'Umum' =>
+        'Informasi umum, administrasi, layanan internal, dan kebutuhan pendukung.',
+
+    'Diseminasi' =>
+        'Layanan dan media untuk menyebarkan data statistik kepada pengguna.'
+];
+
+
+/* =========================
+   WARNA KATEGORI
+========================= */
+
+$kelas_warna = [
+    'blue',
+    'orange',
+    'green',
+    'purple',
+    'teal',
+    'gray',
+    'pink'
+];
+
+
+/* =========================
+   KELOMPOKKAN LAYANAN
+========================= */
+
+$layanan_per_kategori = [];
+
+foreach ($data_kategori as $kategori) {
+
+    $layanan_per_kategori[
+        (int) $kategori['id_kategori']
+    ] = [];
+
+}
+
+foreach ($layanan_terbaru as $item) {
+
+    $id_kategori = (int) $item['id_kategori'];
+
+    if (!isset($layanan_per_kategori[$id_kategori])) {
+
+        $layanan_per_kategori[$id_kategori] = [];
+
+    }
+
+    $layanan_per_kategori[$id_kategori][] = $item;
+
+}
 
 ?>
 
 <!DOCTYPE html>
-
 <html lang="id">
 
 <head>
@@ -110,658 +167,1476 @@ $filter_kategori = isset($_GET['kategori'])
 
 <title>Dashboard Admin BPS Solok Selatan</title>
 
+
 <style>
 
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f8fc;
+    color: #1f2937;
+    overflow-x: hidden;
+}
+
+
+/* =====================================================
+   SIDEBAR
+===================================================== */
+
+.sidebar {
+    width: 240px;
+    height: 100vh;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+
+    background: #0066b3;
+    color: white;
+
+    padding: 25px 15px;
+
+    z-index: 9999;
+
+    box-shadow:
+        2px 0 10px rgba(0, 0, 0, 0.08);
+
+    transform: translateX(-100%);
+
+    transition:
+        transform 0.3s ease;
+}
+
+
+.sidebar.sidebar-open {
+    transform: translateX(0);
+}
+
+
+/* =====================================================
+   LOGO SIDEBAR
+===================================================== */
+
+.logo {
+    font-size: 20px;
+    font-weight: bold;
+
+    margin-bottom: 40px;
+
+    padding: 0 15px;
+}
+
+
+/* =====================================================
+   MENU
+===================================================== */
+
+.menu {
+    list-style: none;
+}
+
+
+.menu li {
+    margin-bottom: 8px;
+}
+
+
+.menu a {
+    display: block;
+
+    width: 100%;
+
+    color: #e8f3fb;
+
+    text-decoration: none;
+
+    padding: 12px 15px;
+
+    border-radius: 8px;
+
+    transition: 0.2s ease;
+
+    font-family: inherit;
+
+    font-size: 16px;
+
+    font-weight: 400;
+}
+
+
+.menu a:hover {
+    background: #00589c;
+
+    color: white;
+}
+
+
+.menu a.active {
+    background: white;
+
+    color: #0066b3;
+
+    font-weight: bold;
+}
+
+
+/* =====================================================
+   TOMBOL ☰
+===================================================== */
+
+.mobile-menu-button {
+    display: flex;
+
+    position: fixed;
+
+    top: 15px;
+    left: 15px;
+
+    width: 45px;
+    height: 45px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #0066b3;
+
+    color: white;
+
+    font-size: 24px;
+
+    cursor: pointer;
+
+    z-index: 10001;
+
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.15);
+
+    transition: 0.2s ease;
+}
+
+
+.mobile-menu-button:hover {
+    background: #00589c;
+
+    transform: scale(1.03);
+}
+
+
+/* =====================================================
+   OVERLAY
+===================================================== */
+
+.sidebar-overlay {
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.35);
+
+    z-index: 9998;
+}
+
+
+.sidebar-overlay.show {
+    display: block;
+}
+
+
+/* =====================================================
+   MAIN
+===================================================== */
+
+.main {
+    margin-left: 0;
+
+    padding: 30px;
+
+    min-width: 0;
+
+    transition:
+        margin-left 0.3s ease;
+}
+
+
+.main.sidebar-open {
+    margin-left: 240px;
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header {
+    margin-bottom: 25px;
+}
+
+
+.header-top {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 20px;
+}
+
+
+.header-left {
+    padding-left: 55px;
+}
+
+
+.header h1 {
+    font-size: 28px;
+
+    line-height: 1.25;
+
+    font-weight: 700;
+
+    color: #005a9c;
+
+    margin-bottom: 6px;
+}
+
+
+.header p {
+    color: #6b7280;
+
+    margin-top: 0;
+
+    font-size: 15px;
+
+    line-height: 1.5;
+}
+
+
+/* =====================================================
+   ADMIN DROPDOWN
+===================================================== */
+
+.admin-dropdown {
+    position: relative;
+}
+
+
+.admin-status {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    background: white;
+
+    padding: 10px 15px;
+
+    border-radius: 10px;
+
+    border: 1px solid #e1edf7;
+
+    box-shadow:
+        0 2px 10px rgba(0, 102, 179, 0.08);
+
+    cursor: pointer;
+
+    font-family: inherit;
+}
+
+
+.admin-status:hover {
+    background: #f8fbfe;
+}
+
+
+.admin-icon {
+    width: 36px;
+    height: 36px;
+
+    background: #eaf4fb;
+
+    color: #0066b3;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 18px;
+
+    flex-shrink: 0;
+}
+
+
+.admin-info {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    text-align: left;
+}
+
+
+.admin-label {
+    font-size: 12px;
+
+    color: #6b7280;
+}
+
+
+.admin-name {
+    font-size: 14px;
+
+    font-weight: bold;
+
+    color: #005a9c;
+}
+
+
+.dropdown-arrow {
+    color: #005a9c;
+
+    font-size: 18px;
+
+    margin-left: 3px;
+}
+
+
+.admin-menu {
+    display: none;
+
+    position: absolute;
+
+    right: 0;
+
+    top: calc(100% + 8px);
+
+    width: 160px;
+
+    background: white;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, 0.15);
+
+    border: 1px solid #e1edf7;
+
+    padding: 8px;
+
+    z-index: 10000;
+}
+
+
+.admin-menu.show {
+    display: block;
+}
+
+
+.logout-button {
+    display: block;
+
+    width: 100%;
+
+    padding: 11px 12px;
+
+    color: #c62828;
+
+    text-decoration: none;
+
+    border-radius: 7px;
+
+    font-size: 14px;
+
+    font-weight: 600;
+}
+
+
+.logout-button:hover {
+    background: #fff1f1;
+}
+
+
+/* =====================================================
+   TOTAL CARDS
+===================================================== */
+
+.cards {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 20px;
+
+    margin-bottom: 30px;
+}
+
+
+.card {
+    background: white;
+
+    padding: 22px 23px;
+
+    border-radius: 12px;
+
+    border-left: 5px solid #0066b3;
+
+    box-shadow:
+        0 2px 10px rgba(0, 102, 179, 0.08);
+
+    transition: 0.2s ease;
+}
+
+
+.card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 18px rgba(0, 102, 179, 0.10);
+}
+
+
+.card h3 {
+    color: #6b7280;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    margin-bottom: 7px;
+}
+
+
+.number {
+    font-size: 30px;
+
+    font-weight: 700;
+
+    color: #0066b3;
+}
+
+
+/* =====================================================
+   SECTION
+===================================================== */
+
+.section-heading {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: end;
+
+    gap: 20px;
+
+    margin: 5px 0 20px;
+}
+
+
+.section-heading h2 {
+    font-size: 20px;
+
+    line-height: 1.35;
+
+    font-weight: 700;
+
+    color: #1f2937;
+}
+
+
+.section-heading p {
+    font-size: 13px;
+
+    color: #6b7280;
+
+    margin-top: 4px;
+}
+
+
+/* =====================================================
+   CATEGORY GRID
+===================================================== */
+
+.category-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 24px;
+
+    margin-bottom: 30px;
+}
+
+
+.category-card {
+    background: white;
+
+    border: 1px solid #dce8f2;
+
+    border-radius: 22px;
+
+    padding: 17px;
+
+    box-shadow:
+        0 3px 14px rgba(0, 76, 135, 0.07);
+
+    transition: 0.2s ease;
+
+    min-width: 0;
+}
+
+
+.category-card:hover {
+    box-shadow:
+        0 5px 20px rgba(0, 76, 135, 0.10);
+}
+
+
+.category-inner {
+    border: 1px solid #dce8f2;
+
+    border-radius: 18px;
+
+    padding: 30px 30px 28px;
+
+    min-height: 430px;
+
+    background: #f7fbff;
+}
+
+
+.category-card.orange .category-inner {
+    background: #fff8f0;
+
+    border-color: #f8dfc8;
+}
+
+
+.category-card.green .category-inner {
+    background: #f7fce9;
+
+    border-color: #dff0b9;
+}
+
+
+.category-card.purple .category-inner {
+    background: #f8f5ff;
+
+    border-color: #e5dbff;
+}
+
+
+.category-card.teal .category-inner {
+    background: #f1fbfa;
+
+    border-color: #d3efeb;
+}
+
+
+.category-card.gray .category-inner {
+    background: #f7f8fa;
+
+    border-color: #e5e7eb;
+}
+
+
+.category-card.pink .category-inner {
+    background: #fff6fa;
+
+    border-color: #f6dce8;
+}
+
+
+/* =====================================================
+   CATEGORY TOP
+===================================================== */
+
+.category-top {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    margin-bottom: 20px;
+}
+
+
+.category-dot {
+    width: 28px;
+    height: 28px;
+
+    border-radius: 50%;
+
+    background: #183b7a;
+
+    flex-shrink: 0;
+}
+
+
+.orange .category-dot {
+    background: #f58a4c;
+}
+
+
+.green .category-dot {
+    background: #9be84c;
+}
+
+
+.purple .category-dot {
+    background: #8f70e8;
+}
+
+
+.teal .category-dot {
+    background: #29aaa1;
+}
+
+
+.gray .category-dot {
+    background: #8290a5;
+}
+
+
+.pink .category-dot {
+    background: #e875a4;
+}
+
+
+.category-name {
+    font-size: 29px;
+
+    line-height: 1.2;
+
+    font-weight: 700;
+
+    color: #17233e;
+
+    margin-bottom: 10px;
+}
+
+
+.category-name.blue {
+    color: #0066b3;
+}
+
+
+.category-focus {
+    font-size: 14px;
+
+    line-height: 1.6;
+
+    color: #657894;
+
+    min-height: 48px;
+}
+
+
+.category-count {
+    font-size: 14px;
+
+    color: #91a4c0;
+
+    margin-top: 15px;
+}
+
+
+.popular-label {
+    font-size: 13px;
+
+    line-height: 1.3;
+
+    letter-spacing: 1.2px;
+
+    font-weight: 700;
+
+    color: #91a4c0;
+
+    margin: 20px 2px 10px;
+
+    text-transform: uppercase;
+}
+
+
+.popular-list {
+    border-top:
+        1px solid #dfe7ef;
+}
+
+
+.popular-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+    padding: 16px 4px;
+
+    border-bottom:
+        1px solid #dfe7ef;
+
+    min-width: 0;
+}
+
+
+.service-icon {
+    width: 58px;
+    height: 58px;
+
+    border-radius: 15px;
+
+    background: #f9fbfd;
+
+    border: 1px solid #dce7f0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #8da0ba;
+
+    font-size: 24px;
+
+    flex: 0 0 auto;
+}
+
+
+.service-name {
+    flex: 1;
+
+    min-width: 0;
+
+    font-size: 16px;
+
+    line-height: 1.4;
+
+    color: #304b72;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =====================================================
+   BUTTON LIHAT SEMUA
+===================================================== */
+
+.view-all {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 12px;
+
+    width: 100%;
+
+    min-height: 58px;
+
+    margin-top: 20px;
+
+    border: 1px solid #b9cde1;
+
+    border-radius: 16px;
+
+    color: #243f7d;
+
+    background: white;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+
+    font-family: inherit;
+}
+
+
+.view-all:hover {
+    background: #f4f8fc;
+
+    border-color: #243f7d;
+}
+
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+.modal-overlay {
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    background:
+        rgba(24, 35, 56, 0.62);
+
+    backdrop-filter: blur(2px);
+
+    z-index: 20000;
+
+    padding: 34px;
+}
+
+
+.modal-overlay.show {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+.modal {
+    width: min(100%, 1180px);
+
+    max-height:
+        calc(100vh - 68px);
+
+    background: white;
+
+    border-radius: 28px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.25);
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+.modal-header {
+    padding: 32px 40px 21px;
+
+    border-bottom:
+        1px solid #e7edf4;
+
+    position: relative;
+}
+
+
+.modal-title-row {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    margin-bottom: 16px;
+}
+
+
+.modal-title-dot {
+    width: 14px;
+    height: 14px;
+
+    border-radius: 50%;
+
+    background: #183b7a;
+}
+
+
+.modal-title {
+    font-size: 21px;
+
+    line-height: 1.3;
+
+    letter-spacing: 0.8px;
+
+    color: #91a2ba;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.modal-focus {
+    font-size: 18px;
+
+    line-height: 1.6;
+
+    color: #657894;
+
+    padding-right: 50px;
+}
+
+
+.modal-close {
+    position: absolute;
+
+    right: 28px;
+
+    top: 26px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #91a2ba;
+
+    font-size: 31px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    font-family: inherit;
+}
+
+
+.modal-list {
+    overflow-y: auto;
+
+    padding: 0 40px;
+}
+
+
+.modal-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+    min-height: 108px;
+
+    border-bottom:
+        1px solid #e7edf4;
+}
+
+
+.modal-item .service-icon {
+    width: 54px;
+    height: 54px;
+
+    font-size: 23px;
+}
+
+
+.modal-item-main {
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.modal-item-name {
+    font-size: 20px;
+
+    line-height: 1.4;
+
+    font-weight: 700;
+
+    color: #17233c;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+.modal-item-category {
+    font-size: 15px;
+
+    color: #93a5bd;
+
+    margin-left: 7px;
+}
+
+
+.modal-open {
+    display: flex;
+
+    align-items: center;
+
+    gap: 25px;
+
+    color: #657894;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+.modal-open:hover {
+    color: #183b7a;
+}
+
+
+.modal-arrow {
+    font-size: 23px;
+
+    color: #c2cfdd;
+}
+
+
+.modal-empty {
+    text-align: center;
+
+    padding: 50px;
+
+    color: #7b8da8;
+
+    font-size: 14px;
+}
+
+
+.modal-footer {
+    padding: 15px 40px;
+
+    color: #93a5bd;
+
+    font-size: 12px;
+
+    background: #fbfcfe;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1100px) {
+
+    .category-grid {
+        grid-template-columns: 1fr;
     }
 
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f8fc;
-        color: #1f2937;
-        overflow-x: hidden;
-    }
+}
 
 
-    /* =========================
-       SIDEBAR
-    ========================= */
+@media (max-width: 768px) {
 
     .sidebar {
-        width: 240px;
-        height: 100vh;
-        background: #0066b3;
-        color: white;
-        position: fixed;
-        left: 0;
-        top: 0;
-        padding: 25px 15px;
-        z-index: 9999;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
-        transition: transform 0.3s ease;
+        width: 250px;
     }
 
-    .logo {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 40px;
-        padding: 0 15px;
-    }
-
-    .menu {
-        list-style: none;
-    }
-
-    .menu li {
-        margin-bottom: 8px;
-        width: 100%;
-    }
-
-    .menu a {
-        display: block;
-        width: 100%;
-        color: #e8f3fb;
-        text-decoration: none;
-        padding: 14px 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: 0.2s ease;
-    }
-
-    .menu a:hover {
-        background: #00589c;
-        color: white;
-    }
-
-    .menu .active {
-        background: #ffffff;
-        color: #0066b3;
-        font-weight: bold;
-    }
-
-
-    /* =========================
-       TOMBOL MENU MOBILE
-    ========================= */
-
-    .mobile-menu-button {
-        display: none;
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        width: 45px;
-        height: 45px;
-        border: none;
-        border-radius: 9px;
-        background: #0066b3;
-        color: white;
-        font-size: 24px;
-        cursor: pointer;
-        z-index: 10001;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    }
-
-
-    /* =========================
-       OVERLAY MOBILE
-    ========================= */
-
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.35);
-        z-index: 9998;
-    }
-
-
-    /* =========================
-       MAIN
-    ========================= */
 
     .main {
-        margin-left: 240px;
-        padding: 30px;
-        position: relative;
-        z-index: 1;
-        min-width: 0;
+        margin-left: 0;
+
+        padding:
+            75px 15px 25px;
     }
 
-    .header {
-        margin-bottom: 30px;
+
+    .main.sidebar-open {
+        margin-left: 0;
     }
+
 
     .header-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
-        margin-bottom: 8px;
+        flex-direction: column;
+
+        gap: 15px;
     }
+
+
+    .header-left {
+        padding-left: 55px;
+    }
+
 
     .header h1 {
-        font-size: 28px;
-        color: #005a9c;
+        font-size: 23px;
     }
+
 
     .header p {
-        color: #6b7280;
+        font-size: 13px;
     }
 
 
-    /* =========================
-       ADMIN DROPDOWN
-    ========================= */
-
-    .admin-dropdown {
-        position: relative;
+    .admin-dropdown,
+    .admin-status {
+        width: 100%;
     }
+
 
     .admin-status {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: white;
-        padding: 10px 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 102, 179, 0.08);
-        border: 1px solid #e1edf7;
-        white-space: nowrap;
-        cursor: pointer;
-        font-family: inherit;
+        justify-content: flex-start;
     }
 
-    .admin-status:hover {
-        background: #f8fbfe;
-    }
-
-    .admin-icon {
-        width: 36px;
-        height: 36px;
-        background: #eaf4fb;
-        color: #0066b3;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        flex-shrink: 0;
-    }
-
-    .admin-info {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        text-align: left;
-    }
-
-    .admin-label {
-        font-size: 12px;
-        color: #6b7280;
-    }
-
-    .admin-name {
-        font-size: 14px;
-        font-weight: bold;
-        color: #005a9c;
-    }
-
-    .dropdown-arrow {
-        font-size: 18px;
-        color: #005a9c;
-        margin-left: 5px;
-    }
-
-
-    /* =========================
-       MENU LOGOUT
-    ========================= */
-
-    .admin-menu {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: calc(100% + 8px);
-        width: 160px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.15);
-        border: 1px solid #e1edf7;
-        padding: 8px;
-        z-index: 10000;
-    }
-
-    .admin-menu.show {
-        display: block;
-    }
-
-    .logout-button {
-        display: block;
-        width: 100%;
-        padding: 11px 12px;
-        color: #c62828;
-        text-decoration: none;
-        border-radius: 7px;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .logout-button:hover {
-        background: #fff1f1;
-    }
-
-
-    /* =========================
-       CARDS
-    ========================= */
 
     .cards {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        margin-bottom: 30px;
+        grid-template-columns: 1fr;
+
+        gap: 14px;
     }
 
-    .card {
-        background: white;
-        padding: 25px;
+
+    .category-grid {
+        grid-template-columns: 1fr;
+
+        gap: 18px;
+    }
+
+
+    .category-inner {
+        min-height: auto;
+
+        padding: 24px 20px;
+    }
+
+
+    .category-name {
+        font-size: 25px;
+    }
+
+
+    .popular-item {
+        gap: 12px;
+    }
+
+
+    .service-icon {
+        width: 48px;
+        height: 48px;
+
         border-radius: 12px;
-        border-left: 5px solid #0066b3;
-        box-shadow: 0 2px 10px rgba(0, 102, 179, 0.08);
-    }
 
-    .card h3 {
-        color: #6b7280;
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
-
-    .number {
-        font-size: 30px;
-        font-weight: bold;
-        color: #0066b3;
-    }
-
-
-    /* =========================
-       TABLE CARD
-    ========================= */
-
-    .table-card {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 102, 179, 0.08);
-        overflow: hidden;
-    }
-
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        gap: 20px;
-    }
-
-    .table-card h2 {
-        margin: 0;
-        color: #1f2937;
-    }
-
-
-    /* =========================
-       FILTER
-    ========================= */
-
-    .filter-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .filter-container label {
-        font-size: 14px;
-        color: #6b7280;
-        font-weight: 600;
-    }
-
-    .filter-select {
-        padding: 9px 12px;
-        border: 1px solid #b9d4e8;
-        border-radius: 8px;
-        background: white;
-        font-size: 14px;
-        color: #374151;
-        cursor: pointer;
-        min-width: 180px;
-        outline: none;
-    }
-
-    .filter-select:focus {
-        border-color: #0066b3;
-        box-shadow: 0 0 0 2px rgba(0, 102, 179, 0.1);
-    }
-
-    .reset-filter {
-        text-decoration: none;
-        font-size: 13px;
-        color: #0066b3;
-        padding: 8px 10px;
-        border-radius: 7px;
-        background: #eaf4fb;
-    }
-
-    .reset-filter:hover {
-        background: #dceef9;
-    }
-
-
-    /* =========================
-       TABLE
-    ========================= */
-
-    .table-wrapper {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 650px;
-    }
-
-    th {
-        text-align: left;
-        padding: 16px 15px;
-        background: #eaf4fb;
-        color: #005a9c;
-        font-size: 18px;
-        font-weight: bold;
-        white-space: nowrap;
-    }
-
-    td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    tr:hover td {
-        background: #f7fbfe;
-    }
-
-
-    /* =========================
-       LINK ICON
-    ========================= */
-
-    .link-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        background: #eaf4fb;
-        color: #0066b3;
-        border: 1px solid #b9d4e8;
-        border-radius: 8px;
-        text-decoration: none;
         font-size: 20px;
-        transition: 0.2s ease;
-    }
-
-    .link-icon:hover {
-        background: #0066b3;
-        color: white;
-        border-color: #0066b3;
-        transform: translateY(-1px);
-    }
-
-    .link-disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .empty {
-        text-align: center;
-        color: #777;
-        padding: 25px;
     }
 
 
-    /* =====================================================
-       RESPONSIVE MOBILE
-       HANYA BERLAKU UNTUK LAYAR MAKSIMAL 768PX
-    ===================================================== */
-
-    @media (max-width: 768px) {
-
-        body {
-            overflow-x: hidden;
-        }
-
-
-        /* SIDEBAR DISSEMBUNYIKAN */
-
-        .sidebar {
-            width: 250px;
-            height: 100vh;
-            transform: translateX(-100%);
-            padding: 25px 15px;
-        }
-
-        .sidebar.mobile-open {
-            transform: translateX(0);
-        }
-
-
-        /* TOMBOL MENU MUNCUL */
-
-        .mobile-menu-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-
-        /* OVERLAY */
-
-        .sidebar-overlay.show {
-            display: block;
-        }
-
-
-        /* MAIN FULL WIDTH */
-
-        .main {
-            margin-left: 0;
-            padding: 75px 15px 25px;
-            width: 100%;
-        }
-
-
-        /* HEADER */
-
-        .header {
-            margin-bottom: 20px;
-        }
-
-        .header-top {
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .header h1 {
-            font-size: 24px;
-        }
-
-        .header p {
-            font-size: 14px;
-            line-height: 1.5;
-            margin-top: 5px;
-        }
-
-
-        /* ADMIN */
-
-        .admin-dropdown {
-            width: 100%;
-        }
-
-        .admin-status {
-            width: 100%;
-            justify-content: flex-start;
-        }
-
-
-        /* CARDS */
-
-        .cards {
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .card {
-            padding: 20px;
-        }
-
-        .number {
-            font-size: 28px;
-        }
-
-
-        /* TABLE CARD */
-
-        .table-card {
-            padding: 18px 15px;
-        }
-
-
-        /* HEADER TABLE */
-
-        .table-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 15px;
-        }
-
-        .table-card h2 {
-            font-size: 20px;
-        }
-
-
-        /* FILTER */
-
-        .filter-container {
-            width: 100%;
-            flex-wrap: wrap;
-            align-items: stretch;
-        }
-
-        .filter-container label {
-            width: 100%;
-        }
-
-        .filter-select {
-            width: 100%;
-            min-width: 0;
-            padding: 11px 12px;
-        }
-
-        .reset-filter {
-            text-align: center;
-            padding: 10px;
-        }
-
-
-        /* TABLE BISA DIGESER */
-
-        .table-wrapper {
-            overflow-x: auto;
-            width: 100%;
-        }
-
-        table {
-            min-width: 650px;
-        }
-
-        th {
-            font-size: 15px;
-            padding: 12px 10px;
-        }
-
-        td {
-            font-size: 14px;
-            padding: 11px 10px;
-        }
-
+    .service-name {
+        font-size: 14px;
     }
 
 
-    /* =========================
-       HP SANGAT KECIL
-    ========================= */
+    .view-all {
+        min-height: 52px;
 
-    @media (max-width: 480px) {
-
-        .main {
-            padding-left: 12px;
-            padding-right: 12px;
-        }
-
-        .header h1 {
-            font-size: 22px;
-        }
-
-        .header p {
-            font-size: 13px;
-        }
-
-        .admin-status {
-            padding: 9px 12px;
-        }
-
-        .admin-icon {
-            width: 34px;
-            height: 34px;
-            font-size: 16px;
-        }
-
-        .admin-name {
-            font-size: 13px;
-        }
-
-        .card {
-            padding: 18px;
-        }
-
-        .table-card {
-            padding: 16px 12px;
-        }
-
+        font-size: 14px;
     }
+
+
+    .modal-overlay {
+        padding: 12px;
+    }
+
+
+    .modal {
+        max-height:
+            calc(100vh - 24px);
+
+        border-radius: 20px;
+    }
+
+
+    .modal-header {
+        padding:
+            24px 21px 17px;
+    }
+
+
+    .modal-focus {
+        font-size: 15px;
+
+        padding-right: 25px;
+    }
+
+
+    .modal-title {
+        font-size: 17px;
+    }
+
+
+    .modal-list {
+        padding: 0 21px;
+    }
+
+
+    .modal-item {
+        min-height: 86px;
+
+        gap: 11px;
+    }
+
+
+    .modal-item .service-icon {
+        width: 43px;
+        height: 43px;
+
+        font-size: 18px;
+    }
+
+
+    .modal-item-name {
+        font-size: 15px;
+    }
+
+
+    .modal-item-category {
+        display: block;
+
+        margin: 3px 0 0;
+
+        font-size: 12px;
+    }
+
+
+    .modal-open {
+        gap: 7px;
+
+        font-size: 13px;
+    }
+
+
+    .modal-footer {
+        padding:
+            11px 21px;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .main {
+        padding-left: 12px;
+
+        padding-right: 12px;
+    }
+
+
+    .header h1 {
+        font-size: 21px;
+    }
+
+
+    .cards {
+        margin-bottom: 22px;
+    }
+
+
+    .category-card {
+        padding: 10px;
+
+        border-radius: 17px;
+    }
+
+
+    .category-inner {
+        padding:
+            22px 16px;
+
+        border-radius: 14px;
+    }
+
+
+    .category-name {
+        font-size: 23px;
+    }
+
+
+    .category-focus {
+        font-size: 13px;
+    }
+
+
+    .category-dot {
+        width: 23px;
+        height: 23px;
+    }
+
+
+    .popular-item {
+        gap: 12px;
+    }
+
+
+    .service-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+
+    .service-name {
+        font-size: 14px;
+    }
+
+
+    .modal-close {
+        right: 17px;
+
+        top: 18px;
+
+        font-size: 28px;
+    }
+
+}
+
+.table-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 102, 179, 0.08);
+    overflow: hidden;
+    margin-top: 30px;
+}
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+.filter-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.filter-container label {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 600;
+}
+.filter-select {
+    padding: 9px 12px;
+    border: 1px solid #b9d4e8;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+}
+.filter-select:focus {
+    border-color: #0066b3;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 102, 179, 0.1);
+}
+.reset-filter {
+    padding: 9px 14px;
+    background: #eef2f7;
+    color: #4b5563;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+.reset-filter:hover {
+    background: #e2e8f0;
+}
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+.table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table-card thead th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+}
+.table-card tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+    color: #334155;
+}
+.table-card tbody tr:hover {
+    background: #f8fafc;
+}
+.link-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background: #f0f7ff;
+    color: #0066b3;
+    text-decoration: none;
+    font-size: 15px;
+    border: 1px solid #d0e3f7;
+}
+.link-icon:hover {
+    background: #0066b3;
+    color: white;
+}
+.link-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.empty {
+    text-align: center;
+    color: #64748b;
+    padding: 30px;
+    font-size: 14px;
+}
 
 </style>
 
 </head>
 
+
 <body>
 
 
 <!-- =====================================================
-     TOMBOL MENU MOBILE
+     TOMBOL ☰
 ===================================================== -->
 
 <button
     type="button"
     class="mobile-menu-button"
     id="mobileMenuButton"
-    onclick="toggleMobileSidebar()"
+    onclick="openSidebar()"
     aria-label="Buka menu"
 >
     ☰
@@ -769,13 +1644,12 @@ $filter_kategori = isset($_GET['kategori'])
 
 
 <!-- =====================================================
-     OVERLAY MOBILE
+     OVERLAY HP
 ===================================================== -->
 
 <div
     class="sidebar-overlay"
     id="sidebarOverlay"
-    onclick="closeMobileSidebar()"
 ></div>
 
 
@@ -783,19 +1657,27 @@ $filter_kategori = isset($_GET['kategori'])
      SIDEBAR
 ===================================================== -->
 
-<aside class="sidebar" id="sidebar">
+<aside
+    class="sidebar"
+    id="sidebar"
+>
 
     <div class="logo">
         Dashboard Admin
     </div>
 
+
     <ul class="menu">
 
         <li>
-            <a href="./index.php" class="active">
+            <a
+                href="./index.php"
+                class="active"
+            >
                 Dashboard
             </a>
         </li>
+
 
         <li>
             <a href="./layanan.php">
@@ -803,17 +1685,36 @@ $filter_kategori = isset($_GET['kategori'])
             </a>
         </li>
 
+
         <li>
             <a href="./kategori.php">
                 Kategori
             </a>
         </li>
 
-        <li>
-            <a href="./kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
+
+        <!--
+            KELOLA ADMIN DAN KELOLA USER
+            HANYA UNTUK ADMIN IT
+        -->
+
+        <?php if ($admin_role === 'ADMIN IT'): ?>
+
+            <li>
+                <a href="./kelola_admin.php">
+                    Kelola Admin
+                </a>
+            </li>
+
+
+            <li>
+                <a href="./kelola_user.php">
+                    Kelola User
+                </a>
+            </li>
+
+        <?php endif; ?>
+
 
         <li>
             <a href="./pengaturan.php">
@@ -830,15 +1731,24 @@ $filter_kategori = isset($_GET['kategori'])
      MAIN
 ===================================================== -->
 
-<main class="main">
+<main
+    class="main"
+    id="mainContent"
+>
+
 
     <div class="header">
 
+
         <div class="header-top">
 
-            <div>
 
-                <h1>Dashboard Admin</h1>
+            <div class="header-left">
+
+                <h1>
+                    Dashboard Admin
+                </h1>
+
 
                 <p>
                     Selamat datang di Dashboard Admin BPS Kabupaten Solok Selatan.
@@ -847,7 +1757,10 @@ $filter_kategori = isset($_GET['kategori'])
             </div>
 
 
+            <!-- ADMIN -->
+
             <div class="admin-dropdown">
+
 
                 <button
                     type="button"
@@ -855,25 +1768,32 @@ $filter_kategori = isset($_GET['kategori'])
                     onclick="toggleAdminMenu()"
                 >
 
+
                     <div class="admin-icon">
                         👤
                     </div>
 
+
                     <div class="admin-info">
+
 
                         <span class="admin-label">
                             Login sebagai
                         </span>
 
+
                         <span class="admin-name">
                             <?= htmlspecialchars($admin_username); ?>
                         </span>
 
+
                     </div>
+
 
                     <span class="dropdown-arrow">
                         ▾
                     </span>
+
 
                 </button>
 
@@ -882,6 +1802,7 @@ $filter_kategori = isset($_GET['kategori'])
                     class="admin-menu"
                     id="adminMenu"
                 >
+
 
                     <a
                         href="logout.php"
@@ -892,22 +1813,28 @@ $filter_kategori = isset($_GET['kategori'])
 
                 </div>
 
+
             </div>
 
+
         </div>
+
 
     </div>
 
 
-    <!-- =====================================================
-         CARDS
-    ===================================================== -->
+    <!-- =================================================
+         TOTAL CARD
+    ================================================== -->
 
     <div class="cards">
 
+
         <div class="card">
 
-            <h3>Total Layanan</h3>
+            <h3>
+                Total Layanan
+            </h3>
 
             <div class="number">
                 <?= $total_layanan; ?>
@@ -918,7 +1845,9 @@ $filter_kategori = isset($_GET['kategori'])
 
         <div class="card">
 
-            <h3>Total Kategori</h3>
+            <h3>
+                Total Kategori
+            </h3>
 
             <div class="number">
                 <?= $total_kategori; ?>
@@ -926,18 +1855,224 @@ $filter_kategori = isset($_GET['kategori'])
 
         </div>
 
+
+    </div>
+
+
+    <!-- =================================================
+         JUDUL KATEGORI
+    ================================================== -->
+
+    <div class="section-heading">
+
+
+        <div>
+
+            <h2>
+                Layanan Berdasarkan Kategori
+            </h2>
+
+            <p>
+                Jelajahi layanan BPS Kabupaten Solok Selatan berdasarkan bidangnya.
+            </p>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =================================================
+         CATEGORY GRID
+    ================================================== -->
+
+    <div class="category-grid">
+
+
+        <?php foreach ($data_kategori as $index => $kategori): ?>
+
+
+            <?php
+
+            $id =
+                (int) $kategori['id_kategori'];
+
+            $nama =
+                $kategori['nama_kategori'];
+
+            $items =
+                $layanan_per_kategori[$id]
+                ?? [];
+
+            $kelas =
+                $kelas_warna[
+                    $index %
+                    count($kelas_warna)
+                ];
+
+            $deskripsi =
+                $deskripsi_kategori[$nama]
+                ??
+                'Kumpulan layanan statistik dan informasi BPS berdasarkan kategori ini.';
+
+            ?>
+
+
+            <article
+                class="
+                    category-card
+                    <?= htmlspecialchars($kelas); ?>
+                "
+            >
+
+
+                <div class="category-inner">
+
+
+                    <div class="category-top">
+
+                        <span
+                            class="category-dot"
+                        ></span>
+
+                    </div>
+
+
+                    <div
+                        class="
+                            category-name
+                            <?= htmlspecialchars($kelas); ?>
+                        "
+                    >
+
+                        <?= htmlspecialchars($nama); ?>
+
+                    </div>
+
+
+                    <div class="category-focus">
+
+                        Fokus:
+                        <?= htmlspecialchars($deskripsi); ?>
+
+                    </div>
+
+
+                    <div class="category-count">
+
+                        <?= count($items); ?>
+
+                        tautan tersedia
+
+                    </div>
+
+
+                    <div class="popular-label">
+
+                        Tautan Populer
+
+                    </div>
+
+
+                    <div class="popular-list">
+
+
+                        <?php if (!$items): ?>
+
+
+                            <div class="popular-item">
+
+                                <span class="service-name">
+                                    Belum ada layanan.
+                                </span>
+
+                            </div>
+
+
+                        <?php else: ?>
+
+
+                            <?php
+                            foreach (
+                                array_slice(
+                                    $items,
+                                    0,
+                                    3
+                                )
+                                as $item
+                            ):
+                            ?>
+
+
+                                <div class="popular-item">
+
+
+                                    <span class="service-icon">
+                                        🌐
+                                    </span>
+
+
+                                    <span class="service-name">
+
+                                        <?= htmlspecialchars(
+                                            $item['nama_layanan']
+                                        ); ?>
+
+                                    </span>
+
+
+                                </div>
+
+
+                            <?php endforeach; ?>
+
+
+                        <?php endif; ?>
+
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="view-all"
+                        onclick="
+                            openCategoryModal(
+                                <?= $id; ?>
+                            )
+                        "
+                    >
+
+                        Lihat Semua
+
+                        <span>
+                            →
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+
+            </article>
+
+
+        <?php endforeach; ?>
+
+
     </div>
 
 
     <!-- =====================================================
-         TABLE
+         TABLE CARD
     ===================================================== -->
 
     <div class="table-card">
 
         <div class="table-header">
 
-            <h2>Recently Added</h2>
+            <h2 style="margin: 0; color: #1f2937; font-size: 20px;">Recently Added</h2>
 
             <div class="filter-container">
 
@@ -1108,30 +2243,263 @@ $filter_kategori = isset($_GET['kategori'])
 </main>
 
 
+<!-- =====================================================
+     MODAL SEMUA LAYANAN
+===================================================== -->
+
+<?php foreach ($data_kategori as $kategori): ?>
+
+
+    <?php
+
+    $id =
+        (int) $kategori['id_kategori'];
+
+    $nama =
+        $kategori['nama_kategori'];
+
+    $items =
+        $layanan_per_kategori[$id]
+        ?? [];
+
+    $deskripsi =
+        $deskripsi_kategori[$nama]
+        ??
+        'Kumpulan layanan statistik dan informasi BPS berdasarkan kategori ini.';
+
+    ?>
+
+
+    <div
+        class="modal-overlay"
+        id="categoryModal<?= $id; ?>"
+        onclick="
+            closeCategoryModal(
+                event,
+                <?= $id; ?>
+            )
+        "
+    >
+
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            onclick="event.stopPropagation()"
+        >
+
+
+            <div class="modal-header">
+
+
+                <div class="modal-title-row">
+
+
+                    <span class="modal-title-dot">
+                    </span>
+
+
+                    <div class="modal-title">
+
+                        <?= htmlspecialchars($nama); ?>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="modal-focus">
+
+                    Fokus:
+                    <?= htmlspecialchars($deskripsi); ?>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    onclick="
+                        closeCategoryModal(
+                            null,
+                            <?= $id; ?>
+                        )
+                    "
+                    aria-label="Tutup"
+                >
+                    ×
+                </button>
+
+
+            </div>
+
+
+            <div class="modal-list">
+
+
+                <?php if (!$items): ?>
+
+
+                    <div class="modal-empty">
+
+                        Belum ada layanan pada kategori ini.
+
+                    </div>
+
+
+                <?php else: ?>
+
+
+                    <?php foreach ($items as $item): ?>
+
+
+                        <div class="modal-item">
+
+
+                            <span class="service-icon">
+                                🌐
+                            </span>
+
+
+                            <div class="modal-item-main">
+
+
+                                <div class="modal-item-name">
+
+                                    <?= htmlspecialchars(
+                                        $item['nama_layanan']
+                                    ); ?>
+
+
+                                    <span
+                                        class="modal-item-category"
+                                    >
+
+                                        <?= htmlspecialchars(
+                                            $nama
+                                        ); ?>
+
+                                    </span>
+
+
+                                </div>
+
+
+                            </div>
+
+
+                            <?php if (
+                                !empty(
+                                    trim(
+                                        $item['url']
+                                    )
+                                )
+                            ): ?>
+
+
+                                <a
+                                    class="modal-open"
+                                    href="<?= htmlspecialchars(
+                                        trim($item['url']),
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ); ?>"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+
+                                    Buka
+
+                                    <span class="modal-arrow">
+                                        →
+                                    </span>
+
+                                </a>
+
+
+                            <?php else: ?>
+
+
+                                <span class="modal-open">
+                                    URL belum tersedia
+                                </span>
+
+
+                            <?php endif; ?>
+
+
+                        </div>
+
+
+                    <?php endforeach; ?>
+
+
+                <?php endif; ?>
+
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <?= count($items); ?>
+
+                layanan tersedia pada kategori
+
+                <?= htmlspecialchars($nama); ?>.
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+<?php endforeach; ?>
+
+
 <script>
 
 /* =====================================================
-   SIDEBAR MOBILE
+   BUKA SIDEBAR
 ===================================================== */
 
-function toggleMobileSidebar() {
+function openSidebar() {
 
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const button = document.getElementById('mobileMenuButton');
+    const sidebar =
+        document.getElementById('sidebar');
 
-    sidebar.classList.toggle('mobile-open');
-    overlay.classList.toggle('show');
+    const main =
+        document.getElementById('mainContent');
 
-    if (sidebar.classList.contains('mobile-open')) {
+    const overlay =
+        document.getElementById('sidebarOverlay');
 
-        button.innerHTML = '✕';
-        button.setAttribute('aria-label', 'Tutup menu');
 
-    } else {
+    if (sidebar) {
 
-        button.innerHTML = '☰';
-        button.setAttribute('aria-label', 'Buka menu');
+        sidebar.classList.add('sidebar-open');
+
+    }
+
+
+    if (main) {
+
+        main.classList.add('sidebar-open');
+
+    }
+
+
+    if (
+        overlay &&
+        window.innerWidth <= 768
+    ) {
+
+        overlay.classList.add('show');
 
     }
 
@@ -1139,39 +2507,90 @@ function toggleMobileSidebar() {
 
 
 /* =====================================================
-   TUTUP SIDEBAR MOBILE
+   TUTUP SIDEBAR
 ===================================================== */
 
-function closeMobileSidebar() {
+function closeSidebar() {
 
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const button = document.getElementById('mobileMenuButton');
+    const sidebar =
+        document.getElementById('sidebar');
 
-    sidebar.classList.remove('mobile-open');
-    overlay.classList.remove('show');
+    const main =
+        document.getElementById('mainContent');
 
-    button.innerHTML = '☰';
-    button.setAttribute('aria-label', 'Buka menu');
+    const overlay =
+        document.getElementById('sidebarOverlay');
+
+
+    if (sidebar) {
+
+        sidebar.classList.remove('sidebar-open');
+
+    }
+
+
+    if (main) {
+
+        main.classList.remove('sidebar-open');
+
+    }
+
+
+    if (overlay) {
+
+        overlay.classList.remove('show');
+
+    }
 
 }
 
 
 /* =====================================================
-   TUTUP SIDEBAR SETELAH PILIH MENU DI HP
+   KLIK MENU
 ===================================================== */
 
-document.querySelectorAll('.menu a').forEach(function(link) {
+document
+    .querySelectorAll('.menu a')
+    .forEach(function(link) {
 
-    link.addEventListener('click', function() {
+        link.addEventListener(
+            'click',
+            function() {
 
-        if (window.innerWidth <= 768) {
-            closeMobileSidebar();
-        }
+                if (window.innerWidth <= 768) {
+
+                    closeSidebar();
+
+                }
+
+            }
+        );
 
     });
 
-});
+
+/* =====================================================
+   OVERLAY HP
+===================================================== */
+
+const sidebarOverlay =
+    document.getElementById(
+        'sidebarOverlay'
+    );
+
+
+if (sidebarOverlay) {
+
+    sidebarOverlay.addEventListener(
+        'click',
+        function() {
+
+            closeSidebar();
+
+        }
+    );
+
+}
 
 
 /* =====================================================
@@ -1180,52 +2599,175 @@ document.querySelectorAll('.menu a').forEach(function(link) {
 
 function toggleAdminMenu() {
 
-    const menu = document.getElementById('adminMenu');
+    const menu =
+        document.getElementById(
+            'adminMenu'
+        );
 
-    menu.classList.toggle('show');
+
+    if (!menu) {
+
+        return;
+
+    }
+
+
+    menu.classList.toggle(
+        'show'
+    );
+
+}
+
+
+document.addEventListener(
+    'click',
+    function(event) {
+
+        const dropdown =
+            document.querySelector(
+                '.admin-dropdown'
+            );
+
+        const menu =
+            document.getElementById(
+                'adminMenu'
+            );
+
+
+        if (
+            dropdown &&
+            menu &&
+            !dropdown.contains(
+                event.target
+            )
+        ) {
+
+            menu.classList.remove(
+                'show'
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   MODAL KATEGORI
+===================================================== */
+
+function openCategoryModal(id) {
+
+    const modal =
+        document.getElementById(
+            'categoryModal' + id
+        );
+
+
+    if (modal) {
+
+        modal.classList.add(
+            'show'
+        );
+
+
+        document.body.style.overflow =
+            'hidden';
+
+    }
 
 }
 
 
 /* =====================================================
-   TUTUP DROPDOWN JIKA KLIK DI LUAR
+   TUTUP MODAL
 ===================================================== */
 
-document.addEventListener('click', function(event) {
+function closeCategoryModal(
+    event,
+    id
+) {
 
-    const dropdown = document.querySelector('.admin-dropdown');
+    if (
+        event &&
+        event.target !==
+        event.currentTarget
+    ) {
 
-    const menu = document.getElementById('adminMenu');
-
-    if (!dropdown.contains(event.target)) {
-
-        menu.classList.remove('show');
+        return;
 
     }
 
-});
+
+    const modal =
+        document.getElementById(
+            'categoryModal' + id
+        );
+
+
+    if (modal) {
+
+        modal.classList.remove(
+            'show'
+        );
+
+
+        document.body.style.overflow =
+            '';
+
+    }
+
+}
 
 
 /* =====================================================
-   FILTER KATEGORI
+   ESC UNTUK MODAL DAN SIDEBAR
 ===================================================== */
 
-function filterKategori(idKategori) {
+document.addEventListener(
+    'keydown',
+    function(event) {
 
-    if (idKategori === '') {
+        if (
+            event.key === 'Escape'
+        ) {
 
-        window.location.href = 'index.php';
+            document
+                .querySelectorAll(
+                    '.modal-overlay.show'
+                )
+                .forEach(
+                    function(modal) {
 
-    } else {
+                        modal.classList.remove(
+                            'show'
+                        );
 
-        window.location.href =
-            'index.php?kategori=' + idKategori;
+                    }
+                );
+
+
+            closeSidebar();
+
+
+            document.body.style.overflow =
+                '';
+
+        }
 
     }
+);
 
+function filterKategori(idKategori) {
+    if (idKategori === '') {
+        window.location.href = 'index.php';
+    } else {
+        window.location.href = 'index.php?kategori=' + idKategori;
+    }
 }
 
 </script>
+
 
 </body>
 
