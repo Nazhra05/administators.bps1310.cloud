@@ -114,9 +114,9 @@ Karena repo pernah publik, ganti semua rahasia berikut. Agent hanya menulis daft
 - [ ] Jadikan repo GitHub **private** dan aktifkan secret scanning
 
 ### 0.3 [W] Composer dan autoload
-- [ ] Buat `composer.json`: PHP `>=8.1`, ekstensi `ext-pdo`, `ext-mbstring`, `ext-gd`, `ext-json`, `ext-curl`; autoload PSR-4 `"App\\": "src/"`.
-- [ ] Dependensi: `phpmailer/phpmailer`, `vlucas/phpdotenv`, `nikic/fast-route`. Dev: `phpunit/phpunit`, `phpstan/phpstan`, `friendsofphp/php-cs-fixer`.
-- [ ] Ganti semua `require` PHPMailer manual agar memakai autoload Composer. **Hapus folder `PHPMailer/`** setelah email tetap bisa terkirim di lokal (lihat 0.5 Mailpit).
+- [x] Buat `composer.json`: PHP `>=8.1`, ekstensi `ext-pdo`, `ext-mbstring`, `ext-gd`, `ext-json`, `ext-curl`; autoload PSR-4 `"App\\": "src/"`.
+- [x] Dependensi: `phpmailer/phpmailer`, `vlucas/phpdotenv`, `nikic/fast-route`. Dev: `phpunit/phpunit`, `phpstan/phpstan`, `friendsofphp/php-cs-fixer`.
+- [x] Ganti semua `require` PHPMailer manual agar memakai autoload Composer. **Hapus folder `PHPMailer/`** setelah email tetap bisa terkirim di lokal (lihat 0.5 Mailpit).
 - **Selesai jika:** `composer install` berhasil, `PHPMailer/` sudah tidak ada, halaman yang memakai email tidak error.
 
 ### 0.4 [W] `.env` yang konsisten
@@ -731,6 +731,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 ```
 [2026-10-09] [0.1] chore(baseline): tag baseline-sebelum-refactor, rename branch dipuy ke main, checkout fix/fase-0-fondasi | git status bersih, branch kerja siap | -
 [2026-10-09] [0.2] chore(repo): remove production sql dumps from git, add .editorconfig and .gitattributes, update .gitignore | dump dipindah ke ../private, git ls-files bersih | -
+[2026-10-09] [0.3] feat(core): initialize composer, setup psr-4 autoloading, replace manual PHPMailer | composer install sukses, folder PHPMailer dihapus, autoload teruji | -
 ```
 
 ---
