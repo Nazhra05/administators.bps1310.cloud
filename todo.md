@@ -160,7 +160,7 @@ Dokumen hidup untuk rekonsiliasi server nanti. Agent menambahkan entri setiap ka
 - **Selesai jika:** file ada dengan kerangka bagian di atas; entri pertama ditulis dari 0.5.
 
 ### 0.10 [W] ADR awal
-- [ ] `docs/adr/0000-template.md` (Konteks, Keputusan, Alternatif, Konsekuensi) dan `docs/adr/0001-xampp-lokal-server-ditunda.md`.
+- [x] `docs/adr/0000-template.md` (Konteks, Keputusan, Alternatif, Konsekuensi) dan `docs/adr/0001-xampp-lokal-server-ditunda.md`.
 - **Selesai jika:** keputusan "lokal dulu, server ditunda" tercatat.
 
 ---
@@ -710,6 +710,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.7] docs(baseline): record baseline smoke test status across 27 endpoints in docs/BASELINE.md | smoke test script ran, all endpoints tested unauth & auth, findings logged | -
 [2026-10-09] [0.8] docs(agents): update AGENTS.md aligned with todo.md, clarify XAMPP local stack, fix workflow paths | AGENTS.md updated, rule precedence stated, workflow table verified | -
 [2026-10-09] [0.9] docs(server): create SERVER_NOTES.md living document for server reconciliation | assumptions, apache quirks, windows behaviors, and migration checklist documented | -
+[2026-10-09] [0.10] docs(adr): record ADR 0001 local xampp focus and server deferred, create template and index | docs/adr/ initialized with template, ADR-0001, and README index | -
 ```
 
 ---
