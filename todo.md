@@ -145,7 +145,7 @@ Detail konfigurasi ada di **Lampiran E**.
 - **Selesai jika:** dashboard menampilkan data contoh, tanpa data produksi.
 
 ### 0.7 Smoke test baseline
-- [ ] Buka setiap halaman dan endpoint yang ada, catat hasilnya di `docs/BASELINE.md`: berjalan / error / butuh login / kosong.
+- [x] Buka setiap halaman dan endpoint yang ada, catat hasilnya di `docs/BASELINE.md`: berjalan / error / butuh login / kosong.
 - **Selesai jika:** `docs/BASELINE.md` ada, dan semua error bawaan sudah tercatat (bukan diperbaiki dulu).
 
 ### 0.8 [W] Selaraskan `AGENTS.md` dengan dokumen ini
@@ -707,6 +707,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.4] feat(config): rewrite .env.example, add boot validation for required env variables, unify db name | boot validation teruji, .env.example bersih | -
 [2026-10-09] [0.5] feat(xampp): setup docs/xampp configs, storage/logs, storage/uploads, execute create-db.sql | databases bps_solsel_dev & bps_solsel_test created, bps_app privileges verified | -
 [2026-10-09] [0.6] feat(db): remove default admin seed from schema.sql, create dev_seed.sql, import to dev/test databases | dev_seed loaded (8 layanan, 7 kategori, 2 admin dev), tests pass | -
+[2026-10-09] [0.7] docs(baseline): record baseline smoke test status across 27 endpoints in docs/BASELINE.md | smoke test script ran, all endpoints tested unauth & auth, findings logged | -
 ```
 
 ---
