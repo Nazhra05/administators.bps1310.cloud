@@ -140,8 +140,8 @@ Detail konfigurasi ada di **Lampiran E**.
   - user `bps_app` **gagal** menjalankan `DROP TABLE` pada database dev.
 
 ### 0.6 [W] Database lokal dari skema awal
-- [ ] Impor `database/schema.sql` ke `bps_solsel_dev`. **Hapus akun default `admin/admin123` dari skema** (akun awal dibuat oleh skrip seed di 5.6).
-- [ ] Buat `database/seeds/dev_seed.sql` berisi data **palsu** (kategori, layanan contoh dengan campuran akses publik dan VPN).
+- [x] Impor `database/schema.sql` ke `bps_solsel_dev`. **Hapus akun default `admin/admin123` dari skema** (akun awal dibuat oleh skrip seed di 5.6).
+- [x] Buat `database/seeds/dev_seed.sql` berisi data **palsu** (kategori, layanan contoh dengan campuran akses publik dan VPN).
 - **Selesai jika:** dashboard menampilkan data contoh, tanpa data produksi.
 
 ### 0.7 Smoke test baseline
@@ -706,6 +706,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.3] feat(core): initialize composer, setup psr-4 autoloading, replace manual PHPMailer | composer install sukses, folder PHPMailer dihapus, autoload teruji | -
 [2026-10-09] [0.4] feat(config): rewrite .env.example, add boot validation for required env variables, unify db name | boot validation teruji, .env.example bersih | -
 [2026-10-09] [0.5] feat(xampp): setup docs/xampp configs, storage/logs, storage/uploads, execute create-db.sql | databases bps_solsel_dev & bps_solsel_test created, bps_app privileges verified | -
+[2026-10-09] [0.6] feat(db): remove default admin seed from schema.sql, create dev_seed.sql, import to dev/test databases | dev_seed loaded (8 layanan, 7 kategori, 2 admin dev), tests pass | -
 ```
 
 ---
