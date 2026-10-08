@@ -156,7 +156,7 @@ Detail konfigurasi ada di **Lampiran E**.
 
 ### 0.9 [W] Buat `docs/SERVER_NOTES.md`
 Dokumen hidup untuk rekonsiliasi server nanti. Agent menambahkan entri setiap kali menyentuh sesuatu yang khusus Apache/XAMPP/Windows.
-- [ ] Bagian: **Asumsi lingkungan lokal** (versi PHP, ekstensi, path), **Aturan khusus Apache** (`.htaccess`, vhost, `php_flag`), **Perilaku khusus Windows** (path, line ending, hosts), **Yang harus diterjemahkan** saat pindah server (daftar), **Pertanyaan terbuka untuk server**.
+- [x] Bagian: **Asumsi lingkungan lokal** (versi PHP, ekstensi, path), **Aturan khusus Apache** (`.htaccess`, vhost, `php_flag`), **Perilaku khusus Windows** (path, line ending, hosts), **Yang harus diterjemahkan** saat pindah server (daftar), **Pertanyaan terbuka untuk server**.
 - **Selesai jika:** file ada dengan kerangka bagian di atas; entri pertama ditulis dari 0.5.
 
 ### 0.10 [W] ADR awal
@@ -709,6 +709,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.6] feat(db): remove default admin seed from schema.sql, create dev_seed.sql, import to dev/test databases | dev_seed loaded (8 layanan, 7 kategori, 2 admin dev), tests pass | -
 [2026-10-09] [0.7] docs(baseline): record baseline smoke test status across 27 endpoints in docs/BASELINE.md | smoke test script ran, all endpoints tested unauth & auth, findings logged | -
 [2026-10-09] [0.8] docs(agents): update AGENTS.md aligned with todo.md, clarify XAMPP local stack, fix workflow paths | AGENTS.md updated, rule precedence stated, workflow table verified | -
+[2026-10-09] [0.9] docs(server): create SERVER_NOTES.md living document for server reconciliation | assumptions, apache quirks, windows behaviors, and migration checklist documented | -
 ```
 
 ---
