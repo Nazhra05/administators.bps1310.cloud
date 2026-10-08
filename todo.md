@@ -149,9 +149,9 @@ Detail konfigurasi ada di **Lampiran E**.
 - **Selesai jika:** `docs/BASELINE.md` ada, dan semua error bawaan sudah tercatat (bukan diperbaiki dulu).
 
 ### 0.8 [W] Selaraskan `AGENTS.md` dengan dokumen ini
-- [ ] Perbarui `AGENTS.md` memakai versi baru yang disediakan (stack XAMPP, vhost `admin.test`, `todo.md` sebagai sumber tugas, server ditunda).
-- [ ] Periksa nama berkas di `.agents/workflows/`: tabel lama menulis `/tdd-workflow` dengan teks `go-test.md` tetapi tautannya `tdd-workflow.md`. Pastikan berkas yang benar dan perbaiki tabelnya.
-- [ ] Baca `.agents/rules/*` dan catat aturan yang lebih longgar daripada `todo.md` (aturan bagian 4A: ikuti yang lebih ketat).
+- [x] Perbarui `AGENTS.md` memakai versi baru yang disediakan (stack XAMPP, vhost `admin.test`, `todo.md` sebagai sumber tugas, server ditunda).
+- [x] Periksa nama berkas di `.agents/workflows/`: tabel lama menulis `/tdd-workflow` dengan teks `go-test.md` tetapi tautannya `tdd-workflow.md`. Pastikan berkas yang benar dan perbaiki tabelnya.
+- [x] Baca `.agents/rules/*` dan catat aturan yang lebih longgar daripada `todo.md` (aturan bagian 4A: ikuti yang lebih ketat).
 - **Selesai jika:** `AGENTS.md` konsisten dengan nama berkas sebenarnya di `.agents/`.
 
 ### 0.9 [W] Buat `docs/SERVER_NOTES.md`
@@ -708,6 +708,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.5] feat(xampp): setup docs/xampp configs, storage/logs, storage/uploads, execute create-db.sql | databases bps_solsel_dev & bps_solsel_test created, bps_app privileges verified | -
 [2026-10-09] [0.6] feat(db): remove default admin seed from schema.sql, create dev_seed.sql, import to dev/test databases | dev_seed loaded (8 layanan, 7 kategori, 2 admin dev), tests pass | -
 [2026-10-09] [0.7] docs(baseline): record baseline smoke test status across 27 endpoints in docs/BASELINE.md | smoke test script ran, all endpoints tested unauth & auth, findings logged | -
+[2026-10-09] [0.8] docs(agents): update AGENTS.md aligned with todo.md, clarify XAMPP local stack, fix workflow paths | AGENTS.md updated, rule precedence stated, workflow table verified | -
 ```
 
 ---
