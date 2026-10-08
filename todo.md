@@ -120,37 +120,9 @@ Karena repo pernah publik, ganti semua rahasia berikut. Agent hanya menulis daft
 - **Selesai jika:** `composer install` berhasil, `PHPMailer/` sudah tidak ada, halaman yang memakai email tidak error.
 
 ### 0.4 [W] `.env` yang konsisten
-- [ ] Tulis ulang `.env.example` lengkap dan tanpa nilai nyata:
-
-```
-APP_ENV=development
-APP_DEBUG=true
-APP_URL=http://admin.test
-APP_BASE_PATH=                      # kosong jika memakai vhost; /adminDashboard jika lewat subfolder
-APP_TIMEZONE=Asia/Jakarta
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=bps_solsel_dev
-DB_USER=bps_app                     # hak CRUD saja
-DB_PASS=change_me_dev
-DB_MIGRATOR_USER=bps_migrator       # hak skema, hanya untuk skrip migrasi
-DB_MIGRATOR_PASS=change_me_migrator_dev
-
-API_KEY_APP_B=change_me_long_random # dipakai App B (X-API-KEY)
-SESSION_LIFETIME_MIN=30
-ALLOW_PUBLIC_REGISTER=false
-FEATURE_TRENDING=false
-
-MAIL_HOST=127.0.0.1                 # Mailpit lokal
-MAIL_PORT=1025
-MAIL_USER=
-MAIL_PASS=
-MAIL_FROM=no-reply@localhost
-GEMINI_API_KEY=                     # kosong jika fitur dimatikan
-```
-- [ ] Satu nama database di semua dokumen dan kode. Buang pemakaian ganda `bps_solsel` vs `bps-solsel`.
-- [ ] Buat validasi saat boot: jika variabel wajib kosong, aplikasi berhenti dengan pesan jelas (tanpa mencetak nilai).
+- [x] Tulis ulang `.env.example` lengkap dan tanpa nilai nyata
+- [x] Satu nama database di semua dokumen dan kode. Buang pemakaian ganda `bps_solsel` vs `bps-solsel`.
+- [x] Buat validasi saat boot: jika variabel wajib kosong, aplikasi berhenti dengan pesan jelas (tanpa mencetak nilai).
 - **Selesai jika:** menghapus satu variabel wajib dari `.env` menghasilkan pesan error yang jelas.
 
 ### 0.5 [W] Lingkungan lokal XAMPP
@@ -732,6 +704,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.1] chore(baseline): tag baseline-sebelum-refactor, rename branch dipuy ke main, checkout fix/fase-0-fondasi | git status bersih, branch kerja siap | -
 [2026-10-09] [0.2] chore(repo): remove production sql dumps from git, add .editorconfig and .gitattributes, update .gitignore | dump dipindah ke ../private, git ls-files bersih | -
 [2026-10-09] [0.3] feat(core): initialize composer, setup psr-4 autoloading, replace manual PHPMailer | composer install sukses, folder PHPMailer dihapus, autoload teruji | -
+[2026-10-09] [0.4] feat(config): rewrite .env.example, add boot validation for required env variables, unify db name | boot validation teruji, .env.example bersih | -
 ```
 
 ---
