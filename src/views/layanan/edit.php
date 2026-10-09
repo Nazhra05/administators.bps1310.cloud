@@ -1,7 +1,11 @@
 <?php
 /** @var array<string, mixed> $layanan */
 /** @var array<int, array<string, mixed>> $categories */
+/** @var array<int, array<string, mixed>> $units */
+/** @var array<string, mixed> $user */
 /** @var string $error */
+/** @var array<string, string> $errors */
+$errors = $errors ?? [];
 ?>
 
 <div class="header" style="margin-bottom: 24px;">
@@ -16,7 +20,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= e(url('/edit_layanan.php?id=' . (int)$layanan['id_layanan'])) ?>" enctype="multipart/form-data">
+    <form method="POST" action="<?= e(url('/edit_layanan.php?id=' . (int)$layanan['id_layanan'])) ?>" enctype="multipart/form-data" novalidate>
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= (int)$layanan['id_layanan'] ?>">
 
@@ -25,7 +29,11 @@
                 Nama Layanan <span style="color: #ef4444;">*</span>
             </label>
             <input type="text" id="nama_layanan" name="nama_layanan" value="<?= e($layanan['nama_layanan'] ?? '') ?>" required autofocus
+                   class="<?= !empty($errors['nama_layanan']) ? 'input-error' : '' ?>"
                    style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+            <?php if (!empty($errors['nama_layanan'])): ?>
+                <span class="field-error"><?= e($errors['nama_layanan']) ?></span>
+            <?php endif; ?>
         </div>
 
         <div style="margin-bottom: 18px;">
@@ -33,6 +41,7 @@
                 Kategori <span style="color: #ef4444;">*</span>
             </label>
             <select id="id_kategori" name="id_kategori" required
+                    class="<?= !empty($errors['id_kategori']) ? 'input-error' : '' ?>"
                     style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; background: white;">
                 <option value="">-- Pilih Kategori --</option>
                 <?php foreach ($categories as $cat): ?>
@@ -41,6 +50,9 @@
                     </option>
                 <?php endforeach; ?>
             </select>
+            <?php if (!empty($errors['id_kategori'])): ?>
+                <span class="field-error"><?= e($errors['id_kategori']) ?></span>
+            <?php endif; ?>
         </div>
 
         <?php if (($user['role'] ?? '') === 'ADMIN IT'): ?>
@@ -65,7 +77,11 @@
                 URL / Tautan Layanan <span style="color: #ef4444;">*</span>
             </label>
             <input type="url" id="url" name="url" value="<?= e($layanan['url'] ?? '') ?>" required
+                   class="<?= !empty($errors['url']) ? 'input-error' : '' ?>"
                    style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+            <?php if (!empty($errors['url'])): ?>
+                <span class="field-error"><?= e($errors['url']) ?></span>
+            <?php endif; ?>
         </div>
 
         <div style="margin-bottom: 18px;">
@@ -73,7 +89,11 @@
                 Deskripsi Layanan <span style="color: #ef4444;">*</span>
             </label>
             <textarea id="deskripsi_layanan" name="deskripsi_layanan" rows="3" required
+                      class="<?= !empty($errors['deskripsi_layanan']) ? 'input-error' : '' ?>"
                       style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit;"><?= e($layanan['deskripsi_layanan'] ?? '') ?></textarea>
+            <?php if (!empty($errors['deskripsi_layanan'])): ?>
+                <span class="field-error"><?= e($errors['deskripsi_layanan']) ?></span>
+            <?php endif; ?>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px;">
@@ -82,10 +102,14 @@
                     Akses <span style="color: #ef4444;">*</span>
                 </label>
                 <select id="akses" name="akses" required
+                        class="<?= !empty($errors['akses']) ? 'input-error' : '' ?>"
                         style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; background: white;">
                     <option value="Public" <?= ($layanan['akses'] === 'Public') ? 'selected' : '' ?>>Public</option>
                     <option value="Internal" <?= ($layanan['akses'] === 'Internal') ? 'selected' : '' ?>>Internal</option>
                 </select>
+                <?php if (!empty($errors['akses'])): ?>
+                    <span class="field-error"><?= e($errors['akses']) ?></span>
+                <?php endif; ?>
             </div>
 
             <div>
@@ -93,10 +117,14 @@
                     Memerlukan VPN <span style="color: #ef4444;">*</span>
                 </label>
                 <select id="vpn" name="vpn" required
+                        class="<?= !empty($errors['vpn']) ? 'input-error' : '' ?>"
                         style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; background: white;">
                     <option value="No" <?= ($layanan['vpn'] === 'No') ? 'selected' : '' ?>>Tidak (No)</option>
                     <option value="Yes" <?= ($layanan['vpn'] === 'Yes') ? 'selected' : '' ?>>Ya (Yes)</option>
                 </select>
+                <?php if (!empty($errors['vpn'])): ?>
+                    <span class="field-error"><?= e($errors['vpn']) ?></span>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -115,19 +143,42 @@
                 Ganti Logo Layanan (Opsional)
             </label>
             <?php if (!empty($layanan['logo'])): ?>
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
                     <img src="<?= e(asset('uploads/' . $layanan['logo'])) ?>" alt="Logo Saat Ini"
-                         style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; border: 1px solid #cbd5e1; padding: 4px; background: #f8fafc;">
-                    <span style="font-size: 0.85rem; color: #64748b;">Logo saat ini: <?= e($layanan['logo']) ?></span>
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                         style="width: 44px; height: 44px; object-fit: contain; border-radius: 6px; border: 1px solid #cbd5e1; padding: 2px; background: white;">
+                    <div style="display: none; width: 44px; height: 44px; border-radius: 6px; background: <?= service_color($layanan['nama_layanan'] ?? 'BPS') ?>; color: white; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;">
+                        <?= e(service_initials($layanan['nama_layanan'] ?? 'BP')) ?>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #334155; display: block;">Logo Saat Ini:</span>
+                        <span style="font-size: 0.8rem; color: #64748b; word-break: break-all;"><?= e($layanan['logo']) ?></span>
+                    </div>
                 </div>
             <?php endif; ?>
-            <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp"
+
+            <input type="file" id="logo" name="logo" accept="image/jpeg,image/png,image/webp" data-preview="logoPreviewEdit"
+                   class="<?= !empty($errors['logo']) ? 'input-error' : '' ?>"
                    style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
-            <small style="color: #64748b; font-size: 0.8rem; display: block; margin-top: 4px;">Biarkan kosong jika tidak ingin mengubah logo</small>
+            <small style="color: #64748b; font-size: 0.8rem; display: block; margin-top: 4px;">Biarkan kosong jika tidak ingin mengubah logo. Format: JPG, PNG, WebP (maks. 2MB)</small>
+
+            <div id="logoPreviewEdit_error" class="field-error" style="display: none;"></div>
+            <?php if (!empty($errors['logo'])): ?>
+                <span class="field-error"><?= e($errors['logo']) ?></span>
+            <?php endif; ?>
+
+            <!-- Live Preview Box untuk logo baru -->
+            <div id="logoPreviewEdit" class="logo-preview-box" style="display: none;">
+                <img src="" alt="Pratinjau Logo Baru" style="width: 44px; height: 44px; object-fit: contain; border-radius: 6px; border: 1px solid #e2e8f0; background: white; padding: 2px;">
+                <div>
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #334155; display: block;">Pratinjau Penggantian Logo:</span>
+                    <span class="preview-filename" style="font-size: 0.8rem; color: #64748b;"></span>
+                </div>
+            </div>
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center;">
-            <button type="submit" class="btn-save"
+            <button type="submit" class="btn-save" data-loading-text="Menyimpan Perubahan..."
                     style="background: #2563eb; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
                 Simpan Perubahan
             </button>
@@ -138,3 +189,4 @@
         </div>
     </form>
 </div>
+

@@ -143,11 +143,11 @@ $sortUrl = function(string $column) use ($sort, $order): string {
                                     </a>
 
                                     <form method="POST" action="<?= e(url('/hapus_kategori.php')) ?>"
-                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus kategori ini?');"
+                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus kategori: &quot;<?= e(addslashes($cat['nama_kategori'])) ?>&quot;?');"
                                           style="display: inline; margin: 0;">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="id" value="<?= $catId ?>">
-                                        <button type="submit" class="action-btn delete-btn"
+                                        <button type="submit" class="action-btn delete-btn" data-loading-text="Menghapus..."
                                                 style="background: #fef2f2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                                 <?= ((int)$cat['jumlah_layanan'] > 0) ? 'title="Tidak dapat menghapus kategori yang masih memiliki layanan" disabled style="opacity: 0.5; cursor: not-allowed;"' : '' ?>>
                                             Hapus

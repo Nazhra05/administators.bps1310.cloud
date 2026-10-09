@@ -481,9 +481,9 @@ Spesifikasi di Lampiran D.
 - [x] Keadaan kosong yang jelas ("Belum ada layanan") dan pesan saat pencarian tanpa hasil.
 
 ### 7.13 [W] Form yang andal
-- [ ] Validasi di server dengan pesan **per field**; nilai yang sudah diisi tetap tampil saat gagal; validasi klien ringan sebagai bantuan (bukan pengganti).
-- [ ] Konfirmasi sebelum hapus/arsip (dialog), pesan sukses/gagal (flash), pencegahan klik ganda, dan indikator proses.
-- [ ] Unggah logo: pratinjau, penggantian menghapus berkas lama, dan tampilan cadangan (inisial) bila logo tidak ada.
+- [x] Validasi di server dengan pesan **per field**; nilai yang sudah diisi tetap tampil saat gagal; validasi klien ringan sebagai bantuan (bukan pengganti).
+- [x] Konfirmasi sebelum hapus/arsip (dialog), pesan sukses/gagal (flash), pencegahan klik ganda, dan indikator proses.
+- [x] Unggah logo: pratinjau, penggantian menghapus berkas lama, dan tampilan cadangan (inisial) bila logo tidak ada.
 
 ### 7.14 Dashboard ringkasan yang benar
 - [ ] Angka total layanan, publik, VPN, kategori, dan `pending`; aktivitas terbaru dari `audit_log`; pintasan ke aksi umum. Query efisien dan angkanya cocok dengan data.
@@ -754,7 +754,15 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [6.8-6.11] feat(security): implement input validation, CSP, security headers, and GD upload protection | Validator helper, Content-Security-Policy with nonce, strict security headers, GD image re-encoding stripping polyglots | 9fd5a06
 [2026-10-09] [6.12-6.13] test(security): verify zero composer vulnerabilities and comprehensive automated security tests | composer audit 0 advisories, 62 phpunit tests green, 0 phpstan errors, 60 vitest tests green | 9fd5a06
 [2026-10-09] [7.1] feat(api): implement v1 auth endpoints with 8-hour sessions for App B | POST /api/v1/auth/login, GET /api/v1/auth/session, POST /api/v1/auth/logout, 8-hour sessions in DB, opportunistic cleanup, unit tests green | 644bcf4
-[2026-10-09] [7.2] feat(admin): implement user management with role controls and password reset | create user with temp password, role/unit update, active toggle with session invalidation, reset password, last admin guard | e89c516
+[2026-10-09] [7.2] feat(admin): implement user management with role controls and password reset | create user with temp password, role/unit update, active toggle with session invalidation, reset password, last admin guard | d678869
+[2026-10-09] [7.3] feat(layanan): implement leader service approval workflow and audit history | draft/pending/published workflow, reject with notes, admin IT approval, leader scoping | dc69b3d
+[2026-10-09] [7.4-7.5] feat(api): publish verified services with search aliases and updated contracts | public endpoints only return approved services, search alias support, backward compatibility intact | 0e27705
+[2026-10-09] [7.6] feat(settings): implement system settings management and public whitelist endpoint | settings kv store, help contact endpoint, audit logged updates | 6b5f515
+[2026-10-09] [7.7] feat(users): implement employee csv import and first-login password enforcement | user role onboarding, csv bulk import, must_change_password enforcement | a98acf2
+[2026-10-09] [7.8-7.9] feat(me): implement personal preferences and isolated bookmarks api | search history, pinned services, theme preferences, isolated bookmarks with 403 guard | 36c77e5
+[2026-10-09] [7.10-7.11] feat(analytics): implement personal clicks tracking, stats gamification, cleanup script, and health endpoint | link clicks tracking, private stats gamification, cleanup cron script, /api/v1/health endpoint | ef38764
+[2026-10-09] [7.12] feat(management): implement search, filters, sorting, and server-side pagination for layanan, kategori, and users | 10/25/50 per-page pagination, reusable pagination partial, multi-filters, empty states | a871407
+[2026-10-09] [7.13] feat(forms): implement per-field validation, double-click prevention, logo preview, and initials avatar fallback | per-field server errors, input retention, live logo preview, initials badge with onerror fallback, informative confirmations | HEAD
 ```
 
 ---

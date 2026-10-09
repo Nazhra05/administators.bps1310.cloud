@@ -194,6 +194,7 @@ class LayananController extends Controller
             'units'      => $units,
             'user'       => $this->user(),
             'error'      => '',
+            'errors'     => [],
             'form'       => [
                 'nama_layanan'      => '',
                 'deskripsi_layanan' => '',
@@ -208,7 +209,7 @@ class LayananController extends Controller
     }
 
     /**
-     * Simpan layanan baru
+     * Simpan layanan baru dengan validasi per field
      */
     public function store(): string
     {
@@ -253,6 +254,7 @@ class LayananController extends Controller
                 'units'      => $units,
                 'user'       => $user,
                 'error'      => 'Sesi keamanan tidak valid atau telah kedaluwarsa.',
+                'errors'     => [],
                 'form'       => $form,
             ]);
         }
@@ -260,55 +262,33 @@ class LayananController extends Controller
         $idKategori = Validator::int($form['id_kategori'], 0, 1);
         $urlValid = Validator::url($form['url']);
 
-        if (
-            $form['nama_layanan'] === '' ||
-            $form['deskripsi_layanan'] === '' ||
-            $form['url'] === '' ||
-            $idKategori <= 0 ||
-            $form['akses'] === '' ||
-            $form['vpn'] === ''
-        ) {
-            return $this->render('layanan/create', [
-                'title'      => 'Tambah Layanan',
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Semua data wajib diisi.',
-                'form'       => $form,
-            ]);
+        $errors = [];
+        if (mb_strlen($form['nama_layanan']) < 3) {
+            $errors['nama_layanan'] = 'Nama layanan wajib diisi minimal 3 karakter.';
+        } elseif (mb_strlen($form['nama_layanan']) > 150) {
+            $errors['nama_layanan'] = 'Nama layanan maksimal 150 karakter.';
         }
 
-        if ($urlValid === null) {
-            return $this->render('layanan/create', [
-                'title'      => 'Tambah Layanan',
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.',
-                'form'       => $form,
-            ]);
+        if ($form['deskripsi_layanan'] === '') {
+            $errors['deskripsi_layanan'] = 'Deskripsi layanan wajib diisi.';
+        }
+
+        if ($idKategori <= 0) {
+            $errors['id_kategori'] = 'Silakan pilih kategori yang valid.';
+        }
+
+        if ($form['url'] === '') {
+            $errors['url'] = 'URL / tautan layanan wajib diisi.';
+        } elseif ($urlValid === null) {
+            $errors['url'] = 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.';
         }
 
         if (!in_array($form['akses'], ['Internal', 'Public'], true)) {
-            return $this->render('layanan/create', [
-                'title'      => 'Tambah Layanan',
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Pilihan akses tidak valid.',
-                'form'       => $form,
-            ]);
+            $errors['akses'] = 'Pilihan akses harus Public atau Internal.';
         }
 
         if (!in_array($form['vpn'], ['Yes', 'No'], true)) {
-            return $this->render('layanan/create', [
-                'title'      => 'Tambah Layanan',
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Pilihan VPN tidak valid.',
-                'form'       => $form,
-            ]);
+            $errors['vpn'] = 'Pilihan VPN harus Ya (Yes) atau Tidak (No).';
         }
 
         // Upload logo jika ada
@@ -316,16 +296,24 @@ class LayananController extends Controller
         if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
             $uploaded = $this->handleLogoUpload($_FILES['logo']);
             if ($uploaded['error'] !== null) {
-                return $this->render('layanan/create', [
-                    'title'      => 'Tambah Layanan',
-                    'categories' => $categories,
-                    'units'      => $units,
-                    'user'       => $user,
-                    'error'      => $uploaded['error'],
-                    'form'       => $form,
-                ]);
+                $errors['logo'] = $uploaded['error'];
+            } else {
+                $logo = $uploaded['filename'];
             }
-            $logo = $uploaded['filename'];
+        } elseif (isset($_FILES['logo']) && $_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $errors['logo'] = 'Terjadi kesalahan saat mengunggah file logo.';
+        }
+
+        if (!empty($errors)) {
+            return $this->render('layanan/create', [
+                'title'      => 'Tambah Layanan',
+                'categories' => $categories,
+                'units'      => $units,
+                'user'       => $user,
+                'error'      => 'Mohon periksa kembali input formulir yang ditandai.',
+                'errors'     => $errors,
+                'form'       => $form,
+            ]);
         }
 
         // Insert ke database
@@ -411,11 +399,12 @@ class LayananController extends Controller
             'units'      => $units,
             'user'       => $user,
             'error'      => '',
+            'errors'     => [],
         ]);
     }
 
     /**
-     * Perbarui layanan
+     * Perbarui layanan dengan validasi per field
      */
     public function update(array $params = []): string
     {
@@ -479,62 +468,71 @@ class LayananController extends Controller
                 'units'      => $units,
                 'user'       => $user,
                 'error'      => 'Sesi keamanan tidak valid atau telah kedaluwarsa.',
+                'errors'     => [],
             ]);
         }
 
         $idKategori = Validator::int($form['id_kategori'], 0, 1);
         $urlValid = Validator::url($form['url']);
 
-        if (
-            $form['nama_layanan'] === '' ||
-            $form['deskripsi_layanan'] === '' ||
-            $form['url'] === '' ||
-            $idKategori <= 0 ||
-            $form['akses'] === '' ||
-            $form['vpn'] === ''
-        ) {
-            return $this->render('layanan/edit', [
-                'title'      => 'Edit Layanan',
-                'layanan'    => array_merge($layanan, $form),
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Semua data wajib diisi.',
-            ]);
+        $errors = [];
+        if (mb_strlen($form['nama_layanan']) < 3) {
+            $errors['nama_layanan'] = 'Nama layanan wajib diisi minimal 3 karakter.';
+        } elseif (mb_strlen($form['nama_layanan']) > 150) {
+            $errors['nama_layanan'] = 'Nama layanan maksimal 150 karakter.';
         }
 
-        if ($urlValid === null) {
-            return $this->render('layanan/edit', [
-                'title'      => 'Edit Layanan',
-                'layanan'    => array_merge($layanan, $form),
-                'categories' => $categories,
-                'units'      => $units,
-                'user'       => $user,
-                'error'      => 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.',
-            ]);
+        if ($form['deskripsi_layanan'] === '') {
+            $errors['deskripsi_layanan'] = 'Deskripsi layanan wajib diisi.';
+        }
+
+        if ($idKategori <= 0) {
+            $errors['id_kategori'] = 'Silakan pilih kategori yang valid.';
+        }
+
+        if ($form['url'] === '') {
+            $errors['url'] = 'URL / tautan layanan wajib diisi.';
+        } elseif ($urlValid === null) {
+            $errors['url'] = 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.';
+        }
+
+        if (!in_array($form['akses'], ['Internal', 'Public'], true)) {
+            $errors['akses'] = 'Pilihan akses harus Public atau Internal.';
+        }
+
+        if (!in_array($form['vpn'], ['Yes', 'No'], true)) {
+            $errors['vpn'] = 'Pilihan VPN harus Ya (Yes) atau Tidak (No).';
         }
 
         $logo = $layanan['logo'] ?? '';
         if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
             $uploaded = $this->handleLogoUpload($_FILES['logo']);
             if ($uploaded['error'] !== null) {
-                return $this->render('layanan/edit', [
-                    'title'      => 'Edit Layanan',
-                    'layanan'    => array_merge($layanan, $form),
-                    'categories' => $categories,
-                    'units'      => $units,
-                    'user'       => $user,
-                    'error'      => $uploaded['error'],
-                ]);
-            }
-            // Hapus logo lama jika bukan default
-            if (!empty($logo) && $logo !== 'logo_bps.jpg') {
-                $oldFile = dirname(__DIR__, 3) . '/public/uploads/' . basename($logo);
-                if (is_file($oldFile)) {
-                    @unlink($oldFile);
+                $errors['logo'] = $uploaded['error'];
+            } else {
+                // Hapus logo lama jika bukan default
+                if (!empty($logo) && $logo !== 'logo_bps.jpg') {
+                    $oldFile = dirname(__DIR__, 3) . '/public/uploads/' . basename($logo);
+                    if (is_file($oldFile)) {
+                        @unlink($oldFile);
+                    }
                 }
+                $logo = $uploaded['filename'];
             }
-            $logo = $uploaded['filename'];
+        } elseif (isset($_FILES['logo']) && $_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $errors['logo'] = 'Terjadi kesalahan saat mengunggah file logo.';
+        }
+
+        if (!empty($errors)) {
+            return $this->render('layanan/edit', [
+                'title'      => 'Edit Layanan',
+                'layanan'    => array_merge($layanan, $form),
+                'categories' => $categories,
+                'units'      => $units,
+                'user'       => $user,
+                'error'      => 'Mohon periksa kembali input formulir yang ditandai.',
+                'errors'     => $errors,
+            ]);
         }
 
         $targetUnitId = isset($layanan['unit_id']) ? (int)$layanan['unit_id'] : null;

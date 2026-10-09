@@ -1,6 +1,8 @@
 <?php
 /** @var array<string, mixed> $kategori */
 /** @var string $error */
+/** @var array<string, string> $errors */
+$errors = $errors ?? [];
 ?>
 
 <div class="header" style="margin-bottom: 24px;">
@@ -15,7 +17,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= e(url('/edit_kategori.php?id=' . (int)$kategori['id_kategori'])) ?>">
+    <form method="POST" action="<?= e(url('/edit_kategori.php?id=' . (int)$kategori['id_kategori'])) ?>" novalidate>
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= (int)$kategori['id_kategori'] ?>">
 
@@ -25,11 +27,15 @@
             </label>
             <input type="text" id="nama_kategori" name="nama_kategori"
                    value="<?= e($kategori['nama_kategori'] ?? '') ?>" required autofocus
+                   class="<?= !empty($errors['nama_kategori']) ? 'input-error' : '' ?>"
                    style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+            <?php if (!empty($errors['nama_kategori'])): ?>
+                <span class="field-error"><?= e($errors['nama_kategori']) ?></span>
+            <?php endif; ?>
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center; margin-top: 24px;">
-            <button type="submit" class="btn-save"
+            <button type="submit" class="btn-save" data-loading-text="Menyimpan Perubahan..."
                     style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
                 Simpan Perubahan
             </button>
@@ -40,3 +46,4 @@
         </div>
     </form>
 </div>
+

@@ -223,11 +223,15 @@ $sortUrl = function(string $column) use ($sort, $order): string {
                             </td>
                             <td style="padding: 12px 14px;">
                                 <?php if (!empty($srv['logo'])): ?>
-                                    <img src="<?= e(asset('uploads/' . $srv['logo'])) ?>" alt="Logo"
-                                         style="width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: #f8fafc; padding: 2px; border: 1px solid #e2e8f0;">
+                                    <img src="<?= e(asset('uploads/' . $srv['logo'])) ?>" alt="<?= e($srv['nama_layanan']) ?>"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                         style="width: 34px; height: 34px; object-fit: contain; border-radius: 6px; background: #f8fafc; padding: 2px; border: 1px solid #e2e8f0;">
+                                    <div style="display: none; width: 34px; height: 34px; border-radius: 6px; background: <?= service_color($srv['nama_layanan']) ?>; color: white; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">
+                                        <?= e(service_initials($srv['nama_layanan'])) ?>
+                                    </div>
                                 <?php else: ?>
-                                    <div style="width: 32px; height: 32px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                                        🔗
+                                    <div style="width: 34px; height: 34px; border-radius: 6px; background: <?= service_color($srv['nama_layanan']) ?>; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.08);" title="<?= e($srv['nama_layanan']) ?>">
+                                        <?= e(service_initials($srv['nama_layanan'])) ?>
                                     </div>
                                 <?php endif; ?>
                             </td>
@@ -355,11 +359,11 @@ $sortUrl = function(string $column) use ($sort, $order): string {
                                         </a>
 
                                         <form method="POST" action="<?= e(url('/hapus_layanan.php')) ?>"
-                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus layanan ini?');"
+                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus layanan: &quot;<?= e(addslashes($srv['nama_layanan'])) ?>&quot;?\nTindakan ini tidak dapat dibatalkan.');"
                                               style="display: inline; margin: 0;">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="id" value="<?= $srvId ?>">
-                                            <button type="submit" class="action-btn delete-btn"
+                                            <button type="submit" class="action-btn delete-btn" data-loading-text="Menghapus..."
                                                     style="background: #fef2f2; color: #dc2626; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
                                                 Hapus
                                             </button>

@@ -223,3 +223,47 @@ if (!function_exists('csp_nonce')) {
     }
 }
 
+if (!function_exists('service_initials')) {
+    /**
+     * Generate 1-2 uppercase initials from a service name.
+     */
+    function service_initials(string $name): string
+    {
+        $clean = trim(preg_replace('/[^a-zA-Z0-9\s]/', ' ', $name) ?? '');
+        $words = preg_split('/\s+/', $clean, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if (empty($words)) {
+            return 'BP';
+        }
+
+        if (count($words) === 1) {
+            return strtoupper(mb_substr($words[0], 0, 2));
+        }
+
+        return strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+    }
+}
+
+if (!function_exists('service_color')) {
+    /**
+     * Generate a consistent gradient background based on string hash.
+     */
+    function service_color(string $name): string
+    {
+        $palette = [
+            'linear-gradient(135deg, #2563eb, #1d4ed8)', // Royal Blue
+            'linear-gradient(135deg, #059669, #047857)', // Emerald
+            'linear-gradient(135deg, #7c3aed, #6d28d9)', // Violet
+            'linear-gradient(135deg, #d97706, #b45309)', // Amber
+            'linear-gradient(135deg, #db2777, #be185d)', // Pink
+            'linear-gradient(135deg, #0891b2, #0e7490)', // Cyan
+            'linear-gradient(135deg, #ea580c, #c2410c)', // Orange
+            'linear-gradient(135deg, #0d9488, #0f766e)', // Teal
+            'linear-gradient(135deg, #4f46e5, #4338ca)', // Indigo
+            'linear-gradient(135deg, #e11d48, #9f1239)', // Rose
+        ];
+        $hash = crc32($name);
+        return $palette[abs($hash) % count($palette)];
+    }
+}
+

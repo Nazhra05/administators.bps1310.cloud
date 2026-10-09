@@ -129,6 +129,7 @@ class KategoriController extends Controller
         return $this->render('kategori/create', [
             'title'         => 'Tambah Kategori',
             'error'         => '',
+            'errors'        => [],
             'nama_kategori' => '',
         ]);
     }
@@ -138,22 +139,33 @@ class KategoriController extends Controller
      */
     public function store(): string
     {
+        $namaKategori = trim($_POST['nama_kategori'] ?? '');
+
         if (!csrf_verify()) {
             http_response_code(403);
             return $this->render('kategori/create', [
                 'title'         => 'Tambah Kategori',
                 'error'         => 'Sesi keamanan tidak valid atau telah kedaluwarsa.',
-                'nama_kategori' => $_POST['nama_kategori'] ?? '',
+                'errors'        => [],
+                'nama_kategori' => $namaKategori,
             ]);
         }
 
-        $namaKategori = trim($_POST['nama_kategori'] ?? '');
-
+        $errors = [];
         if ($namaKategori === '') {
+            $errors['nama_kategori'] = 'Nama kategori wajib diisi.';
+        } elseif (mb_strlen($namaKategori) < 2) {
+            $errors['nama_kategori'] = 'Nama kategori wajib diisi minimal 2 karakter.';
+        } elseif (mb_strlen($namaKategori) > 100) {
+            $errors['nama_kategori'] = 'Nama kategori maksimal 100 karakter.';
+        }
+
+        if (!empty($errors)) {
             return $this->render('kategori/create', [
                 'title'         => 'Tambah Kategori',
-                'error'         => 'Nama kategori wajib diisi.',
-                'nama_kategori' => '',
+                'error'         => 'Mohon periksa kembali formulir yang ditandai.',
+                'errors'        => $errors,
+                'nama_kategori' => $namaKategori,
             ]);
         }
 
@@ -168,7 +180,8 @@ class KategoriController extends Controller
             if ((int)$existing['is_active'] === 1) {
                 return $this->render('kategori/create', [
                     'title'         => 'Tambah Kategori',
-                    'error'         => 'Kategori tersebut sudah ada.',
+                    'error'         => 'Mohon periksa kembali formulir yang ditandai.',
+                    'errors'        => ['nama_kategori' => 'Kategori dengan nama tersebut sudah ada.'],
                     'nama_kategori' => $namaKategori,
                 ]);
             }
@@ -220,6 +233,7 @@ class KategoriController extends Controller
             'title'    => 'Edit Kategori',
             'kategori' => $kategori,
             'error'    => '',
+            'errors'   => [],
         ]);
     }
 
@@ -234,18 +248,33 @@ class KategoriController extends Controller
             $this->redirect('kategori.php');
         }
 
+        $namaKategori = trim($_POST['nama_kategori'] ?? '');
+
         if (!csrf_verify()) {
             http_response_code(403);
-            die('Sesi keamanan tidak valid atau telah kedaluwarsa.');
-        }
-
-        $namaKategori = Validator::string($_POST['nama_kategori'] ?? '', 100);
-
-        if ($namaKategori === '') {
             return $this->render('kategori/edit', [
                 'title'    => 'Edit Kategori',
-                'kategori' => ['id_kategori' => $id, 'nama_kategori' => ''],
-                'error'    => 'Nama kategori wajib diisi.',
+                'kategori' => ['id_kategori' => $id, 'nama_kategori' => $namaKategori],
+                'error'    => 'Sesi keamanan tidak valid atau telah kedaluwarsa.',
+                'errors'   => [],
+            ]);
+        }
+
+        $errors = [];
+        if ($namaKategori === '') {
+            $errors['nama_kategori'] = 'Nama kategori wajib diisi.';
+        } elseif (mb_strlen($namaKategori) < 2) {
+            $errors['nama_kategori'] = 'Nama kategori wajib diisi minimal 2 karakter.';
+        } elseif (mb_strlen($namaKategori) > 100) {
+            $errors['nama_kategori'] = 'Nama kategori maksimal 100 karakter.';
+        }
+
+        if (!empty($errors)) {
+            return $this->render('kategori/edit', [
+                'title'    => 'Edit Kategori',
+                'kategori' => ['id_kategori' => $id, 'nama_kategori' => $namaKategori],
+                'error'    => 'Mohon periksa kembali formulir yang ditandai.',
+                'errors'   => $errors,
             ]);
         }
 
@@ -258,7 +287,8 @@ class KategoriController extends Controller
             return $this->render('kategori/edit', [
                 'title'    => 'Edit Kategori',
                 'kategori' => ['id_kategori' => $id, 'nama_kategori' => $namaKategori],
-                'error'    => 'Nama kategori tersebut sudah digunakan.',
+                'error'    => 'Mohon periksa kembali formulir yang ditandai.',
+                'errors'   => ['nama_kategori' => 'Nama kategori tersebut sudah digunakan.'],
             ]);
         }
 

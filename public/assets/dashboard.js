@@ -67,4 +67,96 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => alert.remove(), 300);
         }, 6000);
     });
+
+    // 5. Pencegahan Klik Ganda & Indikator Proses (Task 7.13)
+    document.querySelectorAll('form').forEach((form) => {
+        if ((form.method || '').toUpperCase() === 'GET') return;
+
+        form.addEventListener('submit', (e) => {
+            // Jika konfirmasi dialog dibatalkan oleh pengguna, jangan lanjutkan
+            if (e.defaultPrevented) return;
+
+            // Periksa validitas formulir standar HTML5
+            if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+                return;
+            }
+
+            if (form.dataset.submitting === 'true') {
+                e.preventDefault();
+                return false;
+            }
+
+            form.dataset.submitting = 'true';
+
+            const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (submitBtn) {
+                const loadingText = submitBtn.getAttribute('data-loading-text') || 'Menyimpan...';
+                submitBtn.disabled = true;
+
+                if (submitBtn.tagName === 'BUTTON') {
+                    submitBtn.innerHTML = '<span class="spinner"></span> ' + loadingText;
+                } else {
+                    submitBtn.value = loadingText;
+                }
+            }
+        });
+    });
+
+    // 6. Live Preview Unggah Logo Layanan (Task 7.13)
+    document.querySelectorAll('input[type="file"][data-preview]').forEach((input) => {
+        const previewTargetId = input.getAttribute('data-preview');
+        const previewContainer = document.getElementById(previewTargetId);
+        const errorContainer = document.getElementById(previewTargetId + '_error');
+        if (!previewContainer) return;
+
+        input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+            if (!file) {
+                return;
+            }
+
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+            if (!allowedTypes.includes(file.type)) {
+                if (errorContainer) {
+                    errorContainer.textContent = 'Format berkas tidak didukung. Harap pilih gambar JPG, PNG, atau WebP.';
+                    errorContainer.style.display = 'block';
+                }
+                input.value = '';
+                previewContainer.style.display = 'none';
+                return;
+            }
+
+            if (file.size > maxSize) {
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                if (errorContainer) {
+                    errorContainer.textContent = 'Ukuran berkas terlalu besar (' + sizeMb + ' MB). Batas maksimum adalah 2 MB.';
+                    errorContainer.style.display = 'block';
+                }
+                input.value = '';
+                previewContainer.style.display = 'none';
+                return;
+            }
+
+            if (errorContainer) {
+                errorContainer.textContent = '';
+                errorContainer.style.display = 'none';
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = previewContainer.querySelector('img');
+                if (img) {
+                    img.src = e.target.result;
+                }
+                const nameLabel = previewContainer.querySelector('.preview-filename');
+                if (nameLabel) {
+                    nameLabel.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+                }
+                previewContainer.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        });
+    });
 });

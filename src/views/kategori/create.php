@@ -1,6 +1,9 @@
 <?php
 /** @var string $error */
+/** @var array<string, string> $errors */
 /** @var string $nama_kategori */
+$errors = $errors ?? [];
+$nama_kategori = $nama_kategori ?? '';
 ?>
 
 <div class="header" style="margin-bottom: 24px;">
@@ -15,7 +18,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= e(url('/tambah_kategori.php')) ?>">
+    <form method="POST" action="<?= e(url('/tambah_kategori.php')) ?>" novalidate>
         <?= csrf_field() ?>
 
         <div style="margin-bottom: 20px;">
@@ -24,11 +27,15 @@
             </label>
             <input type="text" id="nama_kategori" name="nama_kategori" value="<?= e($nama_kategori) ?>" required autofocus
                    placeholder="Contoh: Sosial, Distribusi, Neraca..."
+                   class="<?= !empty($errors['nama_kategori']) ? 'input-error' : '' ?>"
                    style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+            <?php if (!empty($errors['nama_kategori'])): ?>
+                <span class="field-error"><?= e($errors['nama_kategori']) ?></span>
+            <?php endif; ?>
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center; margin-top: 24px;">
-            <button type="submit" class="btn-simpan"
+            <button type="submit" class="btn-simpan" data-loading-text="Menyimpan Kategori..."
                     style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
                 Simpan Kategori
             </button>
@@ -39,3 +46,4 @@
         </div>
     </form>
 </div>
+

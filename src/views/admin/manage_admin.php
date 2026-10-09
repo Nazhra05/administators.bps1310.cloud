@@ -2,6 +2,11 @@
 /** @var array<int, array<string, mixed>> $admins */
 /** @var array<int, array<string, mixed>> $units */
 /** @var array<string, mixed> $user */
+/** @var array<string, mixed> $formInput */
+/** @var array<string, string> $formErrors */
+$formInput = $formInput ?? [];
+$formErrors = $formErrors ?? [];
+$showAddForm = !empty($formErrors);
 ?>
 
 <div class="header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -16,32 +21,40 @@
 </div>
 
 <!-- Form Tambah Pengguna Baru -->
-<div id="formTambahUser" class="card" style="display: none; margin-bottom: 24px; border-left: 4px solid #2563eb;">
+<div id="formTambahUser" class="card" style="display: <?= $showAddForm ? 'block' : 'none' ?>; margin-bottom: 24px; border-left: 4px solid #2563eb;">
     <h2 style="font-size: 1.1rem; color: #1e293b; font-weight: 700; margin: 0 0 16px 0;">Tambah Akun Baru</h2>
-    <form method="POST" action="<?= e(url('/admin/tambah')) ?>">
+    <form method="POST" action="<?= e(url('/admin/tambah')) ?>" novalidate>
         <?= csrf_field() ?>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
             <div>
                 <label for="new_username" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
                     Username <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="text" id="new_username" name="username" required
+                <input type="text" id="new_username" name="username" value="<?= e($formInput['username'] ?? '') ?>" required
                        placeholder="contoh: budi_solsel"
+                       class="<?= !empty($formErrors['username']) ? 'input-error' : '' ?>"
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                <?php if (!empty($formErrors['username'])): ?>
+                    <span class="field-error"><?= e($formErrors['username']) ?></span>
+                <?php endif; ?>
             </div>
             <div>
                 <label for="new_email" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
                     Email <span style="color: #ef4444;">*</span>
                 </label>
-                <input type="email" id="new_email" name="email" required
+                <input type="email" id="new_email" name="email" value="<?= e($formInput['email'] ?? '') ?>" required
                        placeholder="budi@bps.go.id"
+                       class="<?= !empty($formErrors['email']) ? 'input-error' : '' ?>"
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                <?php if (!empty($formErrors['email'])): ?>
+                    <span class="field-error"><?= e($formErrors['email']) ?></span>
+                <?php endif; ?>
             </div>
             <div>
                 <label for="new_first_name" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
                     Nama Depan
                 </label>
-                <input type="text" id="new_first_name" name="first_name"
+                <input type="text" id="new_first_name" name="first_name" value="<?= e($formInput['first_name'] ?? '') ?>"
                        placeholder="Budi"
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
             </div>
@@ -49,7 +62,7 @@
                 <label for="new_last_name" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
                     Nama Belakang
                 </label>
-                <input type="text" id="new_last_name" name="last_name"
+                <input type="text" id="new_last_name" name="last_name" value="<?= e($formInput['last_name'] ?? '') ?>"
                        placeholder="Santoso"
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
             </div>
@@ -59,9 +72,9 @@
                 </label>
                 <select id="new_role" name="role" required
                         style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; background: white;">
-                    <option value="ADMIN DASHBOARD">ADMIN DASHBOARD (Leader/Operator)</option>
-                    <option value="ADMIN IT">ADMIN IT (Super Administrator)</option>
-                    <option value="USER APP PORTAL">USER APP PORTAL (Pegawai Biasa)</option>
+                    <option value="ADMIN DASHBOARD" <?= (($formInput['role'] ?? 'ADMIN DASHBOARD') === 'ADMIN DASHBOARD') ? 'selected' : '' ?>>ADMIN DASHBOARD (Leader/Operator)</option>
+                    <option value="ADMIN IT" <?= (($formInput['role'] ?? '') === 'ADMIN IT') ? 'selected' : '' ?>>ADMIN IT (Super Administrator)</option>
+                    <option value="USER APP PORTAL" <?= (($formInput['role'] ?? '') === 'USER APP PORTAL') ? 'selected' : '' ?>>USER APP PORTAL (Pegawai Biasa)</option>
                 </select>
             </div>
             <div>
@@ -72,7 +85,7 @@
                         style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; background: white;">
                     <option value="">-- Pilih Unit Kerja (Opsional) --</option>
                     <?php foreach ($units as $u): ?>
-                        <option value="<?= (int)$u['id'] ?>"><?= e($u['nama']) ?></option>
+                        <option value="<?= (int)$u['id'] ?>" <?= ((string)($formInput['unit_id'] ?? '') === (string)$u['id']) ? 'selected' : '' ?>><?= e($u['nama']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -82,11 +95,15 @@
                 </label>
                 <input type="text" id="new_password" name="password"
                        placeholder="Kosongkan untuk buat password acak"
+                       class="<?= !empty($formErrors['password']) ? 'input-error' : '' ?>"
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;">
+                <?php if (!empty($formErrors['password'])): ?>
+                    <span class="field-error"><?= e($formErrors['password']) ?></span>
+                <?php endif; ?>
             </div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <button type="submit"
+            <button type="submit" data-loading-text="Menyimpan Akun..."
                     style="background: #16a34a; color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
                 Simpan Akun
             </button>
@@ -297,22 +314,25 @@
                                         <!-- Toggle Aktif/Nonaktif -->
                                         <?php if ($isActive === 1): ?>
                                             <form method="POST" action="<?= e(url('/kelola_admin.php')) ?>" style="display: inline; margin: 0;"
-                                                  onsubmit="return confirm('Nonaktifkan akun ini? Sesi pengguna akan langsung diakhiri.');">
+                                                  onsubmit="return confirm('Nonaktifkan akun <?= e(addslashes($adm['username'])) ?>? Sesi pengguna yang bersangkutan akan langsung diakhiri.');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id_admin" value="<?= $idAdmin ?>">
                                                 <input type="hidden" name="action" value="toggle_active">
                                                 <input type="hidden" name="is_active" value="0">
-                                                <button type="submit" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                                                <button type="submit" data-loading-text="Memproses..."
+                                                        style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
                                                     Nonaktifkan
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <form method="POST" action="<?= e(url('/kelola_admin.php')) ?>" style="display: inline; margin: 0;">
+                                            <form method="POST" action="<?= e(url('/kelola_admin.php')) ?>" style="display: inline; margin: 0;"
+                                                  onsubmit="return confirm('Aktifkan kembali akun <?= e(addslashes($adm['username'])) ?>?');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id_admin" value="<?= $idAdmin ?>">
                                                 <input type="hidden" name="action" value="toggle_active">
                                                 <input type="hidden" name="is_active" value="1">
-                                                <button type="submit" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                                                <button type="submit" data-loading-text="Memproses..."
+                                                        style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
                                                     Aktifkan
                                                 </button>
                                             </form>
@@ -320,11 +340,12 @@
 
                                         <!-- Reset Password -->
                                         <form method="POST" action="<?= e(url('/kelola_admin.php')) ?>" style="display: inline; margin: 0;"
-                                              onsubmit="return confirm('Reset password untuk akun ini? Password sementara akan dibuatkan otomatis dan pengguna wajib menggantinya saat login.');">
+                                              onsubmit="return confirm('Reset password untuk akun: &quot;<?= e(addslashes($adm['username'])) ?>&quot;?\nPassword sementara akan dibuatkan otomatis dan pengguna wajib menggantinya saat login.');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="id_admin" value="<?= $idAdmin ?>">
                                             <input type="hidden" name="action" value="reset_password">
-                                            <button type="submit" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                                            <button type="submit" data-loading-text="Mereset..."
+                                                    style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
                                                 Reset Password
                                             </button>
                                         </form>
@@ -332,11 +353,12 @@
                                         <!-- Hapus Akun -->
                                         <?php if (!$isSelf): ?>
                                             <form method="POST" action="<?= e(url('/kelola_admin.php')) ?>"
-                                                  onsubmit="return confirm('Hapus admin/user ini secara permanen?');" style="display: inline; margin: 0;">
+                                                  onsubmit="return confirm('Hapus akun <?= e(addslashes($adm['username'])) ?> (<?= e(addslashes(($adm['first_name'] ?? '') . ' ' . ($adm['last_name'] ?? ''))) ?>) secara permanen?\nTindakan ini tidak dapat dibatalkan.');" style="display: inline; margin: 0;">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id_admin" value="<?= $idAdmin ?>">
                                                 <input type="hidden" name="action" value="delete">
-                                                <button type="submit" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                                                <button type="submit" data-loading-text="Menghapus..."
+                                                        style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 7px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
                                                     Hapus
                                                 </button>
                                             </form>

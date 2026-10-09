@@ -105,6 +105,11 @@ class AdminController extends Controller
 
         $hasFilters = ($search !== '' || $roleFilter !== '' || $statusFilter !== '');
 
+        $formInput = (array)Session::get('form_input', []);
+        Session::remove('form_input');
+        $formErrors = (array)Session::get('form_errors', []);
+        Session::remove('form_errors');
+
         return $this->render('admin/manage_admin', [
             'title'        => 'Kelola Admin',
             'admins'       => $admins,
@@ -124,6 +129,8 @@ class AdminController extends Controller
                 'to'          => min($offset + $perPage, $totalItems),
             ],
             'user'         => $this->user(),
+            'formInput'    => $formInput,
+            'formErrors'   => $formErrors,
         ]);
     }
 
@@ -152,23 +159,27 @@ class AdminController extends Controller
             $role = 'ADMIN DASHBOARD';
         }
 
+        $errors = [];
         if ($username === '' || !preg_match('/^[a-zA-Z0-9_]{3,50}$/', $username)) {
-            flash('error', 'Username wajib diisi 3-50 karakter alfanumerik/underscore.');
-            $this->redirect('kelola_admin.php');
+            $errors['username'] = 'Username wajib diisi 3-50 karakter alfanumerik/underscore.';
         }
 
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            flash('error', 'Format email tidak valid.');
-            $this->redirect('kelola_admin.php');
+            $errors['email'] = 'Format email tidak valid.';
         }
 
         $db = $this->db();
 
-        $stmtCheck = $db->prepare("SELECT id_admin FROM admin WHERE username = ? OR email = ? LIMIT 1");
+        $stmtCheck = $db->prepare("SELECT username, email FROM admin WHERE username = ? OR email = ? LIMIT 1");
         $stmtCheck->execute([$username, $email]);
-        if ($stmtCheck->fetch()) {
-            flash('error', 'Username atau email sudah digunakan oleh akun lain.');
-            $this->redirect('kelola_admin.php');
+        $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+        if ($existing) {
+            if (strtolower((string)$existing['username']) === strtolower($username)) {
+                $errors['username'] = 'Username sudah digunakan oleh akun lain.';
+            }
+            if (strtolower((string)$existing['email']) === strtolower($email)) {
+                $errors['email'] = 'Email sudah digunakan oleh akun lain.';
+            }
         }
 
         $isTempPassword = false;
@@ -180,12 +191,18 @@ class AdminController extends Controller
         } else {
             $policyErr = PasswordService::validatePolicy($passwordRaw, $username);
             if ($policyErr !== null) {
-                flash('error', $policyErr);
-                $this->redirect('kelola_admin.php');
+                $errors['password'] = $policyErr;
             }
             $passwordToHash = $passwordRaw;
             $mustChangePassword = 0;
             $tempPassword = '';
+        }
+
+        if (!empty($errors)) {
+            Session::set('form_input', $_POST);
+            Session::set('form_errors', $errors);
+            flash('error', 'Mohon periksa kembali formulir pendaftaran pengguna.');
+            $this->redirect('kelola_admin.php');
         }
 
         $hash = PasswordService::hash($passwordToHash);
