@@ -21,11 +21,103 @@ class PengaturanController extends Controller
         $stmt->execute([(int)($user['id'] ?? 0)]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        $stmtSettings = $db->query("SELECT skey, svalue FROM settings");
+        $settings = $stmtSettings ? $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
         return $this->render('pengaturan/index', [
             'title'       => 'Pengaturan Sistem',
             'admin'       => $admin,
+            'user'        => $user,
+            'settings'    => $settings,
             'error_msg'   => '',
             'success_msg' => '',
+        ]);
+    }
+
+    /**
+     * Dispatcher untuk form submit di halaman pengaturan
+     */
+    public function postHandler(): string
+    {
+        $action = (string)($_POST['action'] ?? '');
+        if ($action === 'update_settings') {
+            return $this->saveSettings();
+        }
+        return $this->changePassword();
+    }
+
+    /**
+     * Simpan pengaturan kontak bantuan dan portal (ADMIN IT saja)
+     */
+    public function saveSettings(): string
+    {
+        $user = $this->user();
+        $db = $this->db();
+        $adminId = (int)($user['id'] ?? 0);
+
+        $stmt = $db->prepare("SELECT * FROM admin WHERE id_admin = ? LIMIT 1");
+        $stmt->execute([$adminId]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stmtSettings = $db->query("SELECT skey, svalue FROM settings");
+        $settings = $stmtSettings ? $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
+        if (($user['role'] ?? '') !== 'ADMIN IT') {
+            http_response_code(403);
+            return $this->render('errors/403', [
+                'title'   => '403 - Akses Ditolak',
+                'message' => 'Hanya Administrator IT yang dapat mengubah pengaturan sistem.',
+            ]);
+        }
+
+        if (!csrf_verify()) {
+            return $this->render('pengaturan/index', [
+                'title'       => 'Pengaturan Sistem',
+                'admin'       => $admin,
+                'user'        => $user,
+                'settings'    => $settings,
+                'error_msg'   => 'Token keamanan CSRF tidak valid atau telah kedaluwarsa.',
+                'success_msg' => '',
+            ]);
+        }
+
+        $allowedKeys = [
+            'app_name',
+            'contact_email',
+            'contact_whatsapp',
+            'service_hours',
+            'helpdesk_unit',
+        ];
+
+        $updatedKeys = [];
+        foreach ($allowedKeys as $key) {
+            if (isset($_POST[$key])) {
+                $val = trim((string)$_POST[$key]);
+                $stmtCheck = $db->prepare("SELECT 1 FROM settings WHERE skey = ?");
+                $stmtCheck->execute([$key]);
+                if ($stmtCheck->fetchColumn()) {
+                    $stmtUp = $db->prepare("UPDATE settings SET svalue = ? WHERE skey = ?");
+                    $stmtUp->execute([$val, $key]);
+                } else {
+                    $stmtIn = $db->prepare("INSERT INTO settings (skey, svalue) VALUES (?, ?)");
+                    $stmtIn->execute([$key, $val]);
+                }
+                $settings[$key] = $val;
+                $updatedKeys[$key] = $val;
+            }
+        }
+
+        audit_log('update', 'settings', null, [
+            'updated_keys' => array_keys($updatedKeys),
+        ]);
+
+        return $this->render('pengaturan/index', [
+            'title'       => 'Pengaturan Sistem',
+            'admin'       => $admin,
+            'user'        => $user,
+            'settings'    => $settings,
+            'error_msg'   => '',
+            'success_msg' => 'Pengaturan kontak bantuan dan portal berhasil disimpan.',
         ]);
     }
 

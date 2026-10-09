@@ -451,7 +451,7 @@ Spesifikasi di Lampiran D.
 - [x] Field di form layanan (dipisah koma), dinormalisasi (huruf kecil, trim, unik), disimpan di `search_aliases`, dikeluarkan sebagai array `aliases`.
 
 ### 7.6 Pengaturan (kontak bantuan)
-- [ ] CRUD kecil `settings` untuk admin (email/WhatsApp unit, jam layanan). `GET /api/v1/settings/public` mengembalikan hanya kunci yang diperbolehkan (whitelist).
+- [x] CRUD kecil `settings` untuk admin (email/WhatsApp unit, jam layanan). `GET /api/v1/settings/public` mengembalikan hanya kunci yang diperbolehkan (whitelist).
 
 ### 7.7 [W] Akun pegawai (role `user`)
 - [ ] Admin membuat akun pegawai lewat **impor CSV** (`username, nama, unit`). Password sementara acak dibuat per akun, ditampilkan/diekspor **sekali**, dan `must_change_password=1`.

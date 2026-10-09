@@ -122,8 +122,9 @@ Router::get('/audit_log.php', [\App\Http\Controllers\AdminController::class, 'au
 // -----------------------------------------------------------------------------
 Router::get('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
 Router::get('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
-Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class, VerifyCsrf::class]);
-Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'postHandler'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'postHandler'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/pengaturan/settings', [\App\Http\Controllers\PengaturanController::class, 'saveSettings'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 
 // -----------------------------------------------------------------------------
 // Legacy API Compatibility Routes (For App B)

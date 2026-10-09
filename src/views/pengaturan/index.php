@@ -90,4 +90,77 @@
             </button>
         </form>
     </div>
+
+    <?php if (($user['role'] ?? ($admin['role'] ?? '')) === 'ADMIN IT'): ?>
+        <!-- Public Portal & Helpdesk Settings Card (Task 7.6) -->
+        <div class="card" style="grid-column: 1 / -1; border-top: 4px solid #2563eb;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <h2 style="font-size: 1.15rem; color: #1e293b; font-weight: 700; margin: 0;">Pengaturan Kontak Bantuan & Portal Publik</h2>
+                    <p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0 0;">Konfigurasi identitas portal, email/WhatsApp bantuan, dan jam layanan untuk pengguna portal App B</p>
+                </div>
+                <span style="background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
+                    Khusus ADMIN IT
+                </span>
+            </div>
+
+            <form method="POST" action="<?= e(url('/pengaturan.php')) ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="update_settings">
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                    <div>
+                        <label for="app_name" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.875rem;">
+                            Nama Portal / Sistem
+                        </label>
+                        <input type="text" id="app_name" name="app_name"
+                               value="<?= e($settings['app_name'] ?? 'Portal Internal BPS Kabupaten Solok Selatan') ?>"
+                               style="width: 100%; box-sizing: border-box; padding: 9px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                    </div>
+
+                    <div>
+                        <label for="contact_email" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.875rem;">
+                            Email Kontak Helpdesk
+                        </label>
+                        <input type="email" id="contact_email" name="contact_email"
+                               value="<?= e($settings['contact_email'] ?? 'bps1310@bps.go.id') ?>"
+                               style="width: 100%; box-sizing: border-box; padding: 9px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                    </div>
+
+                    <div>
+                        <label for="contact_whatsapp" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.875rem;">
+                            WhatsApp Bantuan
+                        </label>
+                        <input type="text" id="contact_whatsapp" name="contact_whatsapp"
+                               value="<?= e($settings['contact_whatsapp'] ?? '08116661310') ?>"
+                               placeholder="Contoh: 08116661310"
+                               style="width: 100%; box-sizing: border-box; padding: 9px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                    </div>
+
+                    <div>
+                        <label for="helpdesk_unit" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.875rem;">
+                            Unit Kerja Penanggung Jawab
+                        </label>
+                        <input type="text" id="helpdesk_unit" name="helpdesk_unit"
+                               value="<?= e($settings['helpdesk_unit'] ?? 'Tim IPDS BPS Kabupaten Solok Selatan') ?>"
+                               style="width: 100%; box-sizing: border-box; padding: 9px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                    </div>
+
+                    <div style="grid-column: 1 / -1;">
+                        <label for="service_hours" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.875rem;">
+                            Jam Operasional / Pelayanan
+                        </label>
+                        <input type="text" id="service_hours" name="service_hours"
+                               value="<?= e($settings['service_hours'] ?? 'Senin - Kamis: 08.00 - 15.30 WIB, Jumat: 08.00 - 16.00 WIB') ?>"
+                               style="width: 100%; box-sizing: border-box; padding: 9px 13px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                    </div>
+                </div>
+
+                <button type="submit"
+                        style="background: #16a34a; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
+                    Simpan Pengaturan
+                </button>
+            </form>
+        </div>
+    <?php endif; ?>
 </div>

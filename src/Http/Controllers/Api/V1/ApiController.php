@@ -298,11 +298,41 @@ class ApiController extends Controller
      */
     public function publicSettings(): string
     {
-        return Json::ok([
-            'app_name'      => 'Portal Internal BPS Kabupaten Solok Selatan',
-            'contact_email' => env('SMTP_FROM_EMAIL', 'bps1310@bps.go.id'),
-            'portal_url'    => env('APP_URL', 'http://admin.test'),
-        ]);
+        $whitelist = [
+            'app_name',
+            'contact_email',
+            'contact_whatsapp',
+            'service_hours',
+            'helpdesk_unit',
+            'portal_url',
+        ];
+
+        $defaults = [
+            'app_name'         => 'Portal Internal BPS Kabupaten Solok Selatan',
+            'contact_email'    => env('SMTP_FROM_EMAIL', 'bps1310@bps.go.id'),
+            'contact_whatsapp' => '08116661310',
+            'service_hours'    => 'Senin - Kamis: 08.00 - 15.30 WIB, Jumat: 08.00 - 16.00 WIB',
+            'helpdesk_unit'    => 'Tim IPDS BPS Kabupaten Solok Selatan',
+            'portal_url'       => env('APP_URL', 'http://admin.test'),
+        ];
+
+        try {
+            $stmt = $this->db()->query("SELECT skey, svalue FROM settings");
+            $rows = $stmt ? $stmt->fetchAll(PDO::FETCH_KEY_PAIR) : [];
+
+            $result = [];
+            foreach ($whitelist as $key) {
+                if (isset($rows[$key]) && $rows[$key] !== '') {
+                    $result[$key] = $rows[$key];
+                } elseif (isset($defaults[$key])) {
+                    $result[$key] = $defaults[$key];
+                }
+            }
+
+            return Json::ok($result);
+        } catch (\Throwable $e) {
+            return Json::ok($defaults);
+        }
     }
 
     /**
