@@ -184,6 +184,14 @@ class AuthController extends Controller
      */
     public function registerForm(): string
     {
+        if (!filter_var(env('ALLOW_PUBLIC_REGISTER', false), FILTER_VALIDATE_BOOLEAN)) {
+            http_response_code(404);
+            return (string)view('errors/404', [
+                'title'   => '404 - Halaman Tidak Ditemukan',
+                'message' => 'Pendaftaran akun publik tidak tersedia. Silakan hubungi administrator.',
+            ]);
+        }
+
         return $this->render('auth/register', [
             'title'          => 'Daftar Akun',
             'headerTitle'    => 'Pendaftaran Akun',
@@ -198,6 +206,14 @@ class AuthController extends Controller
      */
     public function registerSubmit(): mixed
     {
+        if (!filter_var(env('ALLOW_PUBLIC_REGISTER', false), FILTER_VALIDATE_BOOLEAN)) {
+            http_response_code(404);
+            return (string)view('errors/404', [
+                'title'   => '404 - Halaman Tidak Ditemukan',
+                'message' => 'Pendaftaran akun publik tidak tersedia. Silakan hubungi administrator.',
+            ]);
+        }
+
         Session::start();
 
         if (!Csrf::verify()) {
@@ -283,8 +299,19 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        $token = bin2hex(random_bytes(32));
-        $expires = date('Y-m-d H:i:s', time() + (24 * 60 * 60));
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        if (LoginThrottleService::isEmailRateLimited($this->db(), $email, $ip)) {
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Terlalu banyak permintaan pengiriman email verifikasi. Silakan coba lagi nanti.',
+            ], 'layouts/auth');
+        }
+
+        $rawToken = bin2hex(random_bytes(32));
+        $hashedToken = hash('sha256', $rawToken);
+        $expires = date('Y-m-d H:i:s', time() + 3600); // 1 jam per Task 6.7
         $hashedPassword = \App\Services\PasswordService::hash($password);
 
         // Per GATE 1: Public registration is for portal User
@@ -292,9 +319,11 @@ class AuthController extends Controller
             INSERT INTO admin (first_name, last_name, username, email, password, status, role, email_verified, verification_token, verification_expires)
             VALUES (?, ?, ?, ?, ?, 'pending', 'USER APP PORTAL', 0, ?, ?)
         ");
-        $insertStmt->execute([$firstName, $lastName, $username, $email, $hashedPassword, $token, $expires]);
+        $insertStmt->execute([$firstName, $lastName, $username, $email, $hashedPassword, $hashedToken, $expires]);
 
-        Mailer::sendVerificationEmail($email, $firstName, $token, false);
+        LoginThrottleService::recordEmailVerificationAttempt($this->db(), $email, $ip);
+
+        Mailer::sendVerificationEmail($email, $firstName, $rawToken, false);
         Mailer::sendAdminNotification([
             'first_name' => $firstName,
             'last_name'  => $lastName,
@@ -325,13 +354,14 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db()->prepare("
             SELECT id_admin, verification_expires
             FROM admin
-            WHERE verification_token = ?
+            WHERE verification_token = ? OR verification_token = ?
             LIMIT 1
         ");
-        $stmt->execute([$token]);
+        $stmt->execute([$hashedToken, $token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
@@ -343,7 +373,7 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        if (strtotime($user['verification_expires']) < time()) {
+        if (strtotime((string)$user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Token Kedaluwarsa',
                 'heading' => 'Verifikasi Gagal',
@@ -382,14 +412,15 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db()->prepare("
             SELECT id_admin, email, role, email_verified, verification_token, verification_expires
             FROM admin
-            WHERE verification_token = ?
+            WHERE (verification_token = ? OR verification_token = ?)
               AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
-        $stmt->execute([$token]);
+        $stmt->execute([$hashedToken, $token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
@@ -401,7 +432,7 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        if (empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
+        if (empty($user['verification_expires']) || strtotime((string)$user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Verifikasi Gagal',
                 'heading' => 'Verifikasi Gagal',
@@ -444,17 +475,18 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db()->prepare("
             SELECT id_admin, email, verification_expires
             FROM admin
-            WHERE verification_token = ?
+            WHERE (verification_token = ? OR verification_token = ?)
               AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
-        $stmt->execute([$token]);
+        $stmt->execute([$hashedToken, $token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
+        if (!$user || empty($user['verification_expires']) || strtotime((string)$user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
                 'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',
@@ -494,17 +526,18 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $hashedToken = hash('sha256', $token);
         $stmt = $this->db()->prepare("
             SELECT id_admin, email, verification_expires
             FROM admin
-            WHERE verification_token = ?
+            WHERE (verification_token = ? OR verification_token = ?)
               AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
-        $stmt->execute([$token]);
+        $stmt->execute([$hashedToken, $token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
+        if (!$user || empty($user['verification_expires']) || strtotime((string)$user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
                 'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',

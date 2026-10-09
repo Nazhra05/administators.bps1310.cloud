@@ -69,7 +69,7 @@ class Mailer
                         </a>
                     </p>
                     <p>Atau buka tautan berikut: <br><a href='{$verifyUrl}'>{$verifyUrl}</a></p>
-                    <p>Tautan ini berlaku selama 24 jam.</p>
+                    <p>Tautan ini berlaku selama 1 jam.</p>
                 </div>
             ";
 

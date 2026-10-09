@@ -128,4 +128,61 @@ class LoginThrottleService
             \App\Support\Logger::error("Failed to reset failed login attempts: " . $e->getMessage());
         }
     }
+
+    public const MAX_EMAIL_SENDS_PER_HOUR = 3;
+    public const MAX_IP_EMAIL_SENDS_PER_HOUR = 10;
+
+    /**
+     * Check if email or IP rate limit for sending verification emails is exceeded.
+     */
+    public static function isEmailRateLimited(PDO $pdo, string $email, string $ip): bool
+    {
+        try {
+            $cutoff = date('Y-m-d H:i:s', time() - 3600);
+
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM login_attempts
+                WHERE identity = ?
+                  AND attempted_at >= ?
+            ");
+            $stmt->execute(['verify_email:' . strtolower(trim($email)), $cutoff]);
+            if ((int)$stmt->fetchColumn() >= self::MAX_EMAIL_SENDS_PER_HOUR) {
+                return true;
+            }
+
+            $stmtIp = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM login_attempts
+                WHERE ip_address = ?
+                  AND identity LIKE 'verify_email:%'
+                  AND attempted_at >= ?
+            ");
+            $stmtIp->execute([$ip, $cutoff]);
+            if ((int)$stmtIp->fetchColumn() >= self::MAX_IP_EMAIL_SENDS_PER_HOUR) {
+                return true;
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            \App\Support\Logger::error("RateLimiter email check failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Record an email verification dispatch attempt for rate limiting.
+     */
+    public static function recordEmailVerificationAttempt(PDO $pdo, string $email, string $ip): void
+    {
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO login_attempts (ip_address, identity, success, attempted_at)
+                VALUES (?, ?, 1, ?)
+            ");
+            $stmt->execute([$ip, 'verify_email:' . strtolower(trim($email)), date('Y-m-d H:i:s')]);
+        } catch (\Throwable $e) {
+            \App\Support\Logger::error("Failed to record email verification attempt: " . $e->getMessage());
+        }
+    }
 }

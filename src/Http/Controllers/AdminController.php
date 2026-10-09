@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\LoginThrottleService;
 use App\Services\Mailer;
 use PDO;
 
@@ -247,8 +248,19 @@ class AdminController extends Controller
             ]);
         }
 
-        $token = bin2hex(random_bytes(32));
-        $expires = date('Y-m-d H:i:s', time() + (24 * 60 * 60));
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        if (LoginThrottleService::isEmailRateLimited($db, $email, $ip)) {
+            return $this->render('admin/manage_user', [
+                'title'       => 'Kelola User Portal',
+                'users'       => $users,
+                'error'       => 'Terlalu banyak permintaan pengiriman email ke alamat tersebut. Silakan coba lagi nanti.',
+                'email_value' => $email,
+            ]);
+        }
+
+        $rawToken = bin2hex(random_bytes(32));
+        $hashedToken = hash('sha256', $rawToken);
+        $expires = date('Y-m-d H:i:s', time() + 3600); // 1 jam per Task 6.7
 
         $stmtInsert = $db->prepare("
             INSERT INTO admin (
@@ -259,12 +271,13 @@ class AdminController extends Controller
                 'pending', 'USER APP PORTAL', 0, ?, ?
             )
         ");
-        $stmtInsert->execute([$email, $token, $expires]);
+        $stmtInsert->execute([$email, $hashedToken, $expires]);
         $newUserId = (int)$db->lastInsertId();
 
+        LoginThrottleService::recordEmailVerificationAttempt($db, $email, $ip);
         audit_log('invite', 'user', $newUserId, ['email' => $email]);
 
-        $sent = Mailer::sendVerificationEmail($email, 'Pengguna Portal', $token, true);
+        $sent = Mailer::sendVerificationEmail($email, 'Pengguna Portal', $rawToken, true);
 
         if ($sent) {
             flash('success', 'Akun user berhasil dibuat. Link verifikasi telah dikirim ke email tersebut.');
