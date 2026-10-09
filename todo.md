@@ -238,7 +238,7 @@ Izin lanjut ke Fase 2 diberikan.
 - **Selesai jika:** satu tes contoh PHPUnit dan satu tes contoh Vitest lulus.
 
 ### 2.2 [W] Dokumentasikan kontrak nyata
-- [ ] `docs/API_CONTRACT.md`: tiap endpoint yang dipakai App B (`layanan`, `kategori`, dan alur login hasil 1.3): URL, metode, header, parameter, contoh respons JSON **dari data seed**, kode status, perilaku error.
+- [x] `docs/API_CONTRACT.md`: tiap endpoint yang dipakai App B (`layanan`, `kategori`, dan alur login hasil 1.3): URL, metode, header, parameter, contoh respons JSON **dari data seed**, kode status, perilaku error.
 - **Selesai jika:** seorang pembaca bisa memanggil API tanpa membaca kode.
 
 ### 2.3 [W] Tes karakterisasi (mengunci perilaku saat ini)
@@ -720,6 +720,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.2c] sec(auth): user rotated secrets confirmed, SMTP and rotated API_KEY applied to local .env | .env updated, GitHub visibility private | -
 [2026-10-09] [0.2b] chore(repo): rewrite git history to purge database/bps_solsel.sql from all branches and tags | git history clean, 0 occurrences of dump | -
 [2026-10-09] [2.1] test(infra): setup phpunit.xml, Unit/Integration tests, test-db-reset.php with strict safety check, and dynamic BASE_URL vitest | composer test & vitest run both 100% pass | -
+[2026-10-09] [2.2] docs(api): document exact API contracts for App B in docs/API_CONTRACT.md | all 8 endpoints, request/response models, and error codes documented | -
 ```
 
 ---
