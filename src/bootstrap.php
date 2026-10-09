@@ -101,19 +101,12 @@ set_exception_handler(function (\Throwable $e) use ($isDebug): void {
         echo '<p><small>Request ID: ' . e(request_id()) . '</small></p>';
         echo '<pre>' . e($e->getTraceAsString()) . '</pre>';
     } else {
-        echo '<!DOCTYPE html><html lang="id"><head><title>500 - Server Error</title>';
-        echo '<meta charset="utf-8">';
-        echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
-        echo '<style>body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1.5rem}';
-        echo '.card{background:#fff;border-radius:12px;padding:2.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);max-width:480px;text-align:center}';
-        echo 'h1{font-size:1.75rem;margin:0 0 1rem;color:#0f172a}p{margin:0 0 1.25rem;color:#64748b;line-height:1.5}';
-        echo '.req-id{font-family:monospace;font-size:0.875rem;background:#f1f5f9;padding:0.375rem 0.75rem;border-radius:6px;display:inline-block;color:#475569;margin-bottom:1.5rem}';
-        echo '.btn{display:inline-block;padding:0.625rem 1.25rem;background:#0284c7;color:#fff;border-radius:8px;text-decoration:none;font-weight:500}</style></head>';
-        echo '<body><div class="card"><h1>500 - Terjadi Kesalahan</h1>';
-        echo '<p>Sistem kami sedang mengalami kendala sementara. Tim administrator telah diberitahu dan sedang menanganinya.</p>';
-        echo '<div class="req-id">Request ID: ' . e(request_id()) . '</div><br>';
-        echo '<a href="' . e(url('/')) . '" class="btn">Kembali ke Beranda</a>';
-        echo '</div></body></html>';
+        echo view('errors/500', [
+            'title'     => '500 - Kesalahan Server',
+            'heading'   => 'Terjadi Kesalahan Server',
+            'message'   => 'Sistem kami sedang mengalami kendala sementara. Tim administrator telah diberitahu dan sedang menangani masalah ini.',
+            'requestId' => request_id(),
+        ], null);
     }
     exit;
 });

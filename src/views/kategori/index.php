@@ -42,7 +42,8 @@ $sortUrl = function(string $column) use ($sort, $order): string {
             <?php endif; ?>
 
             <div style="flex: 1; min-width: 240px;">
-                <input type="text" name="search" value="<?= e($search) ?>" placeholder="Cari nama kategori..."
+                <label for="search_kategori" class="sr-only">Cari Kategori</label>
+                <input type="text" id="search_kategori" name="search" value="<?= e($search) ?>" placeholder="Cari nama kategori..."
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
             </div>
 

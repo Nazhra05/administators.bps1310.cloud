@@ -157,7 +157,7 @@ class Router
                 }
                 echo view('errors/404', [
                     'title'   => '404 - Halaman Tidak Ditemukan',
-                    'message' => "Rute '{$path}' tidak ditemukan di server.",
+                    'message' => 'Halaman atau berkas yang Anda tuju tidak ditemukan atau telah dipindahkan.',
                 ], null);
                 exit;
 
@@ -170,14 +170,14 @@ class Router
                         'data'  => null,
                         'error' => [
                             'code'    => 'method_not_allowed',
-                            'message' => "Metode {$httpMethod} tidak diizinkan. Metode yang didukung: " . implode(', ', $allowedMethods),
+                            'message' => 'Metode permintaan tidak diizinkan.',
                         ],
                     ], 405);
                 }
                 echo view('errors/404', [
                     'badge'   => '405 Error',
                     'title'   => '405 - Metode Tidak Diizinkan',
-                    'message' => "Metode {$httpMethod} tidak diizinkan untuk rute ini.",
+                    'message' => 'Metode permintaan HTTP ini tidak didukung untuk halaman tersebut.',
                 ], null);
                 exit;
 

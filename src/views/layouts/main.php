@@ -10,6 +10,7 @@
     <?php endif; ?>
 </head>
 <body>
+    <a href="#mainContent" class="skip-link">Loncat ke Konten Utama</a>
     <?php include __DIR__ . '/../partials/sidebar.php'; ?>
 
     <main class="main" id="mainContent">

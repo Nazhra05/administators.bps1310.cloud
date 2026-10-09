@@ -165,7 +165,7 @@ $timeAgo = function(string $datetime): string {
 </div>
 
 <!-- 3. Grid Dua Kolom: Tabel Layanan & Aktivitas Terbaru -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+<div class="dashboard-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
     <!-- Kolom Kiri: Tabel Layanan -->
     <div class="card" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
@@ -175,6 +175,7 @@ $timeAgo = function(string $datetime): string {
             </div>
 
             <form method="GET" action="<?= e(url('/')) ?>" style="display: flex; align-items: center; gap: 8px;">
+                <label for="kategori" class="sr-only">Filter Kategori</label>
                 <select name="kategori" id="kategori" onchange="this.form.submit()"
                         style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: white; cursor: pointer;">
                     <option value="">Semua Kategori</option>

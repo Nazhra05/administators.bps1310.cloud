@@ -17,7 +17,7 @@ $adminRole = \App\Support\Session::get('admin_role', 'Administrator');
     </div>
 
     <div class="admin-dropdown">
-        <button type="button" class="admin-status" id="adminStatusBtn">
+        <button type="button" class="admin-status" id="adminStatusBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menu Pengguna Administrator">
             <div class="admin-icon">👤</div>
             <div class="admin-info">
                 <span class="admin-label"><?= e($adminRole) ?></span>

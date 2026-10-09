@@ -134,13 +134,15 @@ $showAddForm = !empty($formErrors);
             <?php endif; ?>
 
             <div style="flex: 1; min-width: 240px;">
-                <input type="text" name="search" value="<?= e($search ?? '') ?>" placeholder="Cari nama, username, email admin..."
+                <label for="search_admin" class="sr-only">Cari Pengguna</label>
+                <input type="text" id="search_admin" name="search" value="<?= e($search ?? '') ?>" placeholder="Cari nama, username, email admin..."
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
             </div>
 
             <!-- Role Filter -->
             <div style="min-width: 170px;">
-                <select name="role" onchange="this.form.submit()"
+                <label for="filter_role" class="sr-only">Filter Role</label>
+                <select id="filter_role" name="role" onchange="this.form.submit()"
                         style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
                     <option value="">Semua Role</option>
                     <option value="ADMIN IT" <?= (($roleFilter ?? '') === 'ADMIN IT') ? 'selected' : '' ?>>ADMIN IT</option>
@@ -150,7 +152,8 @@ $showAddForm = !empty($formErrors);
 
             <!-- Status Filter -->
             <div style="min-width: 140px;">
-                <select name="status" onchange="this.form.submit()"
+                <label for="filter_status" class="sr-only">Filter Status</label>
+                <select id="filter_status" name="status" onchange="this.form.submit()"
                         style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
                     <option value="">Semua Status</option>
                     <option value="approved" <?= (($statusFilter ?? '') === 'approved') ? 'selected' : '' ?>>Approved</option>

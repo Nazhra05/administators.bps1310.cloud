@@ -39,12 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminStatusBtn && adminMenu) {
         adminStatusBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            adminMenu.classList.toggle('show');
+            const isOpen = adminMenu.classList.toggle('show');
+            adminStatusBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
 
         document.addEventListener('click', (e) => {
             if (!adminStatusBtn.contains(e.target) && !adminMenu.contains(e.target)) {
                 adminMenu.classList.remove('show');
+                adminStatusBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && adminMenu.classList.contains('show')) {
+                adminMenu.classList.remove('show');
+                adminStatusBtn.setAttribute('aria-expanded', 'false');
+                adminStatusBtn.focus();
             }
         });
     }

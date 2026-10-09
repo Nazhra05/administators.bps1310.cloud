@@ -106,13 +106,15 @@ $sortUrl = function(string $column) use ($sort, $order): string {
 
             <!-- Search input -->
             <div style="flex: 1; min-width: 240px; position: relative;">
-                <input type="text" name="search" value="<?= e($search) ?>" placeholder="Cari nama layanan, alias, deskripsi..."
+                <label for="search_layanan" class="sr-only">Cari Layanan</label>
+                <input type="text" id="search_layanan" name="search" value="<?= e($search) ?>" placeholder="Cari nama layanan, alias, deskripsi..."
                        style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
             </div>
 
             <!-- Kategori Dropdown -->
             <div style="min-width: 180px;">
-                <select name="id_kategori" onchange="this.form.submit()"
+                <label for="filter_id_kategori" class="sr-only">Pilih Kategori</label>
+                <select id="filter_id_kategori" name="id_kategori" onchange="this.form.submit()"
                         style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
                     <option value="">Semua Kategori</option>
                     <?php foreach ($categories as $cat): ?>
@@ -125,7 +127,8 @@ $sortUrl = function(string $column) use ($sort, $order): string {
 
             <!-- Akses Dropdown -->
             <div style="min-width: 140px;">
-                <select name="akses" onchange="this.form.submit()"
+                <label for="filter_akses" class="sr-only">Pilih Akses</label>
+                <select id="filter_akses" name="akses" onchange="this.form.submit()"
                         style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
                     <option value="">Semua Akses</option>
                     <option value="Public" <?= $selectedAkses === 'Public' ? 'selected' : '' ?>>Public</option>
@@ -135,7 +138,8 @@ $sortUrl = function(string $column) use ($sort, $order): string {
 
             <!-- VPN Dropdown -->
             <div style="min-width: 130px;">
-                <select name="vpn" onchange="this.form.submit()"
+                <label for="filter_vpn" class="sr-only">Pilih VPN</label>
+                <select id="filter_vpn" name="vpn" onchange="this.form.submit()"
                         style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
                     <option value="">Semua VPN</option>
                     <option value="Yes" <?= $selectedVpn === 'Yes' ? 'selected' : '' ?>>VPN Saja</option>
