@@ -170,58 +170,63 @@ Dokumen hidup untuk rekonsiliasi server nanti. Agent menambahkan entri setiap ka
 Hasil tulis ke `docs/AUDIT.md`.
 
 ### 1.1 [W] Inventaris file
-- [ ] Tabel: file | tujuan | siapa yang memanggil | perlu login? | metode HTTP | menulis ke DB/file?
-- [ ] Cakup semua `public/*.php`, `public/api/*.php`, `config/*`, `app/models/*`, `scripts/*`, `tests/*`, `.vitest/*`.
+- [x] Tabel: file | tujuan | siapa yang memanggil | perlu login? | metode HTTP | menulis ke DB/file?
+- [x] Cakup semua `public/*.php`, `public/api/*.php`, `config/*`, `app/models/*`, `scripts/*`, `tests/*`, `.vitest/*`.
 
 ### 1.2 [W] Audit keamanan per file
 Untuk tiap file di 1.1, jawab ya/tidak dan beri nomor baris:
-- [ ] Memeriksa sesi login **sebelum** memproses apa pun?
-- [ ] Semua query memakai prepared statement? (tandai setiap string-concat ke SQL)
-- [ ] Aksi tulis memeriksa token CSRF? Ada aksi tulis lewat `GET` (mis. `hapus_*.php?id=`)?
-- [ ] Keluaran HTML di-escape (`htmlspecialchars`)? Ada `echo $_GET/$_POST` mentah?
-- [ ] Ada redirect dari input pengguna (open redirect)?
-- [ ] Error/`phpinfo()`/versi/path server bocor ke layar?
-- [ ] Endpoint API tulis (POST/PUT/DELETE) hanya dijaga API key, atau juga sesi + role?
-- [ ] Header CORS `Access-Control-Allow-Origin` apa isinya? (App B memanggil dari server, CORS seharusnya tidak perlu)
-- [ ] Perbandingan API key memakai `hash_equals`?
-- [ ] Pendaftaran admin (`register.php`) terbuka untuk umum? Bisa dipakai mengirim email ke alamat sembarang?
-- [ ] Token verifikasi email: dibuat dengan `random_bytes`? Ada kedaluwarsa? Sekali pakai?
-- [ ] Upload: validasi MIME sebenarnya, nama file acak, folder tujuan, bisa dieksekusi?
-- [ ] Cookie sesi: flag `HttpOnly`, `SameSite`, `Secure`; `session_regenerate_id` setelah login?
+- [x] Memeriksa sesi login **sebelum** memproses apa pun?
+- [x] Semua query memakai prepared statement? (tandai setiap string-concat ke SQL)
+- [x] Aksi tulis memeriksa token CSRF? Ada aksi tulis lewat `GET` (mis. `hapus_*.php?id=`)?
+- [x] Keluaran HTML di-escape (`htmlspecialchars`)? Ada `echo $_GET/$_POST` mentah?
+- [x] Ada redirect dari input pengguna (open redirect)?
+- [x] Error/`phpinfo()`/versi/path server bocor ke layar?
+- [x] Endpoint API tulis (POST/PUT/DELETE) hanya dijaga API key, atau juga sesi + role?
+- [x] Header CORS `Access-Control-Allow-Origin` apa isinya? (App B memanggil dari server, CORS seharusnya tidak perlu)
+- [x] Perbandingan API key memakai `hash_equals`?
+- [x] Pendaftaran admin (`register.php`) terbuka untuk umum? Bisa dipakai mengirim email ke alamat sembarang?
+- [x] Token verifikasi email: dibuat dengan `random_bytes`? Ada kedaluwarsa? Sekali pakai?
+- [x] Upload: validasi MIME sebenarnya, nama file acak, folder tujuan, bisa dieksekusi?
+- [x] Cookie sesi: flag `HttpOnly`, `SameSite`, `Secure`; `session_regenerate_id` setelah login?
 
 ### 1.3 [W] Format password dan alur login
-- [ ] Temukan **format hash password** yang dipakai tabel admin (plaintext / MD5 / SHA-1 / SHA-256 / bcrypt / bergaram?). Lihat kode pembuatan akun di `register.php` dan `kelola_admin.php`, dan hasil `SELECT CHAR_LENGTH(password), LEFT(password,4), COUNT(*) FROM <tabel> GROUP BY 1,2` di DB **lokal/seed** saja.
-- [ ] **Temukan bagaimana App B login saat ini.** README tidak menampilkan endpoint login API di `public/api/`. Cari tahu: apakah App B memanggil endpoint lain, atau mengambil data admin langsung? Dokumentasikan request/response aktual.
-- [ ] Catat semua tempat yang **menulis** kolom password.
+- [x] Temukan **format hash password** yang dipakai tabel admin (plaintext / MD5 / SHA-1 / SHA-256 / bcrypt / bergaram?). Lihat kode pembuatan akun di `register.php` dan `kelola_admin.php`, dan hasil `SELECT CHAR_LENGTH(password), LEFT(password,4), COUNT(*) FROM <tabel> GROUP BY 1,2` di DB **lokal/seed** saja.
+- [x] **Temukan bagaimana App B login saat ini.** README tidak menampilkan endpoint login API di `public/api/`. Cari tahu: apakah App B memanggil endpoint lain, atau mengambil data admin langsung? Dokumentasikan request/response aktual.
+- [x] Catat semua tempat yang **menulis** kolom password.
 
 ### 1.4 [W] Pemakaian dan kode mati
-- [ ] Untuk tiap file/fungsi: cari referensi (`Select-String -Recurse`). Tandai **tidak ada referensi**.
-- [ ] Tentukan status tiap fitur: `trending-topics.php` + `scripts/generate-topics.php` (Gemini), `website.php`, `pengaturan.php`, `test_api.php`, `.vitest/`, `package.json`, `vitest.config.js`, `Layanan.php` model.
-- [ ] Isi `tests/` dan `.vitest/`: tes untuk apa? Masih relevan untuk proyek PHP?
+- [x] Untuk tiap file/fungsi: cari referensi (`Select-String -Recurse`). Tandai **tidak ada referensi**.
+- [x] Tentukan status tiap fitur: `trending-topics.php` + `scripts/generate-topics.php` (Gemini), `website.php`, `pengaturan.php`, `test_api.php`, `.vitest/`, `package.json`, `vitest.config.js`, `Layanan.php` model.
+- [x] Isi `tests/` dan `.vitest/`: tes untuk apa? Masih relevan untuk proyek PHP?
 
 ### 1.5 [W] Ringkasan dan rekomendasi
-- [ ] Susun tabel temuan: ID | temuan | tingkat (Kritis/Tinggi/Sedang/Rendah) | file | perbaikan di fase berapa.
-- [ ] Beri rekomendasi: **A** (perbaiki bertahap, rencana dokumen ini) atau **B** (bangun ulang dengan framework), disertai alasan singkat.
+- [x] Susun tabel temuan: ID | temuan | tingkat (Kritis/Tinggi/Sedang/Rendah) | file | perbaikan di fase berapa.
+- [x] Beri rekomendasi: **A** (perbaiki bertahap, rencana dokumen ini) atau **B** (bangun ulang dengan framework), disertai alasan singkat.
 
 ### 1.6 [W] Audit fungsi (click-path audit)
 Gunakan skill `click-path-audit`. Tujuannya mengetahui **apa yang sebenarnya rusak atau tidak berfungsi**, bukan hanya apa yang tidak aman.
-- [ ] Untuk **setiap halaman dashboard**, daftar semua elemen yang bisa diklik atau dikirim: tombol, tautan, form, filter, pencarian, unggah, hapus, logout.
-- [ ] Telusuri tiap elemen: **UI → request → handler PHP → query → respons → tampilan akhir**.
-- [ ] Untuk **setiap endpoint API**: parameter, filter, urutan, penanganan data kosong, kode status, dan format error.
-- [ ] Tulis hasilnya di `docs/FUNGSI_MATRIX.md`:
+- [x] Untuk **setiap halaman dashboard**, daftar semua elemen yang bisa diklik atau dikirim: tombol, tautan, form, filter, pencarian, unggah, hapus, logout.
+- [x] Telusuri tiap elemen: **UI → request → handler PHP → query → respons → tampilan akhir**.
+- [x] Untuk **setiap endpoint API**: parameter, filter, urutan, penanganan data kosong, kode status, dan format error.
+- [x] Tulis hasilnya di `docs/FUNGSI_MATRIX.md`:
 
 | Halaman/Endpoint | Elemen/Aksi | Handler | Hasil yang diharapkan | Hasil nyata | Status | ID bug |
 |---|---|---|---|---|---|---|
 
   Status: `berfungsi`, `rusak`, `tanpa handler`, `hasil salah`, `tanpa validasi`, `tanpa umpan balik`.
-- [ ] Setiap baris bukan `berfungsi` mendapat ID bug (`BUG-001`, ...), tingkat (blokir / mayor / minor), dan perkiraan akar masalah.
+- [x] Setiap baris bukan `berfungsi` mendapat ID bug (`BUG-001`, ...), tingkat (blokir / mayor / minor), dan perkiraan akar masalah.
 - **Selesai jika:** semua halaman dan endpoint tercakup, dan tidak ada elemen yang belum ditelusuri.
 
 ### 1.7 [W] Pemindaian otomatis
-- [ ] Jalankan `/security-scan` dan `/code-review`; gabungkan temuannya ke `docs/AUDIT.md`, tanpa menggandakan temuan 1.2.
+- [x] Jalankan `/security-scan` dan `/code-review`; gabungkan temuannya ke `docs/AUDIT.md`, tanpa menggandakan temuan 1.2.
 
-### 🛑 GATE 1
-Berhenti. Tunggu keputusan developer atas: A atau B; fitur Gemini; pendaftaran admin publik; `website.php`; format hash. Isi jawaban di bagian 12 sebelum lanjut.
+### 🛑 GATE 1 [SELESAI]
+Keputusan disetujui developer:
+1. **Arsitektur:** Opsi A (Modernisasi Bertahap in-place).
+2. **Gemini / Trending:** Dihapus (`trending-topics.php` & `scripts/generate-topics.php`) mengikuti prinsip YAGNI.
+3. **Role & Pendaftaran:** Role disederhanakan menjadi `Admin` dan `User`. Pendaftaran publik (`register.php`) ditujukan khusus untuk role `User`. Pendaftaran role `Admin` dilakukan via input email/undangan oleh Super Admin (akun pertama saat deploy). Menu kelola admin dan kelola user hanya dapat diakses oleh role `Admin`.
+4. **API Website & Hash:** `website.php` dipertahankan untuk kompatibilitas App B; format hash lama SHA-256 diautoupgrade ke Bcrypt saat login.
+Izin lanjut ke Fase 2 diberikan.
 
 ---
 
@@ -683,15 +688,15 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 
 | # | Pertanyaan | Jawaban |
 |---|---|---|
-| Q1 | [Ditunda] Nama domain App A final? (`administators` salah eja; ganti atau tetap?) | |
-| Q2 | Strategi riwayat Git (0.2b): repo baru bersih atau `filter-repo`? | |
-| Q3 | Format hash password lama yang sebenarnya (MD5/SHA-1/SHA-256/plain/bergaram)? | |
-| Q4 | Bagaimana App B login saat ini (endpoint apa)? | |
-| Q5 | Fitur trending/Gemini: dipakai atau dihapus? | |
-| Q6 | `website.php` dan `pengaturan.php`: dipakai? | |
-| Q7 | Pendaftaran admin publik: tetap diperlukan? | |
-| Q8 | Matriks role (Lampiran B): disetujui atasan? Unit kerja apa saja? | |
-| Q9 | Opsi A (perbaiki) atau B (framework)? | |
+| Q1 | [Ditunda] Nama domain App A final? (`administators` salah eja; ganti atau tetap?) | *Menunggu keputusan user* |
+| Q2 | Strategi riwayat Git (0.2b): repo baru bersih atau `filter-repo`? | *Rekomendasi Agent: Repo baru bersih (Opsi 1)* |
+| Q3 | Format hash password lama yang sebenarnya (MD5/SHA-1/SHA-256/plain/bergaram)? | **SHA-256 mentah (64 char hex)** untuk data lama; **Bcrypt ($2y$)** untuk akun baru. Auto-upgrade aktif di `login.php`. |
+| Q4 | Bagaimana App B login saat ini (endpoint apa)? | **POST `api/auth/loginPortal.php`** dengan header `X-API-KEY` dan JSON `{identity, password}`. |
+| Q5 | Fitur trending/Gemini: dipakai atau dihapus? | **Dihapus** (`trending-topics.php` & `scripts/generate-topics.php` dihapus mengikuti prinsip YAGNI/Ponytail). |
+| Q6 | `website.php` dan `pengaturan.php`: dipakai? | **`website.php` dipertahankan** (kontrak kategori App B); **`pengaturan.php` dilengkapi** form ubah password. |
+| Q7 | Pendaftaran admin publik: tetap diperlukan? | **Metode Ditukar:** Registrasi publik (`register.php`) khusus untuk role **User**. Pendaftaran role **Admin** dilakukan via input email/undangan oleh Super Admin (pengembang/akun pertama saat deploy). |
+| Q8 | Matriks role (Lampiran B): disetujui atasan? Unit kerja apa saja? | **Role disederhanakan menjadi 2: `Admin` dan `User`.** Menu kelola admin dan kelola user hanya dapat diakses oleh role `Admin`. |
+| Q9 | Opsi A (perbaiki) atau B (framework)? | **OPSI A (Modernisasi Bertahap in-place)**: Mempertahankan kestabilan kontrak App B & tes Vitest yang sudah hijau. |
 | Q10 | [Ditunda] Versi PHP-FPM dan panel di server (CloudPanel?), user aplikasi, path `htdocs`? | |
 | Q11 | Akun admin lama: semua dipaksa ganti password pada rilis pertama? Role awalnya apa? | |
 | Q12 | Sumber daftar akun pegawai (CSV dari kepegawaian?) dan siapa yang mengimpor? | |
@@ -711,6 +716,9 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.8] docs(agents): update AGENTS.md aligned with todo.md, clarify XAMPP local stack, fix workflow paths | AGENTS.md updated, rule precedence stated, workflow table verified | -
 [2026-10-09] [0.9] docs(server): create SERVER_NOTES.md living document for server reconciliation | assumptions, apache quirks, windows behaviors, and migration checklist documented | -
 [2026-10-09] [0.10] docs(adr): record ADR 0001 local xampp focus and server deferred, create template and index | docs/adr/ initialized with template, ADR-0001, and README index | -
+[2026-10-09] [1.1-1.7] audit(codebase): complete comprehensive file inventory, security audit, and click-path audit | docs/AUDIT.md and docs/FUNGSI_MATRIX.md generated, reached GATE 1 | -
+[2026-10-09] [skills] feat(skills): add graphify, ponytail, and emilkowalski design skills to .agents and AGENTS.md | skills and rules registered, AGENTS.md updated | -
+[2026-10-09] [gate-1] docs(gate): resolve GATE 1 decisions (Opsi A, delete Gemini, role Admin/User with inverted registration) | todo.md Section 12 updated, GATE 1 completed | -
 ```
 
 ---
