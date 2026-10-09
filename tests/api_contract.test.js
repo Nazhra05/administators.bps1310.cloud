@@ -104,6 +104,8 @@ describe('Characterization Tests — API Contract & Access Control (Fase 2)', ()
       expect(typeof item.url).toBe('string');
       expect(typeof item.logo).toBe('string');
       expect(typeof item.nama_kategori).toBe('string');
+      expect(Array.isArray(item.aliases)).toBe(true);
+      expect(item).toHaveProperty('updated_at');
     });
 
     it('returns exact JSON structure for GET /api/layanan.php?id=1', async () => {

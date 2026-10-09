@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\LayananService;
 use App\Services\PasswordService;
 use App\Support\Json;
 use PDO;
@@ -85,10 +86,12 @@ class LegacyApiController extends Controller
                         l.deskripsi_layanan,
                         l.url,
                         l.logo,
+                        l.search_aliases,
+                        l.updated_at,
                         k.nama_kategori
                     FROM layanan l
                     LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
-                    WHERE l.id_layanan = ? AND l.status = 'published'
+                    WHERE l.id_layanan = ? AND l.status = 'published' AND (k.is_active = 1 OR k.id_kategori IS NULL)
                     LIMIT 1
                 ");
                 $stmt->execute([$id]);
@@ -105,6 +108,9 @@ class LegacyApiController extends Controller
                 $data['id_layanan'] = (int)$data['id_layanan'];
                 $data['id_kategori'] = (int)$data['id_kategori'];
                 $data['url'] = $this->normalizeUrl($data['url']);
+                $data['aliases'] = LayananService::parseAliasesToArray($data['search_aliases'] ?? null);
+                $data['updated_at'] = !empty($data['updated_at']) ? (string)$data['updated_at'] : null;
+                unset($data['search_aliases']);
 
                 return Json::raw([
                     'status'  => true,
@@ -123,6 +129,8 @@ class LegacyApiController extends Controller
                     l.deskripsi_layanan,
                     l.url,
                     l.logo,
+                    l.search_aliases,
+                    l.updated_at,
                     k.nama_kategori
                 FROM layanan l
                 LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
@@ -141,6 +149,9 @@ class LegacyApiController extends Controller
                 $item['deskripsi_layanan'] = $item['deskripsi_layanan'] ?? '';
                 $item['logo'] = $item['logo'] ?? '';
                 $item['nama_kategori'] = $item['nama_kategori'] ?? '';
+                $item['aliases'] = LayananService::parseAliasesToArray($item['search_aliases'] ?? null);
+                $item['updated_at'] = !empty($item['updated_at']) ? (string)$item['updated_at'] : null;
+                unset($item['search_aliases']);
             }
             unset($item);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\LayananService;
 use App\Services\LoginThrottleService;
 use App\Services\PasswordService;
 use App\Support\Json;
@@ -44,7 +45,9 @@ class ApiController extends Controller
                     l.akses AS access,
                     l.vpn,
                     l.id_kategori AS category_id,
-                    k.nama_kategori AS category_name
+                    k.nama_kategori AS category_name,
+                    l.search_aliases,
+                    l.updated_at
                 FROM layanan l
                 LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
                 WHERE l.status = 'published' AND (k.is_active = 1 OR k.id_kategori IS NULL)
@@ -56,8 +59,10 @@ class ApiController extends Controller
                 $item['id'] = (int)$item['id'];
                 $item['category_id'] = (int)$item['category_id'];
                 $item['url'] = $this->normalizeUrl($item['url']);
-                $item['aliases'] = [];
+                $item['aliases'] = LayananService::parseAliasesToArray($item['search_aliases'] ?? null);
                 $item['status'] = 'published';
+                $item['updated_at'] = !empty($item['updated_at']) ? (string)$item['updated_at'] : null;
+                unset($item['search_aliases']);
             }
             unset($item);
 

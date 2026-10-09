@@ -444,11 +444,11 @@ Spesifikasi di Lampiran D.
 - [x] Setiap transisi menulis `audit_log`. Halaman riwayat audit (admin).
 
 ### 7.4 [W] API publik hanya data yang sah
-- [ ] `/api/v1/layanan` dan alias lama: hanya `status='published'` dan aktif. Tambahkan field baru **tanpa** menghapus field lama: `aliases` (array), `updated_at`.
-- [ ] Tes kontrak diperbarui dan tetap kompatibel.
+- [x] `/api/v1/layanan` dan alias lama: hanya `status='published'` dan aktif. Tambahkan field baru **tanpa** menghapus field lama: `aliases` (array), `updated_at`.
+- [x] Tes kontrak diperbarui dan tetap kompatibel.
 
 ### 7.5 `search_aliases`
-- [ ] Field di form layanan (dipisah koma), dinormalisasi (huruf kecil, trim, unik), disimpan di `search_aliases`, dikeluarkan sebagai array `aliases`.
+- [x] Field di form layanan (dipisah koma), dinormalisasi (huruf kecil, trim, unik), disimpan di `search_aliases`, dikeluarkan sebagai array `aliases`.
 
 ### 7.6 Pengaturan (kontak bantuan)
 - [ ] CRUD kecil `settings` untuk admin (email/WhatsApp unit, jam layanan). `GET /api/v1/settings/public` mengembalikan hanya kunci yang diperbolehkan (whitelist).

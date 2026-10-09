@@ -102,6 +102,16 @@
             </div>
         </div>
 
+        <div style="margin-bottom: 18px;">
+            <label for="search_aliases" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.9rem;">
+                Kata Kunci Pencarian / Alias (Opsional)
+            </label>
+            <input type="text" id="search_aliases" name="search_aliases" value="<?= e($form['search_aliases'] ?? '') ?>"
+                   placeholder="Contoh: portal, statistik daerah, sirusa (pisahkan dengan koma)"
+                   style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;">
+            <small style="color: #64748b; font-size: 0.8rem; display: block; margin-top: 4px;">Kata kunci membantu pencarian instan di portal App B. Pisahkan tiap kata dengan tanda koma (,).</small>
+        </div>
+
         <div style="margin-bottom: 24px;">
             <label for="logo" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.9rem;">
                 Logo Layanan (Opsional)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\LayananService;
 use App\Support\Validator;
 use finfo;
 use PDO;
@@ -49,6 +50,7 @@ class LayananController extends Controller
                 l.status,
                 l.unit_id,
                 l.reject_reason,
+                l.search_aliases,
                 u.nama AS unit_name,
                 k.nama_kategori 
             FROM layanan l 
@@ -111,6 +113,7 @@ class LayananController extends Controller
                 'akses'             => 'Public',
                 'vpn'               => 'No',
                 'unit_id'           => '',
+                'search_aliases'    => '',
             ],
         ]);
     }
@@ -140,6 +143,8 @@ class LayananController extends Controller
             }
         }
 
+        $searchAliases = LayananService::normalizeAliases($_POST['search_aliases'] ?? '');
+
         $form = [
             'nama_layanan'      => trim($_POST['nama_layanan'] ?? ''),
             'deskripsi_layanan' => trim($_POST['deskripsi_layanan'] ?? ''),
@@ -148,6 +153,7 @@ class LayananController extends Controller
             'akses'             => $_POST['akses'] ?? 'Public',
             'vpn'               => $_POST['vpn'] ?? 'No',
             'unit_id'           => $targetUnitId,
+            'search_aliases'    => $searchAliases,
         ];
 
         if (!csrf_verify()) {
@@ -238,8 +244,8 @@ class LayananController extends Controller
         $userId = isset($user['id']) ? (int)$user['id'] : null;
 
         $stmtInsert = $db->prepare("
-            INSERT INTO layanan (id_kategori, nama_layanan, deskripsi_layanan, url, logo, akses, vpn, status, unit_id, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO layanan (id_kategori, nama_layanan, deskripsi_layanan, url, logo, akses, vpn, status, unit_id, search_aliases, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtInsert->execute([
             (int)$form['id_kategori'],
@@ -251,6 +257,7 @@ class LayananController extends Controller
             $form['vpn'],
             $status,
             $targetUnitId,
+            $searchAliases,
             $userId,
         ]);
         $newId = (int)$db->lastInsertId();
@@ -362,6 +369,8 @@ class LayananController extends Controller
         $stmtUnits = $db->query("SELECT id, nama FROM units ORDER BY nama ASC");
         $units = $stmtUnits ? $stmtUnits->fetchAll(PDO::FETCH_ASSOC) : [];
 
+        $searchAliases = LayananService::normalizeAliases($_POST['search_aliases'] ?? ($layanan['search_aliases'] ?? ''));
+
         $form = [
             'nama_layanan'      => trim($_POST['nama_layanan'] ?? ''),
             'deskripsi_layanan' => trim($_POST['deskripsi_layanan'] ?? ''),
@@ -369,6 +378,7 @@ class LayananController extends Controller
             'id_kategori'       => $_POST['id_kategori'] ?? '',
             'akses'             => $_POST['akses'] ?? '',
             'vpn'               => $_POST['vpn'] ?? '',
+            'search_aliases'    => $searchAliases,
         ];
 
         if (!csrf_verify()) {
@@ -454,7 +464,7 @@ class LayananController extends Controller
 
         $stmtUpdate = $db->prepare("
             UPDATE layanan 
-            SET id_kategori = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?, akses = ?, vpn = ?, status = ?, unit_id = ?, reject_reason = ?, updated_by = ?
+            SET id_kategori = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?, akses = ?, vpn = ?, status = ?, unit_id = ?, reject_reason = ?, search_aliases = ?, updated_by = ?
             WHERE id_layanan = ?
         ");
         $stmtUpdate->execute([
@@ -468,6 +478,7 @@ class LayananController extends Controller
             $newStatus,
             $targetUnitId,
             $newRejectReason,
+            $searchAliases,
             $userId,
             $id,
         ]);
