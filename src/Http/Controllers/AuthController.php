@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\LoginThrottleService;
 use App\Services\Mailer;
+use App\Services\PasswordService;
 use App\Support\Csrf;
 use App\Support\Session;
 use PDO;
@@ -40,6 +42,16 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        if (LoginThrottleService::isIpThrottled($this->db(), $ip)) {
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Terlalu banyak percobaan login gagal dari alamat IP Anda. Silakan coba lagi nanti.',
+            ], 'layouts/auth');
+        }
+
         $username = trim($_POST['username'] ?? '');
         $password = (string)($_POST['password'] ?? '');
 
@@ -53,7 +65,7 @@ class AuthController extends Controller
         }
 
         $stmt = $this->db()->prepare("
-            SELECT id_admin, first_name, last_name, username, email, password, status, role, email_verified
+            SELECT id_admin, first_name, last_name, username, email, password, status, role, email_verified, failed_attempts, locked_until
             FROM admin
             WHERE username = ? OR email = ?
             LIMIT 1
@@ -62,6 +74,7 @@ class AuthController extends Controller
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$admin || empty($admin['password'])) {
+            LoginThrottleService::handleFailedLogin($this->db(), null, $ip, $username);
             return $this->render('auth/login', [
                 'title'          => 'Login Admin',
                 'headerTitle'    => 'Login Administrator',
@@ -70,7 +83,17 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        $passwordValid = \App\Services\PasswordService::verify(
+        if (LoginThrottleService::isAccountLocked($admin)) {
+            PasswordService::dummyVerify();
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Akun Anda terkunci sementara karena terlalu banyak percobaan login yang gagal. Silakan coba lagi dalam 10 menit.',
+            ], 'layouts/auth');
+        }
+
+        $passwordValid = PasswordService::verify(
             $password,
             (string)$admin['password'],
             (int)$admin['id_admin'],
@@ -78,6 +101,7 @@ class AuthController extends Controller
         );
 
         if (!$passwordValid) {
+            LoginThrottleService::handleFailedLogin($this->db(), $admin, $ip, $username);
             return $this->render('auth/login', [
                 'title'          => 'Login Admin',
                 'headerTitle'    => 'Login Administrator',
@@ -130,6 +154,8 @@ class AuthController extends Controller
                 'error'          => 'Akun USER APP PORTAL tidak dapat login ke Dashboard Admin.',
             ], 'layouts/auth');
         }
+
+        LoginThrottleService::handleSuccessfulLogin($this->db(), (int)$admin['id_admin'], $ip, $username);
 
         Session::regenerate();
         Session::set('admin_id', (int)$admin['id_admin']);
