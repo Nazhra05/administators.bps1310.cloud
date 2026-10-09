@@ -165,9 +165,15 @@ class LayananController extends Controller
         }
 
         // Insert ke database
+        $user = $this->user();
+        $userRole = (string)($user['role'] ?? '');
+        $userUnitId = isset($user['unit_id']) ? (int)$user['unit_id'] : null;
+        $status = ($userRole === 'ADMIN IT') ? 'published' : 'pending';
+        $userId = isset($user['id']) ? (int)$user['id'] : null;
+
         $stmtInsert = $db->prepare("
-            INSERT INTO layanan (id_kategori, nama_layanan, deskripsi_layanan, url, logo, akses, vpn)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO layanan (id_kategori, nama_layanan, deskripsi_layanan, url, logo, akses, vpn, status, unit_id, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmtInsert->execute([
             (int)$form['id_kategori'],
@@ -177,6 +183,15 @@ class LayananController extends Controller
             $logo,
             $form['akses'],
             $form['vpn'],
+            $status,
+            $userUnitId,
+            $userId,
+        ]);
+        $newId = (int)$db->lastInsertId();
+
+        audit_log('create', 'layanan', $newId, [
+            'nama_layanan' => $form['nama_layanan'],
+            'status'       => $status,
         ]);
 
         flash('success', 'Layanan berhasil ditambahkan.');
@@ -205,6 +220,20 @@ class LayananController extends Controller
                 'title'   => 'Layanan Tidak Ditemukan',
                 'message' => 'Layanan yang dicari tidak ditemukan.'
             ]);
+        }
+
+        $user = $this->user();
+        $userRole = (string)($user['role'] ?? '');
+        $userUnitId = isset($user['unit_id']) ? (int)$user['unit_id'] : null;
+
+        if ($userRole !== 'ADMIN IT' && $userUnitId !== null && !empty($layanan['unit_id'])) {
+            if ((int)$layanan['unit_id'] !== $userUnitId) {
+                http_response_code(403);
+                return $this->render('errors/403', [
+                    'title'   => '403 - Akses Ditolak',
+                    'message' => 'Anda hanya berhak mengelola layanan di unit kerja Anda.',
+                ]);
+            }
         }
 
         $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
@@ -240,6 +269,20 @@ class LayananController extends Controller
                 'title'   => 'Layanan Tidak Ditemukan',
                 'message' => 'Layanan yang dicari tidak ditemukan.'
             ]);
+        }
+
+        $user = $this->user();
+        $userRole = (string)($user['role'] ?? '');
+        $userUnitId = isset($user['unit_id']) ? (int)$user['unit_id'] : null;
+
+        if ($userRole !== 'ADMIN IT' && $userUnitId !== null && !empty($layanan['unit_id'])) {
+            if ((int)$layanan['unit_id'] !== $userUnitId) {
+                http_response_code(403);
+                return $this->render('errors/403', [
+                    'title'   => '403 - Akses Ditolak',
+                    'message' => 'Anda hanya berhak mengelola layanan di unit kerja Anda.',
+                ]);
+            }
         }
 
         $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
@@ -301,9 +344,12 @@ class LayananController extends Controller
             $logo = $uploaded['filename'];
         }
 
+        $newStatus = ($userRole === 'ADMIN IT') ? ($layanan['status'] ?? 'published') : 'pending';
+        $userId = isset($user['id']) ? (int)$user['id'] : null;
+
         $stmtUpdate = $db->prepare("
             UPDATE layanan 
-            SET id_kategori = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?, akses = ?, vpn = ?
+            SET id_kategori = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?, akses = ?, vpn = ?, status = ?, updated_by = ?
             WHERE id_layanan = ?
         ");
         $stmtUpdate->execute([
@@ -314,7 +360,14 @@ class LayananController extends Controller
             $logo,
             $form['akses'],
             $form['vpn'],
+            $newStatus,
+            $userId,
             $id,
+        ]);
+
+        audit_log('update', 'layanan', $id, [
+            'nama_layanan' => $form['nama_layanan'],
+            'status'       => $newStatus,
         ]);
 
         flash('success', 'Layanan berhasil diperbarui.');
@@ -348,6 +401,8 @@ class LayananController extends Controller
         $db = $this->db();
         $stmtDelete = $db->prepare("UPDATE layanan SET status = 'archived' WHERE id_layanan = ?");
         $stmtDelete->execute([$id]);
+
+        audit_log('delete', 'layanan', $id);
 
         flash('success', 'Layanan berhasil dihapus.');
         $this->redirect('layanan.php');

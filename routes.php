@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Http\Router;
 use App\Http\Middleware\RequireLogin;
+use App\Http\Middleware\RequireRole;
 use App\Http\Middleware\VerifyCsrf;
 use App\Http\Middleware\ApiKey;
 
@@ -96,15 +97,15 @@ Router::get('/hapus_layanan.php', function () {
 // -----------------------------------------------------------------------------
 // Admin & User Management Routes (Clean URLs & Backward Compatibility Aliases)
 // -----------------------------------------------------------------------------
-Router::get('/admin', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
-Router::get('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
-Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, VerifyCsrf::class]);
-Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, VerifyCsrf::class]);
+Router::get('/admin', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 
-Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
-Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
-Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, VerifyCsrf::class]);
-Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, VerifyCsrf::class]);
+Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 
 // -----------------------------------------------------------------------------
 // Pengaturan / Settings Routes (Clean URLs & Backward Compatibility Aliases)

@@ -107,6 +107,8 @@ class PengaturanController extends Controller
         $stmtUpdate = $db->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
         $stmtUpdate->execute([$newHash, $adminId]);
 
+        audit_log('change_password', 'admin', $adminId);
+
         return $this->render('pengaturan/index', [
             'title'       => 'Pengaturan Sistem',
             'admin'       => $admin,

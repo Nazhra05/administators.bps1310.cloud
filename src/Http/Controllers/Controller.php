@@ -57,6 +57,7 @@ abstract class Controller
             'username' => Session::get('admin_username'),
             'role'     => Session::get('admin_role'),
             'email'    => Session::get('admin_email'),
+            'unit_id'  => Session::get('admin_unit_id'),
         ];
     }
 }

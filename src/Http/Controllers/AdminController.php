@@ -74,6 +74,7 @@ class AdminController extends Controller
                 ");
                 $stmt->execute([$idAdmin]);
                 if ($stmt->rowCount() > 0) {
+                    audit_log('approve', 'admin', $idAdmin);
                     flash('success', 'Akun berhasil disetujui sebagai ADMIN DASHBOARD.');
                 } else {
                     flash('error', 'Akun tidak ditemukan atau sudah diproses.');
@@ -88,6 +89,7 @@ class AdminController extends Controller
                 ");
                 $stmt->execute([$idAdmin]);
                 if ($stmt->rowCount() > 0) {
+                    audit_log('reject', 'admin', $idAdmin);
                     flash('success', 'Akun berhasil ditolak.');
                 } else {
                     flash('error', 'Akun tidak ditemukan atau sudah diproses.');
@@ -120,6 +122,7 @@ class AdminController extends Controller
                     WHERE id_admin = ? AND status = 'approved' AND role = 'ADMIN DASHBOARD'
                 ");
                 $stmtUpdate->execute([$idAdmin]);
+                audit_log('make_main', 'admin', $idAdmin);
                 flash('success', 'Admin berhasil dijadikan ADMIN IT.');
                 break;
 
@@ -134,6 +137,7 @@ class AdminController extends Controller
                 ");
                 $stmt->execute([$idAdmin]);
                 if ($stmt->rowCount() > 0) {
+                    audit_log('make_regular', 'admin', $idAdmin);
                     flash('success', 'Admin berhasil dijadikan ADMIN DASHBOARD.');
                 } else {
                     flash('error', 'Admin tidak ditemukan atau role tidak dapat diubah.');
@@ -148,6 +152,7 @@ class AdminController extends Controller
                 $stmtDelete = $db->prepare("DELETE FROM admin WHERE id_admin = ?");
                 $stmtDelete->execute([$idAdmin]);
                 if ($stmtDelete->rowCount() > 0) {
+                    audit_log('delete', 'admin', $idAdmin);
                     flash('success', 'Admin berhasil dihapus.');
                 } else {
                     flash('error', 'Admin gagal dihapus.');
@@ -255,6 +260,9 @@ class AdminController extends Controller
             )
         ");
         $stmtInsert->execute([$email, $token, $expires]);
+        $newUserId = (int)$db->lastInsertId();
+
+        audit_log('invite', 'user', $newUserId, ['email' => $email]);
 
         $sent = Mailer::sendVerificationEmail($email, 'Pengguna Portal', $token, true);
 

@@ -65,7 +65,7 @@ class AuthController extends Controller
         }
 
         $stmt = $this->db()->prepare("
-            SELECT id_admin, first_name, last_name, username, email, password, status, role, email_verified, failed_attempts, locked_until
+            SELECT id_admin, first_name, last_name, username, email, password, status, role, email_verified, failed_attempts, locked_until, unit_id
             FROM admin
             WHERE username = ? OR email = ?
             LIMIT 1
@@ -163,6 +163,7 @@ class AuthController extends Controller
         Session::set('admin_role', $admin['role'] ?? '');
         Session::set('admin_status', $admin['status'] ?? '');
         Session::set('admin_email', $admin['email'] ?? '');
+        Session::set('admin_unit_id', isset($admin['unit_id']) ? (int)$admin['unit_id'] : null);
 
         header('Location: index.php');
         exit;

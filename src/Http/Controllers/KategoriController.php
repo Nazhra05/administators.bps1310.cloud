@@ -119,6 +119,9 @@ class KategoriController extends Controller
         // Insert
         $stmtInsert = $db->prepare("INSERT INTO kategori (nama_kategori, is_active) VALUES (?, 1)");
         $stmtInsert->execute([$namaKategori]);
+        $newId = (int)$db->lastInsertId();
+
+        audit_log('create', 'kategori', $newId, ['nama_kategori' => $namaKategori]);
 
         flash('success', 'Kategori baru berhasil ditambahkan.');
         $this->redirect('kategori.php');
@@ -197,6 +200,8 @@ class KategoriController extends Controller
         $stmtUpdate = $db->prepare("UPDATE kategori SET nama_kategori = ? WHERE id_kategori = ?");
         $stmtUpdate->execute([$namaKategori, $id]);
 
+        audit_log('update', 'kategori', $id, ['nama_kategori' => $namaKategori]);
+
         flash('success', 'Kategori berhasil diperbarui.');
         $this->redirect('kategori.php');
     }
@@ -240,6 +245,8 @@ class KategoriController extends Controller
         // Soft delete: is_active = 0
         $stmtDelete = $db->prepare("UPDATE kategori SET is_active = 0 WHERE id_kategori = ?");
         $stmtDelete->execute([$id]);
+
+        audit_log('delete', 'kategori', $id);
 
         flash('success', 'Kategori berhasil dihapus.');
         $this->redirect('kategori.php');

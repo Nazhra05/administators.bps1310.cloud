@@ -168,6 +168,18 @@ if (!function_exists('json_response')) {
     }
 }
 
+if (!function_exists('audit_log')) {
+    /**
+     * Helper to write an entry to audit_log table.
+     *
+     * @param array<string, mixed>|null $meta
+     */
+    function audit_log(string $action, string $entity, ?int $entityId = null, ?array $meta = null): void
+    {
+        \App\Support\AuditLogger::log($action, $entity, $entityId, $meta);
+    }
+}
+
 if (!function_exists('db')) {
     /**
      * Return global PDO database instance.
