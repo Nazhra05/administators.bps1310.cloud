@@ -280,10 +280,10 @@ Aturan: **satu penghapusan = satu commit**, pesan memuat bukti (hasil pencarian 
 **Tujuan:** satu pintu masuk; hanya `public/index.php` yang dieksekusi.
 
 ### 4.1 [W] Struktur target (lihat Lampiran A)
-- [ ] Buat folder: `src/{Http,Auth,Models,Services,Support}`, `src/views`, `routes.php`, `storage/{logs,uploads}`, `database/{migrations,seeds}`, `tests/`.
+- [x] Buat folder: `src/{Http,Auth,Models,Services,Support}`, `src/views`, `routes.php`, `storage/{logs,uploads}`, `database/{migrations,seeds}`, `tests/`.
 
 ### 4.2 [W] Bootstrap
-- [ ] `src/bootstrap.php`: muat `.env`, validasi variabel, set timezone, handler error/exception (log ke `storage/logs/app.log`, **tidak** menampilkan detail di layar jika `APP_DEBUG=false`), inisialisasi sesi (Lampiran F), koneksi PDO lazy:
+- [x] `src/bootstrap.php`: muat `.env`, validasi variabel, set timezone, handler error/exception (log ke `storage/logs/app.log`, **tidak** menampilkan detail di layar jika `APP_DEBUG=false`), inisialisasi sesi (Lampiran F), koneksi PDO lazy:
   - `ERRMODE_EXCEPTION`, `ATTR_EMULATE_PREPARES=false`, `utf8mb4`, `FETCH_ASSOC`.
 - **Selesai jika:** error sengaja (mis. query salah) tercatat di log dan **tidak** tampil di browser saat `APP_DEBUG=false`.
 
@@ -731,6 +731,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [3.4] chore(trending): remove abandoned Gemini AI trending topics feature per Gate 1 decision | removed trending-topics.php, scripts/generate-topics.php, scripts/.env.example, cleaned README.md and .env.example | c17a2f0
 [2026-10-09] [3.6] refactor(assets): relocate brand logo from uploads/ to assets/ folder | public/uploads/logo_bps.jpg moved to public/assets/logo_bps.jpg, updated img references in login, register, verify_email | 7d63131
 [2026-10-09] [3.9] docs(cleanup): generate docs/CLEANUP.md and tidy .htaccess configuration | .htaccess tidied (removed X-XSS-Protection, blocked tools/), tools/.htaccess created, comprehensive CLEANUP.md generated | 6ce20ea
+[2026-10-09] [4.1] feat(structure): initialize target directory layout in src/, views/, and migrations | src/Http, src/Auth, src/Models, src/Services, src/Support, database/migrations created | -
+[2026-10-09] [4.2] feat(bootstrap): create src/bootstrap.php and core support classes | Dotenv loaded, env validated, timezone set, secure session (Lampiran F), lazy PDO, centralized logging, and helpers tested | -
 ```
 
 ---
