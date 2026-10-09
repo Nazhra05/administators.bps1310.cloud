@@ -15,8 +15,6 @@ const endpoints = [
   'kelola_admin.php',
   'kelola_user.php',
   'pengaturan.php',
-  'trending-topics.php',
-  'test_api.php',
   'setup_user.php',
   'verify_email.php',
   'verify_user.php',
