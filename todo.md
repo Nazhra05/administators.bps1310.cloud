@@ -440,8 +440,8 @@ Spesifikasi di Lampiran D.
 - [x] Admin tidak bisa menurunkan/menonaktifkan dirinya jika itu admin terakhir.
 
 ### 7.3 [W] Alur persetujuan layanan
-- [ ] Leader tambah/ubah layanan unitnya → `pending`. Admin: daftar `pending`, tombol Setujui (`published`) dan Tolak (`draft` + `reject_reason`).
-- [ ] Setiap transisi menulis `audit_log`. Halaman riwayat audit (admin).
+- [x] Leader tambah/ubah layanan unitnya → `pending`. Admin: daftar `pending`, tombol Setujui (`published`) dan Tolak (`draft` + `reject_reason`).
+- [x] Setiap transisi menulis `audit_log`. Halaman riwayat audit (admin).
 
 ### 7.4 [W] API publik hanya data yang sah
 - [ ] `/api/v1/layanan` dan alias lama: hanya `status='published'` dan aktif. Tambahkan field baru **tanpa** menghapus field lama: `aliases` (array), `updated_at`.

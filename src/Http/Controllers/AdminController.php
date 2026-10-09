@@ -493,4 +493,28 @@ class AdminController extends Controller
 
         $this->redirect('kelola_user.php');
     }
+
+    /**
+     * Halaman Riwayat Audit Sistem (Task 7.3)
+     */
+    public function auditLog(): string
+    {
+        $this->authorizeAdminIt();
+        $db = $this->db();
+
+        $stmt = $db->query("
+            SELECT al.id, al.user_id, al.action, al.entity, al.entity_id, al.meta, al.created_at,
+                   a.username, a.first_name, a.last_name, a.role
+            FROM audit_log al
+            LEFT JOIN admin a ON al.user_id = a.id_admin
+            ORDER BY al.id DESC
+            LIMIT 150
+        ");
+        $logs = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        return $this->render('admin/audit_log', [
+            'title' => 'Riwayat Audit Sistem',
+            'logs'  => $logs,
+        ]);
+    }
 }

@@ -43,6 +43,23 @@
             </select>
         </div>
 
+        <?php if (($user['role'] ?? '') === 'ADMIN IT'): ?>
+            <div style="margin-bottom: 18px;">
+                <label for="unit_id" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.9rem;">
+                    Unit Kerja Penanggung Jawab (Opsional)
+                </label>
+                <select id="unit_id" name="unit_id"
+                        style="width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; background: white;">
+                    <option value="">-- Lintas Unit / Umum --</option>
+                    <?php foreach ($units ?? [] as $u): ?>
+                        <option value="<?= (int)$u['id'] ?>" <?= ((string)($layanan['unit_id'] ?? '') === (string)$u['id']) ? 'selected' : '' ?>>
+                            <?= e($u['nama']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        <?php endif; ?>
+
         <div style="margin-bottom: 18px;">
             <label for="url" style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.9rem;">
                 URL / Tautan Layanan <span style="color: #ef4444;">*</span>

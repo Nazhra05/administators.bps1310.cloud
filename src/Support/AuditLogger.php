@@ -45,7 +45,7 @@ class AuditLogger
 
             $stmt = $pdo->prepare("
                 INSERT INTO audit_log (user_id, action, entity, entity_id, meta, created_at)
-                VALUES (?, ?, ?, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ");
             $metaJson = $meta !== null ? json_encode($meta, JSON_UNESCAPED_UNICODE) : null;
             $stmt->execute([$userId, $action, $entity, $entityId, $metaJson]);

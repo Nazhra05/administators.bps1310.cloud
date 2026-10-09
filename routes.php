@@ -88,6 +88,8 @@ Router::post('/edit_layanan.php', [\App\Http\Controllers\LayananController::clas
 
 Router::post('/layanan/{id:\d+}/hapus', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
 Router::post('/hapus_layanan.php', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/layanan/{id:\d+}/status', [\App\Http\Controllers\LayananController::class, 'updateStatus'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::post('/layanan/status', [\App\Http\Controllers\LayananController::class, 'updateStatus'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::get('/hapus_layanan.php', function () {
     http_response_code(405);
     header('Allow: POST');
@@ -110,6 +112,10 @@ Router::get('/admin/pengguna', [\App\Http\Controllers\AdminController::class, 'm
 Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+
+Router::get('/admin/audit', [\App\Http\Controllers\AdminController::class, 'auditLog'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/admin/audit-log', [\App\Http\Controllers\AdminController::class, 'auditLog'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/audit_log.php', [\App\Http\Controllers\AdminController::class, 'auditLog'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 
 // -----------------------------------------------------------------------------
 // Pengaturan / Settings Routes (Clean URLs & Backward Compatibility Aliases)

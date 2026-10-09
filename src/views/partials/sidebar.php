@@ -50,6 +50,12 @@ $userRole = \App\Support\Session::get('admin_role', '');
                     <span>Kelola User</span>
                 </a>
             </li>
+            <li>
+                <a href="<?= e(url('/admin/audit')) ?>" class="<?= str_starts_with($currentUri, '/admin/audit') ? 'active' : '' ?>">
+                    <span class="menu-icon">📜</span>
+                    <span>Riwayat Audit</span>
+                </a>
+            </li>
         <?php endif; ?>
 
         <li>
