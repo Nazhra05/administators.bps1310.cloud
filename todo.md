@@ -220,8 +220,13 @@ Gunakan skill `click-path-audit`. Tujuannya mengetahui **apa yang sebenarnya rus
 ### 1.7 [W] Pemindaian otomatis
 - [x] Jalankan `/security-scan` dan `/code-review`; gabungkan temuannya ke `docs/AUDIT.md`, tanpa menggandakan temuan 1.2.
 
-### 🛑 GATE 1
-Berhenti. Tunggu keputusan developer atas: A atau B; fitur Gemini; pendaftaran admin publik; `website.php`; format hash. Isi jawaban di bagian 12 sebelum lanjut.
+### 🛑 GATE 1 [SELESAI]
+Keputusan disetujui developer:
+1. **Arsitektur:** Opsi A (Modernisasi Bertahap in-place).
+2. **Gemini / Trending:** Dihapus (`trending-topics.php` & `scripts/generate-topics.php`) mengikuti prinsip YAGNI.
+3. **Role & Pendaftaran:** Role disederhanakan menjadi `Admin` dan `User`. Pendaftaran publik (`register.php`) ditujukan khusus untuk role `User`. Pendaftaran role `Admin` dilakukan via input email/undangan oleh Super Admin (akun pertama saat deploy). Menu kelola admin dan kelola user hanya dapat diakses oleh role `Admin`.
+4. **API Website & Hash:** `website.php` dipertahankan untuk kompatibilitas App B; format hash lama SHA-256 diautoupgrade ke Bcrypt saat login.
+Izin lanjut ke Fase 2 diberikan.
 
 ---
 
@@ -687,11 +692,11 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 | Q2 | Strategi riwayat Git (0.2b): repo baru bersih atau `filter-repo`? | *Rekomendasi Agent: Repo baru bersih (Opsi 1)* |
 | Q3 | Format hash password lama yang sebenarnya (MD5/SHA-1/SHA-256/plain/bergaram)? | **SHA-256 mentah (64 char hex)** untuk data lama; **Bcrypt ($2y$)** untuk akun baru. Auto-upgrade aktif di `login.php`. |
 | Q4 | Bagaimana App B login saat ini (endpoint apa)? | **POST `api/auth/loginPortal.php`** dengan header `X-API-KEY` dan JSON `{identity, password}`. |
-| Q5 | Fitur trending/Gemini: dipakai atau dihapus? | *Menunggu keputusan GATE 1 (Rekomendasi: Hapus - YAGNI)* |
+| Q5 | Fitur trending/Gemini: dipakai atau dihapus? | **Dihapus** (`trending-topics.php` & `scripts/generate-topics.php` dihapus mengikuti prinsip YAGNI/Ponytail). |
 | Q6 | `website.php` dan `pengaturan.php`: dipakai? | **`website.php` dipertahankan** (kontrak kategori App B); **`pengaturan.php` dilengkapi** form ubah password. |
-| Q7 | Pendaftaran admin publik: tetap diperlukan? | *Menunggu keputusan GATE 1 (Rekomendasi: Matikan pendaftaran publik, gunakan undangan admin saja)* |
-| Q8 | Matriks role (Lampiran B): disetujui atasan? Unit kerja apa saja? | *Menunggu konfirmasi user* |
-| Q9 | Opsi A (perbaiki) atau B (framework)? | **OPSI A (Perbaiki Bertahap)**: Mempertahankan kestabilan kontrak App B & tes Vitest yang sudah hijau. |
+| Q7 | Pendaftaran admin publik: tetap diperlukan? | **Metode Ditukar:** Registrasi publik (`register.php`) khusus untuk role **User**. Pendaftaran role **Admin** dilakukan via input email/undangan oleh Super Admin (pengembang/akun pertama saat deploy). |
+| Q8 | Matriks role (Lampiran B): disetujui atasan? Unit kerja apa saja? | **Role disederhanakan menjadi 2: `Admin` dan `User`.** Menu kelola admin dan kelola user hanya dapat diakses oleh role `Admin`. |
+| Q9 | Opsi A (perbaiki) atau B (framework)? | **OPSI A (Modernisasi Bertahap in-place)**: Mempertahankan kestabilan kontrak App B & tes Vitest yang sudah hijau. |
 | Q10 | [Ditunda] Versi PHP-FPM dan panel di server (CloudPanel?), user aplikasi, path `htdocs`? | |
 | Q11 | Akun admin lama: semua dipaksa ganti password pada rilis pertama? Role awalnya apa? | |
 | Q12 | Sumber daftar akun pegawai (CSV dari kepegawaian?) dan siapa yang mengimpor? | |
@@ -712,6 +717,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.9] docs(server): create SERVER_NOTES.md living document for server reconciliation | assumptions, apache quirks, windows behaviors, and migration checklist documented | -
 [2026-10-09] [0.10] docs(adr): record ADR 0001 local xampp focus and server deferred, create template and index | docs/adr/ initialized with template, ADR-0001, and README index | -
 [2026-10-09] [1.1-1.7] audit(codebase): complete comprehensive file inventory, security audit, and click-path audit | docs/AUDIT.md and docs/FUNGSI_MATRIX.md generated, reached GATE 1 | -
+[2026-10-09] [skills] feat(skills): add graphify, ponytail, and emilkowalski design skills to .agents and AGENTS.md | skills and rules registered, AGENTS.md updated | -
+[2026-10-09] [gate-1] docs(gate): resolve GATE 1 decisions (Opsi A, delete Gemini, role Admin/User with inverted registration) | todo.md Section 12 updated, GATE 1 completed | -
 ```
 
 ---
