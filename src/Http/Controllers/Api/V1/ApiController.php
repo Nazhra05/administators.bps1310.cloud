@@ -437,4 +437,412 @@ class ApiController extends Controller
             return Json::error('service_unavailable', 'Database connection failed', 503);
         }
     }
+
+    /**
+     * Helper to authenticate user via X-Session or Bearer token header.
+     * Returns null if unauthenticated, expired, inactive, or not approved.
+     */
+    private function getAuthenticatedUser(): ?array
+    {
+        $sessionToken = trim($_SERVER['HTTP_X_SESSION'] ?? '');
+        if ($sessionToken === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (preg_match('/^Bearer\s+([a-f0-9]{64})/i', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+                $sessionToken = $matches[1];
+            }
+        }
+
+        if ($sessionToken === '') {
+            return null;
+        }
+
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT s.token, s.expires_at, s.user_id,
+                       a.id_admin, a.username, a.email, a.role, a.status, a.is_active, a.must_change_password
+                FROM sessions s
+                JOIN admin a ON a.id_admin = s.user_id
+                WHERE s.token = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$sessionToken]);
+            $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$session || strtotime((string)$session['expires_at']) <= time()) {
+                return null;
+            }
+
+            if ($session['status'] !== 'approved' || (isset($session['is_active']) && (int)$session['is_active'] === 0)) {
+                return null;
+            }
+
+            return $session;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * GET /api/v1/me/preferences (Task 7.8)
+     */
+    public function getPreferences(): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT pinned_layanan, search_history, theme
+                FROM user_preferences
+                WHERE user_id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$userId]);
+            $pref = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$pref) {
+                return Json::ok([
+                    'pinned_layanan' => [],
+                    'search_history' => [],
+                    'theme'          => 'light',
+                ]);
+            }
+
+            $pinned = is_string($pref['pinned_layanan']) ? json_decode($pref['pinned_layanan'], true) : $pref['pinned_layanan'];
+            $history = is_string($pref['search_history']) ? json_decode($pref['search_history'], true) : $pref['search_history'];
+
+            return Json::ok([
+                'pinned_layanan' => is_array($pinned) ? array_values(array_map('intval', $pinned)) : [],
+                'search_history' => is_array($history) ? array_values(array_map('strval', $history)) : [],
+                'theme'          => $pref['theme'] ?? 'light',
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memuat preferensi pengguna', 500);
+        }
+    }
+
+    /**
+     * PUT /api/v1/me/preferences (Task 7.8)
+     */
+    public function updatePreferences(array $vars = [], ?array $payload = null): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return Json::error('bad_request', 'Data JSON tidak valid', 400);
+        }
+
+        // 1. Validate theme
+        $allowedThemes = ['light', 'dark', 'system'];
+        $theme = 'light';
+        if (isset($input['theme'])) {
+            $t = trim((string)$input['theme']);
+            if (!in_array($t, $allowedThemes, true)) {
+                return Json::error('validation_failed', "Tema tidak valid. Nilai yang diperbolehkan: 'light', 'dark', 'system'", 422);
+            }
+            $theme = $t;
+        }
+
+        // 2. Validate pinned_layanan (maks 12 ID, tiap ID benar-benar ada dan published)
+        $pinnedLayanan = [];
+        if (isset($input['pinned_layanan'])) {
+            if (!is_array($input['pinned_layanan'])) {
+                return Json::error('validation_failed', 'pinned_layanan harus berupa array ID', 422);
+            }
+            if (count($input['pinned_layanan']) > 12) {
+                return Json::error('validation_failed', 'Maksimal 12 layanan yang dapat disematkan (pinned)', 422);
+            }
+
+            $rawPinned = array_unique(array_filter(array_map('intval', $input['pinned_layanan']), fn($id) => $id > 0));
+            if (!empty($rawPinned)) {
+                $placeholders = implode(',', array_fill(0, count($rawPinned), '?'));
+                $stmtCheck = $this->db()->prepare("SELECT id_layanan FROM layanan WHERE id_layanan IN ({$placeholders}) AND status = 'published'");
+                $stmtCheck->execute(array_values($rawPinned));
+                $foundIds = $stmtCheck->fetchAll(PDO::FETCH_COLUMN);
+                $foundMap = array_flip($foundIds);
+
+                foreach ($rawPinned as $pId) {
+                    if (!isset($foundMap[$pId])) {
+                        return Json::error('validation_failed', "Layanan dengan ID {$pId} tidak ditemukan atau belum dipublikasikan", 422);
+                    }
+                }
+                $pinnedLayanan = array_values($rawPinned);
+            }
+        }
+
+        // 3. Validate search_history (maks 8, teks maks 100 karakter)
+        $searchHistory = [];
+        if (isset($input['search_history'])) {
+            if (!is_array($input['search_history'])) {
+                return Json::error('validation_failed', 'search_history harus berupa array teks pencarian', 422);
+            }
+            if (count($input['search_history']) > 8) {
+                return Json::error('validation_failed', 'Maksimal 8 riwayat pencarian yang dapat disimpan', 422);
+            }
+
+            $cleanedHistory = [];
+            foreach ($input['search_history'] as $item) {
+                $txt = trim((string)$item);
+                if ($txt === '') {
+                    continue;
+                }
+                if (mb_strlen($txt) > 100) {
+                    return Json::error('validation_failed', 'Teks riwayat pencarian maksimal 100 karakter', 422);
+                }
+                if (!in_array($txt, $cleanedHistory, true)) {
+                    $cleanedHistory[] = $txt;
+                }
+            }
+            $searchHistory = array_slice($cleanedHistory, 0, 8);
+        }
+
+        try {
+            $pinnedJson = json_encode($pinnedLayanan, JSON_UNESCAPED_SLASHES);
+            $historyJson = json_encode($searchHistory, JSON_UNESCAPED_UNICODE);
+
+            $stmtCheck = $this->db()->prepare("SELECT 1 FROM user_preferences WHERE user_id = ?");
+            $stmtCheck->execute([$userId]);
+            if ($stmtCheck->fetchColumn()) {
+                $stmtUp = $this->db()->prepare("
+                    UPDATE user_preferences
+                    SET pinned_layanan = ?, search_history = ?, theme = ?
+                    WHERE user_id = ?
+                ");
+                $stmtUp->execute([$pinnedJson, $historyJson, $theme, $userId]);
+            } else {
+                $stmtIn = $this->db()->prepare("
+                    INSERT INTO user_preferences (user_id, pinned_layanan, search_history, theme)
+                    VALUES (?, ?, ?, ?)
+                ");
+                $stmtIn->execute([$userId, $pinnedJson, $historyJson, $theme]);
+            }
+
+            return Json::ok([
+                'pinned_layanan' => $pinnedLayanan,
+                'search_history' => $searchHistory,
+                'theme'          => $theme,
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal menyimpan preferensi pengguna', 500);
+        }
+    }
+
+    /**
+     * GET /api/v1/me/bookmarks (Task 7.9)
+     */
+    public function getBookmarks(): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT id, title, url, note, created_at, updated_at
+                FROM user_bookmarks
+                WHERE user_id = ?
+                ORDER BY id DESC
+            ");
+            $stmt->execute([$userId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$b) {
+                $b['id'] = (int)$b['id'];
+                $b['note'] = $b['note'] ?? '';
+            }
+            unset($b);
+
+            return Json::ok($rows);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memuat daftar bookmark', 500);
+        }
+    }
+
+    /**
+     * POST /api/v1/me/bookmarks (Task 7.9)
+     */
+    public function createBookmark(array $vars = [], ?array $payload = null): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return Json::error('bad_request', 'Data JSON tidak valid', 400);
+        }
+
+        // Limit: max 100 bookmarks per user
+        $stmtCount = $this->db()->prepare("SELECT COUNT(*) FROM user_bookmarks WHERE user_id = ?");
+        $stmtCount->execute([$userId]);
+        if ((int)$stmtCount->fetchColumn() >= 100) {
+            return Json::error('validation_failed', 'Batas maksimal 100 bookmark telah tercapai', 422);
+        }
+
+        $title = trim((string)($input['title'] ?? ''));
+        $url = trim((string)($input['url'] ?? ''));
+        $rawNote = (string)($input['note'] ?? '');
+        $note = strip_tags(trim($rawNote));
+
+        if ($title === '' || mb_strlen($title) > 150) {
+            return Json::error('validation_failed', 'Judul bookmark wajib diisi (maksimal 150 karakter)', 422);
+        }
+
+        if ($url === '' || mb_strlen($url) > 500 || !filter_var($url, FILTER_VALIDATE_URL) || !preg_match('/^https?:\/\//i', $url)) {
+            return Json::error('validation_failed', 'URL tidak valid (wajib diawali http:// atau https://, maksimal 500 karakter)', 422);
+        }
+
+        if (mb_strlen($note) > 500) {
+            return Json::error('validation_failed', 'Catatan bookmark maksimal 500 karakter', 422);
+        }
+
+        try {
+            $stmt = $this->db()->prepare("
+                INSERT INTO user_bookmarks (user_id, title, url, note)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$userId, $title, $url, $note ?: null]);
+            $newId = (int)$this->db()->lastInsertId();
+
+            return Json::ok([
+                'id'         => $newId,
+                'title'      => $title,
+                'url'        => $url,
+                'note'       => $note,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ], 201);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal menambahkan bookmark', 500);
+        }
+    }
+
+    /**
+     * PUT /api/v1/me/bookmarks/{id} (Task 7.9)
+     */
+    public function updateBookmark(array $vars = [], ?array $payload = null): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+        $id = (int)($vars['id'] ?? 0);
+
+        // Strict isolation: verify ownership
+        $stmtFind = $this->db()->prepare("SELECT id FROM user_bookmarks WHERE id = ? AND user_id = ? LIMIT 1");
+        $stmtFind->execute([$id, $userId]);
+        if (!$stmtFind->fetchColumn()) {
+            return Json::error('not_found', 'Bookmark tidak ditemukan', 404);
+        }
+
+        $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return Json::error('bad_request', 'Data JSON tidak valid', 400);
+        }
+
+        $title = trim((string)($input['title'] ?? ''));
+        $url = trim((string)($input['url'] ?? ''));
+        $rawNote = (string)($input['note'] ?? '');
+        $note = strip_tags(trim($rawNote));
+
+        if ($title === '' || mb_strlen($title) > 150) {
+            return Json::error('validation_failed', 'Judul bookmark wajib diisi (maksimal 150 karakter)', 422);
+        }
+
+        if ($url === '' || mb_strlen($url) > 500 || !filter_var($url, FILTER_VALIDATE_URL) || !preg_match('/^https?:\/\//i', $url)) {
+            return Json::error('validation_failed', 'URL tidak valid (wajib diawali http:// atau https://, maksimal 500 karakter)', 422);
+        }
+
+        if (mb_strlen($note) > 500) {
+            return Json::error('validation_failed', 'Catatan bookmark maksimal 500 karakter', 422);
+        }
+
+        try {
+            $stmt = $this->db()->prepare("
+                UPDATE user_bookmarks
+                SET title = ?, url = ?, note = ?
+                WHERE id = ? AND user_id = ?
+            ");
+            $stmt->execute([$title, $url, $note ?: null, $id, $userId]);
+
+            return Json::ok([
+                'id'         => $id,
+                'title'      => $title,
+                'url'        => $url,
+                'note'       => $note,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memperbarui bookmark', 500);
+        }
+    }
+
+    /**
+     * DELETE /api/v1/me/bookmarks/{id} (Task 7.9)
+     */
+    public function deleteBookmark(array $vars = []): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+        $id = (int)($vars['id'] ?? 0);
+
+        try {
+            // Strict isolation: must include user_id = ?
+            $stmt = $this->db()->prepare("DELETE FROM user_bookmarks WHERE id = ? AND user_id = ?");
+            $stmt->execute([$id, $userId]);
+
+            if ($stmt->rowCount() === 0) {
+                return Json::error('not_found', 'Bookmark tidak ditemukan', 404);
+            }
+
+            return Json::ok(['message' => 'Bookmark berhasil dihapus']);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal menghapus bookmark', 500);
+        }
+    }
 }

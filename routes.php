@@ -148,3 +148,14 @@ Router::get('/api/v1/auth/session', [\App\Http\Controllers\Api\V1\ApiController:
 Router::post('/api/v1/auth/change-password', [\App\Http\Controllers\Api\V1\ApiController::class, 'changePassword'], [ApiKey::class]);
 Router::post('/api/v1/auth/logout', [\App\Http\Controllers\Api\V1\ApiController::class, 'logout'], [ApiKey::class]);
 Router::get('/api/v1/settings/public', [\App\Http\Controllers\Api\V1\ApiController::class, 'publicSettings'], [ApiKey::class]);
+
+// -----------------------------------------------------------------------------
+// Personal Preferences & Bookmarks API (Task 7.8 & 7.9)
+// -----------------------------------------------------------------------------
+Router::get('/api/v1/me/preferences', [\App\Http\Controllers\Api\V1\ApiController::class, 'getPreferences'], [ApiKey::class]);
+Router::put('/api/v1/me/preferences', [\App\Http\Controllers\Api\V1\ApiController::class, 'updatePreferences'], [ApiKey::class]);
+
+Router::get('/api/v1/me/bookmarks', [\App\Http\Controllers\Api\V1\ApiController::class, 'getBookmarks'], [ApiKey::class]);
+Router::post('/api/v1/me/bookmarks', [\App\Http\Controllers\Api\V1\ApiController::class, 'createBookmark'], [ApiKey::class]);
+Router::put('/api/v1/me/bookmarks/{id:\d+}', [\App\Http\Controllers\Api\V1\ApiController::class, 'updateBookmark'], [ApiKey::class]);
+Router::delete('/api/v1/me/bookmarks/{id:\d+}', [\App\Http\Controllers\Api\V1\ApiController::class, 'deleteBookmark'], [ApiKey::class]);

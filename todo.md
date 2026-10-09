@@ -459,13 +459,13 @@ Spesifikasi di Lampiran D.
 - **Selesai jika:** impor 20 akun contoh berhasil, dan login pertama memaksa ganti password.
 
 ### 7.8 [W] Preferensi pribadi (riwayat pencarian, pin, tema)
-- [ ] `GET /api/v1/me/preferences` dan `PUT /api/v1/me/preferences`: `pinned_layanan` (maks 12 ID), `search_history` (maks 8, teks maks 100 karakter), `theme`.
-- [ ] `user_id` selalu dari sesi (`X-Session`), tidak pernah dari body. Validasi tiap ID layanan benar-benar ada.
+- [x] `GET /api/v1/me/preferences` dan `PUT /api/v1/me/preferences`: `pinned_layanan` (maks 12 ID), `search_history` (maks 8, teks maks 100 karakter), `theme`.
+- [x] `user_id` selalu dari sesi (`X-Session`), tidak pernah dari body. Validasi tiap ID layanan benar-benar ada.
 
 ### 7.9 [W] Bookmark pribadi
-- [ ] CRUD `/api/v1/me/bookmarks`: maks 100 per pengguna; judul ≤150, URL ≤500 (hanya `http/https`), catatan ≤500 sebagai **teks biasa**.
-- [ ] Semua `UPDATE/DELETE` memakai `... AND user_id = ?`. **Tidak ada** endpoint (termasuk admin) yang membaca bookmark milik orang lain.
-- [ ] Tes: pengguna A tidak bisa membaca/mengubah/menghapus bookmark pengguna B (harus 404 atau 403).
+- [x] CRUD `/api/v1/me/bookmarks`: maks 100 per pengguna; judul ≤150, URL ≤500 (hanya `http/https`), catatan ≤500 sebagai **teks biasa**.
+- [x] Semua `UPDATE/DELETE` memakai `... AND user_id = ?`. **Tidak ada** endpoint (termasuk admin) yang membaca bookmark milik orang lain.
+- [x] Tes: pengguna A tidak bisa membaca/mengubah/menghapus bookmark pengguna B (harus 404 atau 403).
 
 ### 7.10 Klik dan statistik pribadi (bahan penghargaan)
 - [ ] `POST /api/v1/me/clicks` `{layanan_id}`; pembatas laju (mis. 60 per menit per pengguna).
