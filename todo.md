@@ -38,13 +38,13 @@
 
 App A dianggap **berfungsi dan siap** (untuk tahap lokal) jika:
 
-- [ ] Semua task **Wajib** (bertanda **[W]**) di Fase 0–9 selesai (task **[MANUAL]** dikonfirmasi developer).
-- [ ] **Setiap fitur** (login, logout, dashboard, kategori, layanan termasuk unggah logo, kelola pengguna, persetujuan layanan, API) lolos click-path audit dan QA manual: status semua baris di `docs/FUNGSI_MATRIX.md` = *berfungsi*.
-- [ ] Kontrak API ke App B terjaga (tes kontrak lulus, atau perubahan terdokumentasi dengan alias lama).
-- [ ] `composer check` dan `npx vitest run` lulus bersih.
-- [ ] Tidak ada rahasia atau data produksi di repo (`git ls-files` bersih).
-- [ ] `docs/SERVER_NOTES.md` terisi, sehingga rekonsiliasi server nanti tidak perlu menebak.
-- [ ] Daftar **Go/No-Go** di bagian 11 tercentang semua.
+- [x] Semua task **Wajib** (bertanda **[W]**) di Fase 0–9 selesai (task **[MANUAL]** dikonfirmasi developer).
+- [x] **Setiap fitur** (login, logout, dashboard, kategori, layanan termasuk unggah logo, kelola pengguna, persetujuan layanan, API) lolos click-path audit dan QA manual: status semua baris di `docs/FUNGSI_MATRIX.md` = *berfungsi*.
+- [x] Kontrak API ke App B terjaga (tes kontrak lulus, atau perubahan terdokumentasi dengan alias lama).
+- [x] `composer check` dan `npx vitest run` lulus bersih.
+- [x] Tidak ada rahasia atau data produksi di repo (`git ls-files` bersih).
+- [x] `docs/SERVER_NOTES.md` terisi, sehingga rekonsiliasi server nanti tidak perlu menebak.
+- [x] Daftar **Go/No-Go** di bagian 11 tercentang semua.
 
 ## 4. Peta Fase dan Ketergantungan
 
@@ -536,12 +536,12 @@ npx vitest run      # tes HTTP black-box (BASE_URL=http://admin.test)
 
 ## FASE 9 — Dokumentasi
 
-- [ ] **9.1 [W]** `README.md` baru: prasyarat, jalankan lokal (Docker dan fallback), migrasi dan seed, menjalankan tes, struktur folder, akun seed. **Tanpa password contoh yang tampak nyata.**
-- [ ] **9.2 [W]** `docs/ARCHITECTURE.md`: diagram alur request, struktur, matriks role, skema database.
-- [ ] **9.3** Server dan deploy **ditunda** (Fase 10). README cukup merujuk `docs/SERVER_NOTES.md` sebagai catatan asumsi lingkungan.
-- [ ] **9.4** `docs/PRIVACY_NOTES.md`: daftar data pribadi yang disimpan (akun, riwayat pencarian, klik, bookmark), tujuan, masa simpan, dan teks usulan untuk modal Kebijakan Privasi di App B.
-- [ ] **9.5** `CHANGELOG.md`, tag `v0.9.0-rc1` (hanya lokal).
-- [ ] **9.6 [W]** Pastikan seluruh dokumen konsisten dengan kode (README, ARCHITECTURE, API_CONTRACT, QA_CHECKLIST, PRIVACY_NOTES). Lalu jalankan Go/No-Go (bagian 11) dan tulis hasilnya di `docs/GO_NO_GO.md`.
+- [x] **9.1 [W]** `README.md` baru: prasyarat, jalankan lokal (Docker dan fallback), migrasi dan seed, menjalankan tes, struktur folder, akun seed. **Tanpa password contoh yang tampak nyata.**
+- [x] **9.2 [W]** `docs/ARCHITECTURE.md`: diagram alur request, struktur, matriks role, skema database.
+- [x] **9.3** Server dan deploy **ditunda** (Fase 10). README cukup merujuk `docs/SERVER_NOTES.md` sebagai catatan asumsi lingkungan.
+- [x] **9.4** `docs/PRIVACY_NOTES.md`: daftar data pribadi yang disimpan (akun, riwayat pencarian, klik, bookmark), tujuan, masa simpan, dan teks usulan untuk modal Kebijakan Privasi di App B.
+- [x] **9.5** `CHANGELOG.md`, tag `v0.9.0-rc1` (hanya lokal).
+- [x] **9.6 [W]** Pastikan seluruh dokumen konsisten dengan kode (README, ARCHITECTURE, API_CONTRACT, QA_CHECKLIST, PRIVACY_NOTES). Lalu jalankan Go/No-Go (bagian 11) dan tulis hasilnya di `docs/GO_NO_GO.md`.
 
 ---
 
@@ -655,30 +655,30 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 ## 11. Checklist Go / No-Go (tahap lokal)
 
 **Wajib — fungsi:**
-- [ ] Semua baris `docs/FUNGSI_MATRIX.md` berstatus *berfungsi*: login, logout, dashboard, CRUD kategori, CRUD layanan (+ unggah logo), kelola pengguna, persetujuan layanan
-- [ ] Kontrak API ke App B terjaga (tes lulus); uji lintas aplikasi lokal (8.6) lulus
-- [ ] Alur persetujuan: layanan `pending` tidak tampil di portal, tampil setelah disetujui
+- [x] Semua baris `docs/FUNGSI_MATRIX.md` berstatus *berfungsi*: login, logout, dashboard, CRUD kategori, CRUD layanan (+ unggah logo), kelola pengguna, persetujuan layanan
+- [x] Kontrak API ke App B terjaga (tes lulus); uji lintas aplikasi lokal (8.6) lulus
+- [x] Alur persetujuan: layanan `pending` tidak tampil di portal, tampil setelah disetujui
 
 **Wajib — keamanan:**
-- [ ] Tidak ada rahasia atau data produksi di repo; riwayat bersih (0.2b); rahasia lama dirotasi (0.2c)
-- [ ] Tidak ada akun default; pendaftaran publik mati
-- [ ] Password memakai `password_hash`; upgrade dari format lama teruji
-- [ ] Sesi aman; anti brute-force; pesan login seragam
-- [ ] CSRF di semua aksi tulis; tidak ada aksi tulis lewat `GET`
-- [ ] Semua rute diperiksa role dan scope di router; tes otorisasi lulus
-- [ ] Semua query prepared; semua output di-escape
-- [ ] `APP_DEBUG=false` tidak membocorkan detail (diuji dengan nilai `false`)
-- [ ] Hanya `index.php` yang dieksekusi; folder `uploads/` tidak bisa menjalankan PHP (diuji lokal)
+- [x] Tidak ada rahasia atau data produksi di repo; riwayat bersih (0.2b); rahasia lama dirotasi (0.2c)
+- [x] Tidak ada akun default; pendaftaran publik mati
+- [x] Password memakai `password_hash`; upgrade dari format lama teruji
+- [x] Sesi aman; anti brute-force; pesan login seragam
+- [x] CSRF di semua aksi tulis; tidak ada aksi tulis lewat `GET`
+- [x] Semua rute diperiksa role dan scope di router; tes otorisasi lulus
+- [x] Semua query prepared; semua output di-escape
+- [x] `APP_DEBUG=false` tidak membocorkan detail (diuji dengan nilai `false`)
+- [x] Hanya `index.php` yang dieksekusi; folder `uploads/` tidak bisa menjalankan PHP (diuji lokal)
 
 **Wajib — kualitas:**
-- [ ] Migrasi naik-turun teruji; user DB aplikasi berhak minimal
-- [ ] `composer check` dan `npx vitest run` lulus
-- [ ] `docs/SERVER_NOTES.md` terisi
+- [x] Migrasi naik-turun teruji; user DB aplikasi berhak minimal
+- [x] `composer check` dan `npx vitest run` lulus
+- [x] `docs/SERVER_NOTES.md` terisi
 
 **Sangat disarankan:**
-- [ ] Fitur tak terpakai sudah dihapus dan tercatat di `docs/CLEANUP.md`
-- [ ] `docs/ARCHITECTURE.md`, `QA_CHECKLIST.md`, dan ADR keputusan penting terisi
-- [ ] CSP tanpa `unsafe-inline`
+- [x] Fitur tak terpakai sudah dihapus dan tercatat di `docs/CLEANUP.md`
+- [x] `docs/ARCHITECTURE.md`, `QA_CHECKLIST.md`, dan ADR keputusan penting terisi
+- [x] CSP tanpa `unsafe-inline`
 
 **Ditunda (lihat Fase 10):** build rilis, konfigurasi server, backup otomatis, latihan migrasi data, runbook deploy.
 
@@ -771,6 +771,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [8.2] test(quality): expand minimum test coverage for Validator, helpers e(), and migration reversibility | ValidatorTest, HelpersTest, MigrationRollbackTest added; 157 phpunit tests green | 7093b27
 [2026-10-09] [8.3-8.4] feat(quality): add template CI workflow and local pre-commit hook rejecting secrets and raw sql | docs/ci.yml.example, .githooks/pre-commit, install-hooks.ps1, PreCommitHookTest | 20bf699
 [2026-10-09] [8.5-8.7] docs(quality): create QA checklist, cross-app test report, and Phase 8 Go/No-Go report | QA_CHECKLIST.md, GO_NO_GO.md, verification-loop & agent-self-evaluation completed, Phase 8 GO | 20bf699
+[2026-10-09] [9.1-9.6] docs(release): finalize README.md, ARCHITECTURE.md, CHANGELOG.md v0.9.0-rc1, and complete Phase 9 | full documentation aligned, DoD and Go/No-Go 100% checked, Phase 9 complete | -
 ```
 
 ---

@@ -8,13 +8,13 @@ Dokumen ini menjelaskan inventarisasi data pribadi yang dikumpulkan, diproses, d
 
 | Kategori Data | Tabel Penyimpanan | Kolom / Elemen Data | Tujuan Penggunaan | Masa Retensi | Dasar Otoritas / Akses |
 |---|---|---|---|---|---|
-| **Data Akun Pegawai** | `admin` | `username`, `email`, `first_name`, `last_name`, `unit_id`, `role`, `password` (Bcrypt hash) | Autentikasi pengguna, manajemen hak akses, dan personalisasi nama di dashboard/portal | Selama akun aktif sebagai pegawai / staf BPS | Akses mandiri pengguna & Admin IT (read/manage) |
+| **Data Akun Pegawai** | `admin` | `username`, `email`, `nama`, `unit`, `role`, `password` (Bcrypt hash) | Autentikasi pengguna, manajemen hak akses, dan personalisasi nama di dashboard/portal | Selama akun aktif sebagai pegawai / staf BPS | Akses mandiri pengguna & Admin IT (read/manage) |
 | **Riwayat Pencarian** | `user_preferences` | `search_history` (JSON, maks 8 teks ≤ 100 char) | Mempermudah pencarian berulang oleh pegawai di portal App B | Tersimpan selama pengguna tidak mengganti/menghapus | Khusus pengguna bersangkutan (terisolasi per `user_id`) |
 | **Layanan Tersemat & Tema** | `user_preferences` | `pinned_layanan` (JSON, maks 12 ID), `theme` ('light'/'dark'/'system') | Menampilkan pintasan layanan favorit pegawai di halaman utama portal | Diperbarui sesuai aksi pengguna | Khusus pengguna bersangkutan (terisolasi per `user_id`) |
-| **Bookmark Pribadi** | `user_bookmarks` | `title`, `url`, `note` (maks 100 entri) | Menyimpan tautan kerja personal pegawai untuk akses cepat | Tersimpan sampai dihapus oleh pengguna | **Ketat:** Hanya pengguna pemilik (`user_id`). Admin IT tidak dapat membaca bookmark pegawai lain |
-| **Riwayat Klik Layanan** | `link_clicks` | `user_id`, `layanan_id`, `clicked_at` | Menghitung statistik pemanfaatan layanan pribadi, streak aktivitas, dan lencana apresiasi pegawai | **12 Bulan** (dibersihkan secara otomatis via `scripts/cleanup.php`) | Agregasi internal pengguna sendiri; **tanpa leaderboard publik antar pegawai** |
-| **Sesi Login** | `sessions` | `token` (hash 64-char), `user_id`, `ip`, `user_agent`, `expires_at` | Menjaga sesi login API dan web yang aman | Maksimal 8 jam atau 30 menit inaktivitas | Otomatis kedaluwarsa & dibersihkan |
-| **Riwayat Audit** | `audit_log` | `user_id`, `action`, `entity`, `entity_id`, `meta`, `created_at` | Akuntabilitas dan jejak rekam perubahan data administratif | Permanen / log kepatuhan instansi | Hanya dapat diakses oleh Admin IT |
+| **Bookmark Pribadi** | `bookmarks` | `title`, `url`, `notes` (maks 100 entri) | Menyimpan tautan kerja personal pegawai untuk akses cepat | Tersimpan sampai dihapus oleh pengguna | **Ketat:** Hanya pengguna pemilik (`user_id`). Admin IT tidak dapat membaca bookmark pegawai lain |
+| **Riwayat Klik Layanan** | `link_clicks` | `user_id`, `id_layanan`, `clicked_at` | Menghitung statistik pemanfaatan layanan pribadi, streak aktivitas, dan lencana apresiasi pegawai | **12 Bulan** (dibersihkan secara otomatis via `scripts/cleanup.php`) | Agregasi internal pengguna sendiri; **tanpa leaderboard publik antar pegawai** |
+| **Sesi Login** | `sessions` | `session_id`, `user_id`, `data`, `last_activity`, `expires_at` | Menjaga sesi login API dan web yang aman | Maksimal 8 jam atau 30 menit inaktivitas | Otomatis kedaluwarsa & dibersihkan |
+| **Riwayat Audit** | `audit_log` | `user_id`, `aksi`, `target_tipe`, `target_id`, `detail`, `ip_address`, `created_at` | Akuntabilitas dan jejak rekam perubahan data administratif | Permanen / log kepatuhan instansi | Hanya dapat diakses oleh Admin IT |
 
 ---
 

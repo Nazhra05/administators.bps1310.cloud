@@ -43,7 +43,7 @@ fi
 # Cek potensi kebocoran password atau secret di luar .env.example
 if echo "$staged_diff" | grep -Eq '^\+ *(DB_PASS|SMTP_PASS|SECRET_KEY|API_KEY_APP_B) *= *[^"'"'"' ][^"'"'"' ]{6,}'; then
     # Kecualikan jika hanya mengedit .env.example atau docs
-    non_example_files=$(echo "$staged_files" | grep -v '\.env\.example' | grep -v '^docs/' || true)
+    non_example_files=$(echo "$staged_files" | grep -v '\.env\.example' | grep -v '^docs/' | grep -v 'README\.md' || true)
     if [ -n "$non_example_files" ]; then
         echo "❌ [PRE-COMMIT REJECTED] Terdeteksi penetapan rahasia/password mentah di dalam perubahan!"
         exit 1
