@@ -320,36 +320,37 @@ Untuk tiap halaman: controller di `src/Http/`, view di `src/views/`, rute di `ro
 ## FASE 5 — Database: Migrasi, Skema, Seed
 
 ### 5.1 [W] Runner migrasi sederhana
-- [ ] `database/migrations/NNN_nama.sql` (naik) dan `NNN_nama.down.sql` (turun). Tabel `schema_migrations(version, applied_at)`.
-- [ ] `scripts/migrate.php` dengan opsi `--status`, `--up`, `--down=1`. Memakai user `bps_migrator`.
+- [x] `database/migrations/NNN_nama.sql` (naik) dan `NNN_nama.down.sql` (turun). Tabel `schema_migrations(version, applied_at)`.
+- [x] `scripts/migrate.php` dengan opsi `--status`, `--up`, `--down=1`. Memakai user `bps_migrator`.
 - **Selesai jika:** `--status` menampilkan daftar, `--up` idempoten (aman diulang).
 
 ### 5.2 [W] Migrasi bernomor (tulis, uji naik-turun di DB tes)
-- [ ] `001_baseline.sql`: skema dari `schema.sql` **tanpa seed password**.
-- [ ] `002_integritas.sql`: foreign key (mis. `layanan.kategori_id → kategori.id`), `utf8mb4`, `created_at`/`updated_at`, indeks. **Sebelum menulisnya**, buat query pendeteksi baris yatim dan jalankan pada DB seed.
-- [ ] `003_password_kolom.sql`: password jadi `VARCHAR(255) NOT NULL`.
-- [ ] `004_units.sql`: tabel `units(id, nama)` (unit kerja untuk scope leader).
-- [ ] `005_role.sql`: kolom `role ENUM('user','leader','admin')`, `unit_id` FK, `is_active`, `must_change_password TINYINT(1) DEFAULT 0`, `failed_attempts`, `locked_until`, `last_login_at` pada tabel admin/pengguna.
-- [ ] `006_sessions.sql`: `sessions(token CHAR(64) PK, user_id FK ON DELETE CASCADE, expires_at, created_at, ip, user_agent)` + indeks `expires_at`.
-- [ ] `007_audit_log.sql`: `audit_log(id, user_id, action, entity, entity_id, meta JSON NULL, created_at)`.
-- [ ] `008_layanan_workflow.sql`: `status ENUM('draft','pending','published','archived') DEFAULT 'published'`, `unit_id`, `search_aliases TEXT NULL`, `updated_by`, `reject_reason VARCHAR(255) NULL`.
-- [ ] `009_settings.sql`: `settings(skey VARCHAR(50) PK, svalue TEXT)` untuk kontak admin dll.
-- [ ] `010_login_attempts.sql` (jika pembatas login berbasis DB dipilih di 6.4).
-- [ ] `011_user_bookmarks.sql`: `user_bookmarks(id, user_id FK CASCADE, title VARCHAR(150), url VARCHAR(500), note VARCHAR(500) NULL, created_at, updated_at)` + indeks `user_id`.
-- [ ] `012_link_clicks.sql`: `link_clicks(id, user_id FK CASCADE, layanan_id FK, clicked_at)` + indeks `(user_id, clicked_at)` dan `(layanan_id)`.
-- [ ] `013_user_preferences.sql`: `user_preferences(user_id PK FK CASCADE, pinned_layanan JSON, search_history JSON, theme VARCHAR(10) NULL, updated_at)`.
-- [ ] **Prinsip migrasi untuk rilis (penting untuk rollback, lihat 10.3):** migrasi hanya **menambah** (tabel/kolom/indeks). Penghapusan atau perubahan destruktif dilakukan di rilis berikutnya, supaya kode rilis lama tetap berjalan di skema baru.
+- [x] `001_baseline.sql`: skema dari `schema.sql` **tanpa seed password**.
+- [x] `002_integritas.sql`: foreign key (mis. `layanan.kategori_id → kategori.id`), `utf8mb4`, `created_at`/`updated_at`, indeks. **Sebelum menulisnya**, buat query pendeteksi baris yatim dan jalankan pada DB seed.
+- [x] `003_password_kolom.sql`: password jadi `VARCHAR(255) NULL DEFAULT NULL`.
+- [x] `004_units.sql`: tabel `units(id, nama)` (unit kerja untuk scope leader).
+- [x] `005_role.sql`: kolom `role ENUM('user','leader','admin')`, `unit_id` FK, `is_active`, `must_change_password TINYINT(1) DEFAULT 0`, `failed_attempts`, `locked_until`, `last_login_at` pada tabel admin/pengguna.
+- [x] `006_sessions.sql`: `sessions(token CHAR(64) PK, user_id FK ON DELETE CASCADE, expires_at, created_at, ip, user_agent)` + indeks `expires_at`.
+- [x] `007_audit_log.sql`: `audit_log(id, user_id, action, entity, entity_id, meta JSON NULL, created_at)`.
+- [x] `008_layanan_workflow.sql`: `status ENUM('draft','pending','published','archived') DEFAULT 'published'`, `unit_id`, `search_aliases TEXT NULL`, `updated_by`, `reject_reason VARCHAR(255) NULL`.
+- [x] `009_settings.sql`: `settings(skey VARCHAR(50) PK, svalue TEXT)` untuk kontak admin dll.
+- [x] `010_login_attempts.sql` (jika pembatas login berbasis DB dipilih di 6.4).
+- [x] `011_user_bookmarks.sql`: `user_bookmarks(id, user_id FK CASCADE, title VARCHAR(150), url VARCHAR(500), note VARCHAR(500) NULL, created_at, updated_at)` + indeks `user_id`.
+- [x] `012_link_clicks.sql`: `link_clicks(id, user_id FK CASCADE, layanan_id FK, clicked_at)` + indeks `(user_id, clicked_at)` dan `(layanan_id)`.
+- [x] `013_user_preferences.sql`: `user_preferences(user_id PK FK CASCADE, pinned_layanan JSON, search_history JSON, theme VARCHAR(10) NULL, updated_at)`.
+- [x] `014_kategori_soft_delete.sql`: `kategori.is_active TINYINT(1) NOT NULL DEFAULT 1` + indeks `is_active`.
+- [x] **Prinsip migrasi untuk rilis (penting untuk rollback, lihat 10.3):** migrasi hanya **menambah** (tabel/kolom/indeks). Penghapusan atau perubahan destruktif dilakukan di rilis berikutnya, supaya kode rilis lama tetap berjalan di skema baru.
 - **Selesai jika:** `--up` pada DB kosong menghasilkan skema lengkap, dan `--down` bisa membalik migrasi terakhir.
 
 ### 5.3 [W] Soft delete
-- [ ] Hapus layanan/kategori = arsipkan (`status='archived'` / `is_active=0`), bukan `DELETE`. Semua query publik hanya mengambil yang aktif dan `published`.
+- [x] Hapus layanan/kategori = arsipkan (`status='archived'` / `is_active=0`), bukan `DELETE`. Semua query publik hanya mengambil yang aktif dan `published`.
 
 ### 5.4 [W] Seed pengembangan
-- [ ] `database/seeds/dev_seed.php`: membuat unit contoh, kategori, layanan, dan **tiga akun** (`admin`, `leader`, `user`) dengan **password acak yang dicetak sekali ke konsol** atau diambil dari `DEV_ADMIN_PASSWORD`. **Tidak ada password tetap di kode.**
-- [ ] Skrip `scripts/db-reset-dev.php` (menolak jalan jika bukan database `*_dev`): migrasi → seed.
+- [x] `database/seeds/dev_seed.php`: membuat unit contoh, kategori, layanan, dan **tiga akun** (`admin`, `leader`, `user`) dengan **password acak yang dicetak sekali ke konsol** atau diambil dari `DEV_ADMIN_PASSWORD`. **Tidak ada password tetap di kode.**
+- [x] Skrip `scripts/db-reset-dev.php` (menolak jalan jika bukan database `*_dev`): migrasi → seed.
 
 ### 5.5 Hak akses DB minimal
-- [ ] Verifikasi: aplikasi berjalan dengan `bps_app` (tanpa `ALTER/DROP`). Uji bahwa `DROP TABLE` lewat `bps_app` ditolak.
+- [x] Verifikasi: aplikasi berjalan dengan `bps_app` (tanpa `ALTER/DROP`). Uji bahwa `DROP TABLE` lewat `bps_app` ditolak.
 
 ---
 
@@ -738,6 +739,11 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [4.4] feat(pages): migrate all procedural pages to MVC controllers, views, and single public/index.php entry point | controllers and clean views built, all procedural public/*.php removed, 60 vitest and 14 phpunit tests green | d5710f6
 [2026-10-09] [4.5] feat(api): implement v1 API endpoints, legacy compatibility router, and uniform JSON envelope | Json::ok/error helper, LegacyApiController, v1 ApiController, no CORS headers, contracts preserved | 7411cb1
 [2026-10-09] [4.7] sec(apache): enforce strict .htaccess front controller and document server translation | public/.htaccess blocks physical PHP scripts and routes non-files to index.php, uploads/.htaccess blocks script execution, verified 403 on test files | 17a454a
+[2026-10-09] [5.1] feat(db): create migration runner scripts/migrate.php with status, up, and down controls | migration runner created, tested on dev and test databases | 575469e
+[2026-10-09] [5.2] feat(db): create 13 reversible migrations for schema integrity, workflow, and user features | 001 to 013 migrations and matching .down.sql created, tested on dev and test | 1a07741
+[2026-10-09] [5.3] feat(db): implement soft delete for layanan and kategori with public query filtering | 014_kategori_soft_delete created, controllers and public APIs updated to filter status=published and is_active=1 | 20cce47
+[2026-10-09] [5.4] feat(db): add deterministic dev seed and db-reset-dev script with safety guards | dev_seed.php, db-reset-dev.php created, tested reset and seed on dev and test | 6b93688
+[2026-10-09] [5.5] test(db): verify least privilege DB access for bps_app and reject DDL operations | bps_app granted CRUD only, verified DROP TABLE and ALTER TABLE rejected with 42000 Access Denied | 4ca8684
 ```
 
 ---
