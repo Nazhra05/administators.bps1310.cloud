@@ -16,13 +16,6 @@ class AuthController extends Controller
     public function loginForm(): string
     {
         Session::start();
-        $adminId = Session::get('admin_id');
-        $adminRole = Session::get('admin_role');
-
-        if (!empty($adminId) && in_array($adminRole, ['ADMIN IT', 'ADMIN DASHBOARD'], true)) {
-            $this->redirect('/');
-        }
-
         return $this->render('auth/login', [
             'title'          => 'Login Admin',
             'headerTitle'    => 'Login Administrator',
@@ -34,21 +27,29 @@ class AuthController extends Controller
     /**
      * Process login submission.
      */
-    public function loginSubmit(): never
+    public function loginSubmit(): mixed
     {
         Session::start();
 
         if (isset($_POST['csrf_token']) && !Csrf::verify()) {
-            flash('error', 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan coba lagi.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan coba lagi.',
+            ], 'layouts/auth');
         }
 
         $username = trim($_POST['username'] ?? '');
         $password = (string)($_POST['password'] ?? '');
 
         if ($username === '' || $password === '') {
-            flash('error', 'Username dan password wajib diisi.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Username dan password wajib diisi.',
+            ], 'layouts/auth');
         }
 
         $stmt = $this->db()->prepare("
@@ -61,8 +62,12 @@ class AuthController extends Controller
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$admin || empty($admin['password'])) {
-            flash('error', 'Username atau password salah.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Username atau password salah.',
+            ], 'layouts/auth');
         }
 
         $storedPassword = (string)$admin['password'];
@@ -79,33 +84,57 @@ class AuthController extends Controller
         }
 
         if (!$passwordValid) {
-            flash('error', 'Username atau password salah.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Username atau password salah.',
+            ], 'layouts/auth');
         }
 
         if ((int)$admin['email_verified'] !== 1) {
-            flash('error', 'Email Anda belum diverifikasi. Silakan periksa kotak masuk email Anda.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Email Anda belum diverifikasi. Silakan periksa kotak masuk email Anda.',
+            ], 'layouts/auth');
         }
 
         if ($admin['status'] === 'pending') {
-            flash('error', 'Email sudah diverifikasi. Akun Anda masih menunggu persetujuan administrator.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Email sudah diverifikasi. Akun Anda masih menunggu persetujuan administrator.',
+            ], 'layouts/auth');
         }
 
         if ($admin['status'] === 'rejected') {
-            flash('error', 'Pendaftaran akun Anda ditolak oleh administrator.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Pendaftaran akun Anda ditolak oleh administrator.',
+            ], 'layouts/auth');
         }
 
         if ($admin['status'] !== 'approved') {
-            flash('error', 'Status akun tidak valid. Silakan hubungi administrator.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Status akun tidak valid. Silakan hubungi administrator.',
+            ], 'layouts/auth');
         }
 
         if (!in_array($admin['role'], ['ADMIN IT', 'ADMIN DASHBOARD'], true)) {
-            flash('error', 'Akun USER APP PORTAL tidak dapat login ke Dashboard Admin.');
-            $this->redirect('/login');
+            return $this->render('auth/login', [
+                'title'          => 'Login Admin',
+                'headerTitle'    => 'Login Administrator',
+                'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
+                'error'          => 'Akun USER APP PORTAL tidak dapat login ke Dashboard Admin.',
+            ], 'layouts/auth');
         }
 
         // Auto-upgrade legacy hash to Bcrypt
@@ -153,13 +182,17 @@ class AuthController extends Controller
     /**
      * Process registration submission.
      */
-    public function registerSubmit(): never
+    public function registerSubmit(): mixed
     {
         Session::start();
 
         if (!Csrf::verify()) {
-            flash('error', 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang formulir.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang formulir.',
+            ], 'layouts/auth');
         }
 
         $firstName = trim($_POST['first_name'] ?? '');
@@ -171,35 +204,59 @@ class AuthController extends Controller
         $agreeToTerms = isset($_POST['agree_to_terms']);
 
         if ($firstName === '' || $lastName === '' || $username === '' || $email === '' || $password === '' || $confirmPassword === '') {
-            flash('error', 'Semua data wajib diisi.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Semua data wajib diisi.',
+            ], 'layouts/auth');
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            flash('error', 'Format email tidak valid.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Format email tidak valid.',
+            ], 'layouts/auth');
         }
 
         if ($password !== $confirmPassword) {
-            flash('error', 'Konfirmasi password tidak cocok.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Konfirmasi password tidak cocok.',
+            ], 'layouts/auth');
         }
 
         if (strlen($password) < 6) {
-            flash('error', 'Password minimal 6 karakter.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Password minimal 6 karakter.',
+            ], 'layouts/auth');
         }
 
         if (!$agreeToTerms) {
-            flash('error', 'Anda harus menyetujui Syarat & Ketentuan.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Anda harus menyetujui Syarat & Ketentuan.',
+            ], 'layouts/auth');
         }
 
         $stmt = $this->db()->prepare("SELECT id_admin FROM admin WHERE username = ? OR email = ? LIMIT 1");
         $stmt->execute([$username, $email]);
         if ($stmt->fetch()) {
-            flash('error', 'Username atau email sudah terdaftar.');
-            $this->redirect('/register');
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => 'Username atau email sudah terdaftar.',
+            ], 'layouts/auth');
         }
 
         $token = bin2hex(random_bytes(32));
@@ -221,8 +278,12 @@ class AuthController extends Controller
             'email'      => $email,
         ]);
 
-        flash('success', 'Pendaftaran berhasil! Silakan periksa email Anda untuk melakukan verifikasi akun.');
-        $this->redirect('/login');
+        return $this->render('auth/register', [
+            'title'          => 'Daftar Akun',
+            'headerTitle'    => 'Pendaftaran Akun',
+            'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+            'success'        => 'Pendaftaran berhasil! Silakan periksa email Anda untuk melakukan verifikasi akun.',
+        ], 'layouts/auth');
     }
 
     /**
@@ -234,6 +295,7 @@ class AuthController extends Controller
         if ($token === '') {
             return $this->render('auth/verify_result', [
                 'title'   => 'Verifikasi Gagal',
+                'heading' => 'Verifikasi Gagal',
                 'success' => false,
                 'message' => 'Token verifikasi tidak ditemukan.',
             ], 'layouts/auth');
@@ -251,6 +313,7 @@ class AuthController extends Controller
         if (!$user) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Verifikasi Gagal',
+                'heading' => 'Verifikasi Gagal',
                 'success' => false,
                 'message' => 'Token tidak valid atau sudah pernah digunakan sebelumnya.',
             ], 'layouts/auth');
@@ -259,6 +322,7 @@ class AuthController extends Controller
         if (strtotime($user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
                 'title'   => 'Token Kedaluwarsa',
+                'heading' => 'Verifikasi Gagal',
                 'success' => false,
                 'message' => 'Masa berlaku tautan verifikasi telah berakhir. Silakan hubungi admin.',
             ], 'layouts/auth');
@@ -273,6 +337,7 @@ class AuthController extends Controller
 
         return $this->render('auth/verify_result', [
             'title'   => 'Email Terverifikasi',
+            'heading' => 'Email Berhasil Diverifikasi',
             'success' => true,
             'message' => 'Email Anda berhasil diverifikasi. Akun Anda saat ini menunggu persetujuan administrator sebelum dapat digunakan.',
         ], 'layouts/auth');
@@ -286,31 +351,58 @@ class AuthController extends Controller
         $token = trim($_GET['token'] ?? '');
         if ($token === '') {
             return $this->render('auth/verify_result', [
-                'title'   => 'Token Tidak Ditemukan',
+                'title'   => 'Verifikasi Gagal',
+                'heading' => 'Verifikasi Gagal',
                 'success' => false,
-                'message' => 'Tautan verifikasi tidak lengkap.',
+                'message' => 'Link verifikasi tidak valid.',
             ], 'layouts/auth');
         }
 
         $stmt = $this->db()->prepare("
-            SELECT id_admin, verification_expires
+            SELECT id_admin, email, role, email_verified, verification_token, verification_expires
             FROM admin
             WHERE verification_token = ?
+              AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
         $stmt->execute([$token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || strtotime($user['verification_expires']) < time()) {
+        if (!$user) {
             return $this->render('auth/verify_result', [
-                'title'   => 'Tautan Tidak Valid',
+                'title'   => 'Verifikasi Gagal',
+                'heading' => 'Verifikasi Gagal',
                 'success' => false,
-                'message' => 'Tautan aktivasi tidak valid atau telah kedaluwarsa.',
+                'message' => 'Link verifikasi tidak valid atau sudah tidak berlaku.',
             ], 'layouts/auth');
         }
 
-        // Safe redirection keeping token instead of ID (BUG-003 fixed)
-        $this->redirect('/setup-user?token=' . urlencode($token));
+        if (empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
+            return $this->render('auth/verify_result', [
+                'title'   => 'Verifikasi Gagal',
+                'heading' => 'Verifikasi Gagal',
+                'success' => false,
+                'message' => 'Link verifikasi sudah kedaluwarsa. Silakan minta administrator mengirimkan verifikasi ulang.',
+            ], 'layouts/auth');
+        }
+
+        // Tandai email sudah diverifikasi, pertahankan token untuk setup_user.php
+        $upStmt = $this->db()->prepare("
+            UPDATE admin
+            SET email_verified = 1
+            WHERE id_admin = ?
+              AND role = 'USER APP PORTAL'
+        ");
+        $upStmt->execute([(int)$user['id_admin']]);
+
+        return $this->render('auth/verify_result', [
+            'title'     => 'Email Berhasil Diverifikasi',
+            'heading'   => 'Email Berhasil Diverifikasi',
+            'success'   => true,
+            'message'   => 'Email berhasil diverifikasi.',
+            'showSetup' => true,
+            'setupUrl'  => 'setup_user.php?token=' . urlencode($token),
+        ], 'layouts/auth');
     }
 
     /**
@@ -320,11 +412,11 @@ class AuthController extends Controller
     {
         $token = trim($_GET['token'] ?? '');
         if ($token === '') {
-            http_response_code(400);
             return $this->render('auth/verify_result', [
-                'title'   => 'Akses Ditolak',
+                'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',
                 'success' => false,
-                'message' => 'Token verifikasi wajib disertakan untuk mengakses halaman pengaturan akun ini.',
+                'message' => 'Link pendaftaran tidak valid.',
             ], 'layouts/auth');
         }
 
@@ -332,23 +424,24 @@ class AuthController extends Controller
             SELECT id_admin, email, verification_expires
             FROM admin
             WHERE verification_token = ?
+              AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
         $stmt->execute([$token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || strtotime($user['verification_expires']) < time()) {
-            http_response_code(400);
+        if (!$user || empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
             return $this->render('auth/verify_result', [
-                'title'   => 'Token Kedaluwarsa',
+                'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',
                 'success' => false,
-                'message' => 'Token aktivasi tidak valid atau telah kedaluwarsa.',
+                'message' => 'Link pendaftaran tidak valid atau sudah tidak berlaku.',
             ], 'layouts/auth');
         }
 
         return $this->render('auth/setup_user', [
-            'title'          => 'Setup Akun Pengguna',
-            'headerTitle'    => 'Lengkapi Akun Anda',
+            'title'          => 'Buat Akun User',
+            'headerTitle'    => 'Buat Akun User',
             'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
             'token'          => $token,
             'email'          => $user['email'],
@@ -359,56 +452,99 @@ class AuthController extends Controller
     /**
      * Process credential setup submission.
      */
-    public function setupUserSubmit(): never
+    public function setupUserSubmit(): mixed
     {
         Session::start();
-
-        if (!Csrf::verify()) {
-            flash('error', 'Sesi keamanan tidak valid atau telah kedaluwarsa.');
-            $this->redirect('/setup-user?token=' . urlencode($_POST['token'] ?? ''));
-        }
 
         $token = trim($_POST['token'] ?? '');
         $username = trim($_POST['username'] ?? '');
         $password = (string)($_POST['password'] ?? '');
+        $passwordConfirm = (string)($_POST['password_confirmation'] ?? $_POST['confirm_password'] ?? '');
 
         if ($token === '') {
-            http_response_code(400);
-            echo "Token aktivasi wajib disertakan.";
-            exit;
-        }
-
-        if ($username === '' || $password === '') {
-            flash('error', 'Username dan password wajib diisi.');
-            $this->redirect('/setup-user?token=' . urlencode($token));
-        }
-
-        if (strlen($password) < 6) {
-            flash('error', 'Password minimal 6 karakter.');
-            $this->redirect('/setup-user?token=' . urlencode($token));
+            return $this->render('auth/verify_result', [
+                'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'success' => false,
+                'message' => 'Link pendaftaran tidak valid.',
+            ], 'layouts/auth');
         }
 
         $stmt = $this->db()->prepare("
-            SELECT id_admin, verification_expires
+            SELECT id_admin, email, verification_expires
             FROM admin
             WHERE verification_token = ?
+              AND role = 'USER APP PORTAL'
             LIMIT 1
         ");
         $stmt->execute([$token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user || strtotime($user['verification_expires']) < time()) {
-            http_response_code(400);
-            echo "Token aktivasi tidak valid atau telah kedaluwarsa.";
-            exit;
+        if (!$user || empty($user['verification_expires']) || strtotime($user['verification_expires']) < time()) {
+            return $this->render('auth/verify_result', [
+                'title'   => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'heading' => 'Pendaftaran Tidak Dapat Dilanjutkan',
+                'success' => false,
+                'message' => 'Link pendaftaran tidak valid atau sudah tidak berlaku.',
+            ], 'layouts/auth');
+        }
+
+        if (!Csrf::verify()) {
+            return $this->render('auth/setup_user', [
+                'title'          => 'Buat Akun User',
+                'headerTitle'    => 'Buat Akun User',
+                'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
+                'token'          => $token,
+                'email'          => $user['email'],
+                'error'          => 'Sesi keamanan tidak valid atau telah kedaluwarsa.',
+            ], 'layouts/auth');
+        }
+
+        if ($username === '' || $password === '') {
+            return $this->render('auth/setup_user', [
+                'title'          => 'Buat Akun User',
+                'headerTitle'    => 'Buat Akun User',
+                'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
+                'token'          => $token,
+                'email'          => $user['email'],
+                'error'          => 'Username dan password wajib diisi.',
+            ], 'layouts/auth');
+        }
+
+        if ($passwordConfirm !== '' && $password !== $passwordConfirm) {
+            return $this->render('auth/setup_user', [
+                'title'          => 'Buat Akun User',
+                'headerTitle'    => 'Buat Akun User',
+                'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
+                'token'          => $token,
+                'email'          => $user['email'],
+                'error'          => 'Konfirmasi password tidak cocok.',
+            ], 'layouts/auth');
+        }
+
+        if (strlen($password) < 6) {
+            return $this->render('auth/setup_user', [
+                'title'          => 'Buat Akun User',
+                'headerTitle'    => 'Buat Akun User',
+                'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
+                'token'          => $token,
+                'email'          => $user['email'],
+                'error'          => 'Password minimal 6 karakter.',
+            ], 'layouts/auth');
         }
 
         // Check if username taken by someone else
         $uStmt = $this->db()->prepare("SELECT id_admin FROM admin WHERE username = ? AND id_admin != ? LIMIT 1");
         $uStmt->execute([$username, (int)$user['id_admin']]);
         if ($uStmt->fetch()) {
-            flash('error', 'Username sudah digunakan, silakan pilih username lain.');
-            $this->redirect('/setup-user?token=' . urlencode($token));
+            return $this->render('auth/setup_user', [
+                'title'          => 'Buat Akun User',
+                'headerTitle'    => 'Buat Akun User',
+                'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
+                'token'          => $token,
+                'email'          => $user['email'],
+                'error'          => 'Username sudah digunakan, silakan pilih username lain.',
+            ], 'layouts/auth');
         }
 
         // Hash with Bcrypt (BUG-004 fix)
@@ -419,10 +555,15 @@ class AuthController extends Controller
             SET username = ?, password = ?, email_verified = 1, status = 'approved',
                 verification_token = NULL, verification_expires = NULL
             WHERE id_admin = ?
+              AND role = 'USER APP PORTAL'
         ");
         $upStmt->execute([$username, $hashedPassword, (int)$user['id_admin']]);
 
-        flash('success', 'Akun Anda berhasil diaktifkan! Silakan gunakan kredensial baru Anda untuk login.');
-        $this->redirect('/login');
+        return $this->render('auth/verify_result', [
+            'title'   => 'Pendaftaran Berhasil',
+            'heading' => 'Pendaftaran Berhasil',
+            'success' => true,
+            'message' => 'Akun Anda berhasil dibuat dan telah terdaftar sebagai User App Portal.',
+        ], 'layouts/auth');
     }
 }

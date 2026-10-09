@@ -9,7 +9,13 @@
     </div>
 <?php endif; ?>
 
-<form action="<?= e(url('/register')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 14px;">
+<?php if (!empty($success)): ?>
+    <div class="success alert alert-success" style="margin-bottom: 20px;">
+        <?= e($success) ?>
+    </div>
+<?php endif; ?>
+
+<form method="POST" style="display: flex; flex-direction: column; gap: 14px;">
     <?= csrf_field() ?>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">

@@ -10,7 +10,7 @@
     </div>
 <?php endif; ?>
 
-<form action="<?= e(url('/login')) ?>" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+<form method="POST" style="display: flex; flex-direction: column; gap: 16px;">
     <?= csrf_field() ?>
 
     <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">

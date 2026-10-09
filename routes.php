@@ -112,4 +112,26 @@ Router::get('/hapus_layanan.php', function () {
     echo "Metode tidak diizinkan. Penghapusan harus melalui POST.";
 }, [RequireLogin::class]);
 
+// -----------------------------------------------------------------------------
+// Admin & User Management Routes (Clean URLs & Backward Compatibility Aliases)
+// -----------------------------------------------------------------------------
+Router::get('/admin', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
+Router::get('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
+Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class]);
+Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class]);
+
+Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
+Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
+Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class]);
+Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class]);
+
+// -----------------------------------------------------------------------------
+// Pengaturan / Settings Routes (Clean URLs & Backward Compatibility Aliases)
+// -----------------------------------------------------------------------------
+Router::get('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
+Router::get('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
+Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
+Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
+
+
 
