@@ -99,28 +99,121 @@
 </div>
 
 <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <h2 style="font-size: 1.1rem; color: #1e293b; font-weight: 700; margin: 0;">Daftar Administrator Sistem</h2>
+        <span style="font-size: 0.85rem; color: #64748b;">
+            Total: <?= (int)($pagination['total_items'] ?? count($admins)) ?> Akun
+        </span>
+    </div>
+
+    <!-- Search & Filter Form -->
+    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;">
+        <form method="GET" action="<?= e(url('/kelola_admin.php')) ?>" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <?php if (!empty($sort)): ?>
+                <input type="hidden" name="sort" value="<?= e($sort) ?>">
+            <?php endif; ?>
+            <?php if (!empty($order)): ?>
+                <input type="hidden" name="order" value="<?= e($order) ?>">
+            <?php endif; ?>
+
+            <div style="flex: 1; min-width: 240px;">
+                <input type="text" name="search" value="<?= e($search ?? '') ?>" placeholder="Cari nama, username, email admin..."
+                       style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
+            </div>
+
+            <!-- Role Filter -->
+            <div style="min-width: 170px;">
+                <select name="role" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Role</option>
+                    <option value="ADMIN IT" <?= (($roleFilter ?? '') === 'ADMIN IT') ? 'selected' : '' ?>>ADMIN IT</option>
+                    <option value="ADMIN DASHBOARD" <?= (($roleFilter ?? '') === 'ADMIN DASHBOARD') ? 'selected' : '' ?>>ADMIN DASHBOARD</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div style="min-width: 140px;">
+                <select name="status" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Status</option>
+                    <option value="approved" <?= (($statusFilter ?? '') === 'approved') ? 'selected' : '' ?>>Approved</option>
+                    <option value="pending" <?= (($statusFilter ?? '') === 'pending') ? 'selected' : '' ?>>Pending</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;">
+                Cari
+            </button>
+
+            <?php if (!empty($hasFilters)): ?>
+                <a href="<?= e(url('/kelola_admin.php')) ?>"
+                   style="color: #64748b; font-size: 0.85rem; text-decoration: underline; padding: 8px 4px;">
+                    Reset Filter
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+
+    <?php
+        $sortUrlAdmin = function(string $column) use ($sort, $order): string {
+            $params = $_GET;
+            $params['sort'] = $column;
+            $params['order'] = ($sort === $column && $order === 'asc') ? 'desc' : 'asc';
+            $params['page'] = 1;
+            return e(url('/kelola_admin.php?' . http_build_query($params)));
+        };
+    ?>
+
     <div class="table-container" style="overflow-x: auto;">
         <table class="admin-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.925rem;">
             <thead>
                 <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em;">
-                    <th style="padding: 12px 14px; width: 40px;">No</th>
-                    <th style="padding: 12px 14px;">Pengguna</th>
+                    <th style="padding: 12px 14px; width: 40px;">
+                        <a href="<?= $sortUrlAdmin('id') ?>" style="color: inherit; text-decoration: none;">
+                            No <?= ($sort === 'id') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrlAdmin('username') ?>" style="color: inherit; text-decoration: none;">
+                            Pengguna <?= ($sort === 'username') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                     <th style="padding: 12px 14px;">Kontak</th>
                     <th style="padding: 12px 14px;">Unit Kerja</th>
-                    <th style="padding: 12px 14px; text-align: center;">Role</th>
-                    <th style="padding: 12px 14px; text-align: center;">Status</th>
+                    <th style="padding: 12px 14px; text-align: center;">
+                        <a href="<?= $sortUrlAdmin('role') ?>" style="color: inherit; text-decoration: none;">
+                            Role <?= ($sort === 'role') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px; text-align: center;">
+                        <a href="<?= $sortUrlAdmin('status') ?>" style="color: inherit; text-decoration: none;">
+                            Status <?= ($sort === 'status') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                     <th style="padding: 12px 14px; text-align: center;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($admins)): ?>
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 32px; color: #64748b;">
-                            Tidak ada data pengguna/admin.
+                        <td colspan="7" style="text-align: center; padding: 48px 16px; color: #64748b;">
+                            <?php if (!empty($hasFilters)): ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Pencarian Tidak Ditemukan</div>
+                                <div style="font-size: 0.875rem; margin-bottom: 16px;">Tidak ada akun administrator yang sesuai dengan kriteria filter atau kata kunci pencarian.</div>
+                                <a href="<?= e(url('/kelola_admin.php')) ?>" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #f1f5f9; color: #2563eb; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+                                    Reset Semua Filter
+                                </a>
+                            <?php else: ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">👤</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Belum Ada Administrator</div>
+                                <div style="font-size: 0.875rem;">Belum ada data admin terdaftar.</div>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php $no = 1; foreach ($admins as $adm): ?>
+                    <?php $no = (int)($pagination['from'] ?? 1); foreach ($admins as $adm): ?>
                         <?php
                             $idAdmin = (int)$adm['id_admin'];
                             $isSelf = ((int)($user['id'] ?? 0) === $idAdmin);
@@ -307,4 +400,10 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Server-Side Pagination (Task 7.12) -->
+    <?php
+        $baseUrl = '/kelola_admin.php';
+        include __DIR__ . '/../partials/pagination.php';
+    ?>
 </div>

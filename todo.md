@@ -477,8 +477,8 @@ Spesifikasi di Lampiran D.
 - [x] `GET /api/v1/health` (tanpa autentikasi): cek koneksi DB singkat (timeout 2 detik), balas `{"data":{"status":"ok"},"error":null}` atau 503. **Tidak menampilkan** versi, path, atau detail error.
 
 ### 7.12 [W] Tabel kelola yang nyaman (layanan, kategori, pengguna)
-- [ ] Pencarian, filter (kategori, akses publik/VPN, status), pengurutan, dan **paginasi sisi server** (10/25/50). Parameter ada di URL sehingga hasilnya bisa dibagikan.
-- [ ] Keadaan kosong yang jelas ("Belum ada layanan") dan pesan saat pencarian tanpa hasil.
+- [x] Pencarian, filter (kategori, akses publik/VPN, status), pengurutan, dan **paginasi sisi server** (10/25/50). Parameter ada di URL sehingga hasilnya bisa dibagikan.
+- [x] Keadaan kosong yang jelas ("Belum ada layanan") dan pesan saat pencarian tanpa hasil.
 
 ### 7.13 [W] Form yang andal
 - [ ] Validasi di server dengan pesan **per field**; nilai yang sudah diisi tetap tampil saat gagal; validasi klien ringan sebagai bantuan (bukan pengganti).

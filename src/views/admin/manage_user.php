@@ -156,33 +156,132 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
         <h2 style="font-size: 1.1rem; color: #1e293b; font-weight: 700; margin: 0;">Daftar Pengguna Portal & Pegawai</h2>
         <span style="font-size: 0.85rem; color: #64748b;">
-            Total: <?= count($users) ?> Akun Pegawai
+            Total: <?= (int)($pagination['total_items'] ?? count($users)) ?> Akun Pegawai
         </span>
     </div>
+
+    <!-- Search and Filters Form -->
+    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;">
+        <form method="GET" action="<?= e(url('/kelola_user.php')) ?>" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <?php if (!empty($sort)): ?>
+                <input type="hidden" name="sort" value="<?= e($sort) ?>">
+            <?php endif; ?>
+            <?php if (!empty($order)): ?>
+                <input type="hidden" name="order" value="<?= e($order) ?>">
+            <?php endif; ?>
+
+            <div style="flex: 1; min-width: 240px;">
+                <input type="text" name="search" value="<?= e($search ?? '') ?>" placeholder="Cari nama, username, email, unit..."
+                       style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
+            </div>
+
+            <!-- Unit Filter -->
+            <div style="min-width: 180px;">
+                <select name="unit_id" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Unit Kerja</option>
+                    <?php if (!empty($units)): ?>
+                        <?php foreach ($units as $un): ?>
+                            <option value="<?= (int)$un['id'] ?>" <?= (($unitFilter ?? null) === (int)$un['id']) ? 'selected' : '' ?>>
+                                <?= e($un['nama']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div style="min-width: 140px;">
+                <select name="status" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Status</option>
+                    <option value="approved" <?= (($statusFilter ?? '') === 'approved') ? 'selected' : '' ?>>Approved</option>
+                    <option value="pending" <?= (($statusFilter ?? '') === 'pending') ? 'selected' : '' ?>>Pending</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;">
+                Cari
+            </button>
+
+            <?php if (!empty($hasFilters)): ?>
+                <a href="<?= e(url('/kelola_user.php')) ?>"
+                   style="color: #64748b; font-size: 0.85rem; text-decoration: underline; padding: 8px 4px;">
+                    Reset Filter
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+
+    <?php
+        $sortUrlUser = function(string $column) use ($sort, $order): string {
+            $params = $_GET;
+            $params['sort'] = $column;
+            $params['order'] = ($sort === $column && $order === 'asc') ? 'desc' : 'asc';
+            $params['page'] = 1;
+            return e(url('/kelola_user.php?' . http_build_query($params)));
+        };
+    ?>
 
     <div class="table-container" style="overflow-x: auto;">
         <table class="user-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
             <thead>
                 <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em;">
-                    <th style="padding: 12px 14px; width: 40px;">No</th>
-                    <th style="padding: 12px 14px;">Username</th>
-                    <th style="padding: 12px 14px;">Nama Lengkap</th>
-                    <th style="padding: 12px 14px;">Unit Kerja</th>
+                    <th style="padding: 12px 14px; width: 40px;">
+                        <a href="<?= $sortUrlUser('id') ?>" style="color: inherit; text-decoration: none;">
+                            No <?= ($sort === 'id') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrlUser('username') ?>" style="color: inherit; text-decoration: none;">
+                            Username <?= ($sort === 'username') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrlUser('name') ?>" style="color: inherit; text-decoration: none;">
+                            Nama Lengkap <?= ($sort === 'name') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrlUser('unit') ?>" style="color: inherit; text-decoration: none;">
+                            Unit Kerja <?= ($sort === 'unit') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                     <th style="padding: 12px 14px;">Email</th>
                     <th style="padding: 12px 14px; text-align: center;">Ganti Password</th>
-                    <th style="padding: 12px 14px; text-align: center;">Status</th>
-                    <th style="padding: 12px 14px;">Tanggal Dibuat</th>
+                    <th style="padding: 12px 14px; text-align: center;">
+                        <a href="<?= $sortUrlUser('status') ?>" style="color: inherit; text-decoration: none;">
+                            Status <?= ($sort === 'status') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrlUser('created_at') ?>" style="color: inherit; text-decoration: none;">
+                            Tanggal Dibuat <?= ($sort === 'created_at') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($users)): ?>
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 32px; color: #64748b;">
-                            Belum ada akun pengguna portal atau pegawai yang terdaftar.
+                        <td colspan="8" style="text-align: center; padding: 48px 16px; color: #64748b;">
+                            <?php if (!empty($hasFilters)): ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Pencarian Tidak Ditemukan</div>
+                                <div style="font-size: 0.875rem; margin-bottom: 16px;">Tidak ada akun pegawai yang sesuai dengan kriteria filter atau kata kunci pencarian.</div>
+                                <a href="<?= e(url('/kelola_user.php')) ?>" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #f1f5f9; color: #2563eb; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+                                    Reset Semua Filter
+                                </a>
+                            <?php else: ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">👥</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Belum Ada Pengguna</div>
+                                <div style="font-size: 0.875rem;">Belum ada akun pengguna portal atau pegawai yang terdaftar. Gunakan formulir impor di atas untuk menambahkan akun pegawai.</div>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php $no = 1; foreach ($users as $u): ?>
+                    <?php $no = (int)($pagination['from'] ?? 1); foreach ($users as $u): ?>
                         <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 12px 14px; color: #64748b; font-weight: 500;">
                                 <?= $no++ ?>
@@ -224,4 +323,10 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Server-Side Pagination (Task 7.12) -->
+    <?php
+        $baseUrl = '/kelola_user.php';
+        include __DIR__ . '/../partials/pagination.php';
+    ?>
 </div>

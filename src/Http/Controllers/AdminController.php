@@ -24,31 +24,106 @@ class AdminController extends Controller
     }
 
     /**
-     * Halaman Kelola Administrator & Pengguna
+     * Halaman Kelola Administrator & Pengguna dengan pencarian, filter, sorting, dan paginasi
      */
     public function manageAdmin(): string
     {
         $this->authorizeAdminIt();
         $db = $this->db();
 
-        $stmt = $db->query("
+        $search = trim((string)($_GET['search'] ?? ''));
+        $roleFilter = trim((string)($_GET['role'] ?? ''));
+        $statusFilter = trim((string)($_GET['status'] ?? ''));
+
+        $allowedSorts = ['username', 'name', 'role', 'status', 'id'];
+        $sort = in_array($_GET['sort'] ?? '', $allowedSorts, true) ? $_GET['sort'] : 'id';
+        $order = (strtolower((string)($_GET['order'] ?? '')) === 'desc') ? 'desc' : 'asc';
+
+        $allowedPerPage = [10, 25, 50];
+        $rawPerPage = (int)($_GET['per_page'] ?? 10);
+        $perPage = in_array($rawPerPage, $allowedPerPage, true) ? $rawPerPage : 10;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+
+        $where = ["1=1"];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = "(a.username LIKE ? OR a.email LIKE ? OR a.first_name LIKE ? OR a.last_name LIKE ?)";
+            $term = "%{$search}%";
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        if ($roleFilter !== '' && in_array($roleFilter, ['ADMIN IT', 'ADMIN DASHBOARD', 'USER APP PORTAL'], true)) {
+            $where[] = "a.role = ?";
+            $params[] = $roleFilter;
+        }
+
+        if ($statusFilter !== '' && in_array($statusFilter, ['approved', 'pending'], true)) {
+            $where[] = "a.status = ?";
+            $params[] = $statusFilter;
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        $stmtCount = $db->prepare("SELECT COUNT(*) FROM admin a WHERE {$whereSql}");
+        $stmtCount->execute($params);
+        $totalItems = (int)$stmtCount->fetchColumn();
+
+        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        $page = min(max(1, $page), $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        $sortColumn = match ($sort) {
+            'username' => 'a.username',
+            'name'     => 'a.first_name',
+            'role'     => 'a.role',
+            'status'   => 'a.status',
+            default    => 'a.id_admin',
+        };
+        $orderDir = ($order === 'desc') ? 'DESC' : 'ASC';
+
+        $dataSql = "
             SELECT a.id_admin, a.first_name, a.last_name, a.username, a.email, a.role, a.unit_id,
                    a.status, a.is_active, a.must_change_password, a.created_at, a.last_login_at,
                    u.nama AS unit_name
             FROM admin a
             LEFT JOIN units u ON a.unit_id = u.id
-            ORDER BY a.id_admin ASC
-        ");
+            WHERE {$whereSql}
+            ORDER BY {$sortColumn} {$orderDir}
+            LIMIT {$perPage} OFFSET {$offset}
+        ";
+
+        $stmt = $db->prepare($dataSql);
+        $stmt->execute($params);
         $admins = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
         $stmtUnits = $db->query("SELECT id, nama FROM units ORDER BY id ASC");
         $units = $stmtUnits ? $stmtUnits->fetchAll(PDO::FETCH_ASSOC) : [];
 
+        $hasFilters = ($search !== '' || $roleFilter !== '' || $statusFilter !== '');
+
         return $this->render('admin/manage_admin', [
-            'title'  => 'Kelola Admin',
-            'admins' => $admins,
-            'units'  => $units,
-            'user'   => $this->user(),
+            'title'        => 'Kelola Admin',
+            'admins'       => $admins,
+            'units'        => $units,
+            'search'       => $search,
+            'roleFilter'   => $roleFilter,
+            'statusFilter' => $statusFilter,
+            'sort'         => $sort,
+            'order'        => $order,
+            'hasFilters'   => $hasFilters,
+            'pagination'   => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total_items' => $totalItems,
+                'total_pages' => $totalPages,
+                'from'        => $totalItems > 0 ? $offset + 1 : 0,
+                'to'          => min($offset + $perPage, $totalItems),
+            ],
+            'user'         => $this->user(),
         ]);
     }
 
@@ -376,7 +451,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Halaman Kelola Pengguna Portal
+     * Halaman Kelola Pengguna Portal dengan pencarian, filter, sorting, dan paginasi
      */
     public function manageUser(): string
     {
@@ -388,25 +463,106 @@ class AdminController extends Controller
 
         $db = $this->db();
 
-        $stmt = $db->query("
+        $search = trim((string)($_GET['search'] ?? ''));
+        $unitFilter = isset($_GET['unit_id']) && is_numeric($_GET['unit_id']) && (int)$_GET['unit_id'] > 0 ? (int)$_GET['unit_id'] : null;
+        $statusFilter = trim((string)($_GET['status'] ?? ''));
+
+        $allowedSorts = ['username', 'name', 'unit', 'status', 'created_at', 'id'];
+        $sort = in_array($_GET['sort'] ?? '', $allowedSorts, true) ? $_GET['sort'] : 'id';
+        $order = (strtolower((string)($_GET['order'] ?? '')) === 'asc') ? 'asc' : 'desc';
+
+        $allowedPerPage = [10, 25, 50];
+        $rawPerPage = (int)($_GET['per_page'] ?? 10);
+        $perPage = in_array($rawPerPage, $allowedPerPage, true) ? $rawPerPage : 10;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+
+        $where = ["a.role = 'USER APP PORTAL'"];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = "(a.username LIKE ? OR a.email LIKE ? OR a.first_name LIKE ? OR a.last_name LIKE ? OR u.nama LIKE ?)";
+            $term = "%{$search}%";
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        if ($unitFilter !== null) {
+            $where[] = "a.unit_id = ?";
+            $params[] = $unitFilter;
+        }
+
+        if ($statusFilter !== '' && in_array($statusFilter, ['approved', 'pending'], true)) {
+            $where[] = "a.status = ?";
+            $params[] = $statusFilter;
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        $stmtCount = $db->prepare("SELECT COUNT(*) FROM admin a LEFT JOIN units u ON a.unit_id = u.id WHERE {$whereSql}");
+        $stmtCount->execute($params);
+        $totalItems = (int)$stmtCount->fetchColumn();
+
+        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        $page = min(max(1, $page), $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        $sortColumn = match ($sort) {
+            'username'   => 'a.username',
+            'name'       => 'a.first_name',
+            'unit'       => 'u.nama',
+            'status'     => 'a.status',
+            'created_at' => 'a.created_at',
+            default      => 'a.id_admin',
+        };
+        $orderDir = ($order === 'asc') ? 'ASC' : 'DESC';
+
+        $dataSql = "
             SELECT a.id_admin, a.username, a.first_name, a.last_name, a.email, a.status, a.role,
                    a.email_verified, a.must_change_password, a.created_at, u.nama AS unit_name
             FROM admin a
             LEFT JOIN units u ON a.unit_id = u.id
-            WHERE a.role = 'USER APP PORTAL'
-            ORDER BY a.id_admin DESC
-        ");
+            WHERE {$whereSql}
+            ORDER BY {$sortColumn} {$orderDir}
+            LIMIT {$perPage} OFFSET {$offset}
+        ";
+
+        $stmt = $db->prepare($dataSql);
+        $stmt->execute($params);
         $users = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        $stmtUnits = $db->query("SELECT id, nama FROM units ORDER BY id ASC");
+        $units = $stmtUnits ? $stmtUnits->fetchAll(PDO::FETCH_ASSOC) : [];
 
         $importedCredentials = Session::get('imported_credentials') ?? [];
         Session::remove('imported_credentials');
 
+        $hasFilters = ($search !== '' || $unitFilter !== null || $statusFilter !== '');
+
         return $this->render('admin/manage_user', [
             'title'               => 'Kelola User Portal',
             'users'               => $users,
+            'units'               => $units,
+            'search'              => $search,
+            'unitFilter'          => $unitFilter,
+            'statusFilter'        => $statusFilter,
+            'sort'                => $sort,
+            'order'               => $order,
+            'hasFilters'          => $hasFilters,
+            'pagination'          => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total_items' => $totalItems,
+                'total_pages' => $totalPages,
+                'from'        => $totalItems > 0 ? $offset + 1 : 0,
+                'to'          => min($offset + $perPage, $totalItems),
+            ],
             'importedCredentials' => $importedCredentials,
             'error'               => '',
             'email_value'         => '',
+            'user'                => $this->user(),
         ]);
     }
 

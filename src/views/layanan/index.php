@@ -3,13 +3,27 @@
 /** @var array<int, array<string, mixed>> $categories */
 /** @var int|null $selectedKategori */
 /** @var string|null $selectedStatus */
+/** @var string|null $selectedAkses */
+/** @var string|null $selectedVpn */
+/** @var string $search */
+/** @var string $sort */
+/** @var string $order */
+/** @var bool $hasFilters */
 /** @var int $pendingCount */
+/** @var array{page: int, per_page: int, total_items: int, total_pages: int, from: int, to: int} $pagination */
 /** @var array<string, mixed>|null $user */
 
 $userRole = (string)($user['role'] ?? '');
 $userUnitId = isset($user['unit_id']) ? (int)$user['unit_id'] : null;
-$baseKatQuery = $selectedKategori !== null ? ('&id_kategori=' . $selectedKategori) : '';
-$baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedStatus)) : '';
+
+// Helper function to build header sort URLs
+$sortUrl = function(string $column) use ($sort, $order): string {
+    $params = $_GET;
+    $params['sort'] = $column;
+    $params['order'] = ($sort === $column && $order === 'asc') ? 'desc' : 'asc';
+    $params['page'] = 1;
+    return e(url('/layanan.php?' . http_build_query($params)));
+};
 ?>
 
 <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
@@ -27,16 +41,37 @@ $baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedS
 </div>
 
 <div class="card">
-    <!-- Filter Tabs & Dropdown -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+    <!-- Filter Tabs & Comprehensive Search/Filter Bar -->
+    <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;">
         <!-- Status Tabs -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <a href="<?= e(url('/layanan.php' . ($selectedKategori ? '?id_kategori=' . $selectedKategori : ''))) ?>"
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;">
+            <?php
+                $tabParams = $_GET;
+                unset($tabParams['status']);
+                $tabParams['page'] = 1;
+                $allUrl = e(url('/layanan.php?' . http_build_query($tabParams)));
+
+                $pendingParams = $_GET;
+                $pendingParams['status'] = 'pending';
+                $pendingParams['page'] = 1;
+                $pendingUrl = e(url('/layanan.php?' . http_build_query($pendingParams)));
+
+                $publishedParams = $_GET;
+                $publishedParams['status'] = 'published';
+                $publishedParams['page'] = 1;
+                $publishedUrl = e(url('/layanan.php?' . http_build_query($publishedParams)));
+
+                $draftParams = $_GET;
+                $draftParams['status'] = 'draft';
+                $draftParams['page'] = 1;
+                $draftUrl = e(url('/layanan.php?' . http_build_query($draftParams)));
+            ?>
+            <a href="<?= $allUrl ?>"
                style="padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $selectedStatus === null ? 'background: #2563eb; color: white;' : 'background: #f1f5f9; color: #475569;' ?>">
-                Semua
+                Semua Status
             </a>
 
-            <a href="<?= e(url('/layanan.php?status=pending' . $baseKatQuery)) ?>"
+            <a href="<?= $pendingUrl ?>"
                style="padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; <?= $selectedStatus === 'pending' ? 'background: #d97706; color: white;' : 'background: #fef3c7; color: #92400e;' ?>">
                 <span>Menunggu Review</span>
                 <?php if ($pendingCount > 0): ?>
@@ -46,35 +81,77 @@ $baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedS
                 <?php endif; ?>
             </a>
 
-            <a href="<?= e(url('/layanan.php?status=published' . $baseKatQuery)) ?>"
+            <a href="<?= $publishedUrl ?>"
                style="padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $selectedStatus === 'published' ? 'background: #16a34a; color: white;' : 'background: #f1f5f9; color: #475569;' ?>">
                 Published
             </a>
 
-            <a href="<?= e(url('/layanan.php?status=draft' . $baseKatQuery)) ?>"
+            <a href="<?= $draftUrl ?>"
                style="padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; text-decoration: none; <?= $selectedStatus === 'draft' ? 'background: #64748b; color: white;' : 'background: #f1f5f9; color: #475569;' ?>">
                 Draft
             </a>
         </div>
 
-        <!-- Kategori Filter -->
-        <form method="GET" action="<?= e(url('/layanan.php')) ?>" style="display: flex; align-items: center; gap: 10px;">
+        <!-- Search and Filters Form -->
+        <form method="GET" action="<?= e(url('/layanan.php')) ?>" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
             <?php if ($selectedStatus !== null): ?>
                 <input type="hidden" name="status" value="<?= e($selectedStatus) ?>">
             <?php endif; ?>
-            <label for="id_kategori" style="font-size: 0.85rem; font-weight: 600; color: #475569;">Kategori:</label>
-            <select name="id_kategori" id="id_kategori" onchange="this.form.submit()"
-                    style="padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer;">
-                <option value="">Semua Kategori</option>
-                <?php foreach ($categories as $cat): ?>
-                    <option value="<?= e($cat['id_kategori']) ?>" <?= ($selectedKategori === (int)$cat['id_kategori']) ? 'selected' : '' ?>>
-                        <?= e($cat['nama_kategori']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <?php if ($selectedKategori !== null || $selectedStatus !== null): ?>
-                <a href="<?= e(url('/layanan.php')) ?>" style="font-size: 0.8rem; color: #64748b; text-decoration: underline; margin-left: 2px;">
-                    Reset
+            <?php if (!empty($sort)): ?>
+                <input type="hidden" name="sort" value="<?= e($sort) ?>">
+            <?php endif; ?>
+            <?php if (!empty($order)): ?>
+                <input type="hidden" name="order" value="<?= e($order) ?>">
+            <?php endif; ?>
+
+            <!-- Search input -->
+            <div style="flex: 1; min-width: 240px; position: relative;">
+                <input type="text" name="search" value="<?= e($search) ?>" placeholder="Cari nama layanan, alias, deskripsi..."
+                       style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem;">
+            </div>
+
+            <!-- Kategori Dropdown -->
+            <div style="min-width: 180px;">
+                <select name="id_kategori" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Kategori</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= e($cat['id_kategori']) ?>" <?= ($selectedKategori === (int)$cat['id_kategori']) ? 'selected' : '' ?>>
+                            <?= e($cat['nama_kategori']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Akses Dropdown -->
+            <div style="min-width: 140px;">
+                <select name="akses" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua Akses</option>
+                    <option value="Public" <?= $selectedAkses === 'Public' ? 'selected' : '' ?>>Public</option>
+                    <option value="Internal" <?= $selectedAkses === 'Internal' ? 'selected' : '' ?>>Internal</option>
+                </select>
+            </div>
+
+            <!-- VPN Dropdown -->
+            <div style="min-width: 130px;">
+                <select name="vpn" onchange="this.form.submit()"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <option value="">Semua VPN</option>
+                    <option value="Yes" <?= $selectedVpn === 'Yes' ? 'selected' : '' ?>>VPN Saja</option>
+                    <option value="No" <?= $selectedVpn === 'No' ? 'selected' : '' ?>>Tanpa VPN</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;">
+                Cari
+            </button>
+
+            <?php if ($hasFilters): ?>
+                <a href="<?= e(url('/layanan.php')) ?>"
+                   style="color: #64748b; font-size: 0.85rem; text-decoration: underline; padding: 8px 4px;">
+                    Reset Filter
                 </a>
             <?php endif; ?>
         </form>
@@ -85,11 +162,27 @@ $baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedS
         <table class="layanan-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.925rem;">
             <thead>
                 <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em;">
-                    <th style="padding: 12px 14px; width: 45px;">No</th>
+                    <th style="padding: 12px 14px; width: 50px;">
+                        <a href="<?= $sortUrl('id') ?>" style="color: inherit; text-decoration: none;">
+                            No <?= ($sort === 'id') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                     <th style="padding: 12px 14px; width: 55px;">Logo</th>
-                    <th style="padding: 12px 14px;">Nama Layanan</th>
-                    <th style="padding: 12px 14px;">Kategori & Unit</th>
-                    <th style="padding: 12px 14px; width: 110px; text-align: center;">Status</th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrl('nama') ?>" style="color: inherit; text-decoration: none;">
+                            Nama Layanan <?= ($sort === 'nama') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px;">
+                        <a href="<?= $sortUrl('kategori') ?>" style="color: inherit; text-decoration: none;">
+                            Kategori & Unit <?= ($sort === 'kategori') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
+                    <th style="padding: 12px 14px; width: 120px; text-align: center;">
+                        <a href="<?= $sortUrl('status') ?>" style="color: inherit; text-decoration: none;">
+                            Status <?= ($sort === 'status') ? ($order === 'asc' ? '▲' : '▼') : '' ?>
+                        </a>
+                    </th>
                     <th style="padding: 12px 14px; width: 85px; text-align: center;">Akses</th>
                     <th style="padding: 12px 14px; width: 80px; text-align: center;">VPN</th>
                     <th style="padding: 12px 14px; width: 100px;">Link</th>
@@ -99,13 +192,26 @@ $baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedS
             <tbody>
                 <?php if (empty($services)): ?>
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 36px 16px; color: #64748b;">
-                            <div style="font-size: 1.5rem; margin-bottom: 8px;">📭</div>
-                            <div>Tidak ada layanan yang sesuai dengan filter.</div>
+                        <td colspan="9" style="text-align: center; padding: 48px 16px; color: #64748b;">
+                            <?php if ($hasFilters): ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Pencarian Tidak Ditemukan</div>
+                                <div style="font-size: 0.875rem; margin-bottom: 16px;">Tidak ada layanan yang sesuai dengan kata kunci atau kriteria filter yang dipilih.</div>
+                                <a href="<?= e(url('/layanan.php')) ?>" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #f1f5f9; color: #2563eb; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+                                    Reset Semua Filter
+                                </a>
+                            <?php else: ?>
+                                <div style="font-size: 2rem; margin-bottom: 8px;">📭</div>
+                                <div style="font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 4px;">Belum Ada Layanan</div>
+                                <div style="font-size: 0.875rem; margin-bottom: 16px;">Belum ada tautan layanan yang tersimpan di sistem.</div>
+                                <a href="<?= e(url('/tambah_layanan.php')) ?>" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #2563eb; color: white; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+                                    + Tambah Layanan Pertama
+                                </a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php $no = 1; foreach ($services as $srv): ?>
+                    <?php $no = (int)($pagination['from'] ?? 1); foreach ($services as $srv): ?>
                         <?php 
                             $srvId = (int)$srv['id_layanan'];
                             $status = (string)($srv['status'] ?? 'published');
@@ -271,4 +377,10 @@ $baseStatusQuery = $selectedStatus !== null ? ('&status=' . urlencode($selectedS
             </tbody>
         </table>
     </div>
+
+    <!-- Server-Side Pagination (Task 7.12) -->
+    <?php
+        $baseUrl = '/layanan.php';
+        include __DIR__ . '/../partials/pagination.php';
+    ?>
 </div>

@@ -12,11 +12,14 @@ use PDO;
 class LayananController extends Controller
 {
     /**
-     * Tampilkan daftar layanan (Manage Link)
+     * Tampilkan daftar layanan (Manage Link) dengan pencarian, filter, sorting, dan paginasi
      */
     public function index(): string
     {
         $db = $this->db();
+
+        // 1. Parameter Filter
+        $search = trim((string)($_GET['search'] ?? ''));
 
         $selectedKategori = null;
         if (isset($_GET['id_kategori']) && is_numeric($_GET['id_kategori']) && (int)$_GET['id_kategori'] > 0) {
@@ -28,6 +31,27 @@ class LayananController extends Controller
             $selectedStatus = $_GET['status'];
         }
 
+        $selectedAkses = null;
+        if (isset($_GET['akses']) && in_array($_GET['akses'], ['Public', 'Internal'], true)) {
+            $selectedAkses = $_GET['akses'];
+        }
+
+        $selectedVpn = null;
+        if (isset($_GET['vpn']) && in_array($_GET['vpn'], ['Yes', 'No'], true)) {
+            $selectedVpn = $_GET['vpn'];
+        }
+
+        // 2. Parameter Sorting
+        $allowedSorts = ['nama', 'kategori', 'status', 'created_at', 'id'];
+        $sort = in_array($_GET['sort'] ?? '', $allowedSorts, true) ? $_GET['sort'] : 'id';
+        $order = (strtolower((string)($_GET['order'] ?? '')) === 'asc') ? 'asc' : 'desc';
+
+        // 3. Parameter Paginasi (10, 25, 50)
+        $allowedPerPage = [10, 25, 50];
+        $rawPerPage = (int)($_GET['per_page'] ?? 10);
+        $perPage = in_array($rawPerPage, $allowedPerPage, true) ? $rawPerPage : 10;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+
         // Ambil kategori untuk filter dropdown (hanya aktif)
         $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat ? $stmtKat->fetchAll(PDO::FETCH_ASSOC) : [];
@@ -36,8 +60,68 @@ class LayananController extends Controller
         $stmtPending = $db->query("SELECT COUNT(*) FROM layanan WHERE status = 'pending'");
         $pendingCount = (int)($stmtPending ? $stmtPending->fetchColumn() : 0);
 
-        // Query layanan (hanya non-archived)
-        $sql = "
+        // Filter SQL clauses
+        $where = ["l.status != 'archived'"];
+        $params = [];
+
+        if ($selectedKategori !== null) {
+            $where[] = "l.id_kategori = ?";
+            $params[] = $selectedKategori;
+        }
+
+        if ($selectedStatus !== null) {
+            $where[] = "l.status = ?";
+            $params[] = $selectedStatus;
+        }
+
+        if ($selectedAkses !== null) {
+            $where[] = "l.akses = ?";
+            $params[] = $selectedAkses;
+        }
+
+        if ($selectedVpn !== null) {
+            $where[] = "l.vpn = ?";
+            $params[] = $selectedVpn;
+        }
+
+        if ($search !== '') {
+            $where[] = "(l.nama_layanan LIKE ? OR l.deskripsi_layanan LIKE ? OR l.search_aliases LIKE ? OR l.url LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        // 4. Hitung Total Data (Count)
+        $countSql = "
+            SELECT COUNT(*) 
+            FROM layanan l 
+            LEFT JOIN kategori k ON l.id_kategori = k.id_kategori 
+            LEFT JOIN units u ON l.unit_id = u.id
+            WHERE {$whereSql}
+        ";
+        $stmtCount = $db->prepare($countSql);
+        $stmtCount->execute($params);
+        $totalItems = (int)$stmtCount->fetchColumn();
+
+        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        $page = min(max(1, $page), $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        // 5. Query Data Layanan
+        $sortColumn = match ($sort) {
+            'nama'       => 'l.nama_layanan',
+            'kategori'   => 'k.nama_kategori',
+            'status'     => 'l.status',
+            'created_at' => 'l.created_at',
+            default      => 'l.id_layanan',
+        };
+        $orderDir = ($order === 'asc') ? 'ASC' : 'DESC';
+
+        $dataSql = "
             SELECT 
                 l.id_layanan, 
                 l.id_kategori, 
@@ -56,25 +140,16 @@ class LayananController extends Controller
             FROM layanan l 
             LEFT JOIN kategori k ON l.id_kategori = k.id_kategori 
             LEFT JOIN units u ON l.unit_id = u.id
-            WHERE l.status != 'archived'
+            WHERE {$whereSql}
+            ORDER BY {$sortColumn} {$orderDir}
+            LIMIT {$perPage} OFFSET {$offset}
         ";
-        $params = [];
 
-        if ($selectedKategori !== null) {
-            $sql .= " AND l.id_kategori = ?";
-            $params[] = $selectedKategori;
-        }
-
-        if ($selectedStatus !== null) {
-            $sql .= " AND l.status = ?";
-            $params[] = $selectedStatus;
-        }
-
-        $sql .= " ORDER BY l.id_kategori ASC, l.id_layanan DESC";
-
-        $stmtLay = $db->prepare($sql);
+        $stmtLay = $db->prepare($dataSql);
         $stmtLay->execute($params);
         $services = $stmtLay->fetchAll(PDO::FETCH_ASSOC);
+
+        $hasFilters = ($search !== '' || $selectedKategori !== null || $selectedStatus !== null || $selectedAkses !== null || $selectedVpn !== null);
 
         return $this->render('layanan/index', [
             'title'            => 'Manage Link - Kelola Layanan',
@@ -82,7 +157,21 @@ class LayananController extends Controller
             'services'         => $services,
             'selectedKategori' => $selectedKategori,
             'selectedStatus'   => $selectedStatus,
+            'selectedAkses'    => $selectedAkses,
+            'selectedVpn'      => $selectedVpn,
+            'search'           => $search,
+            'sort'             => $sort,
+            'order'            => $order,
+            'hasFilters'       => $hasFilters,
             'pendingCount'     => $pendingCount,
+            'pagination'       => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total_items' => $totalItems,
+                'total_pages' => $totalPages,
+                'from'        => $totalItems > 0 ? $offset + 1 : 0,
+                'to'          => min($offset + $perPage, $totalItems),
+            ],
             'user'             => $this->user(),
         ]);
     }

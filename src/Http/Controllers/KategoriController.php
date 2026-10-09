@@ -10,50 +10,114 @@ use PDO;
 class KategoriController extends Controller
 {
     /**
-     * Tampilkan daftar kategori
+     * Tampilkan daftar kategori dengan pencarian, sorting, dan paginasi
      */
     public function index(): string
     {
         $db = $this->db();
 
-        // Ambil semua kategori aktif + jumlah layanan non-archived
-        $stmt = $db->query("
+        // 1. Parameter Filter & Search
+        $search = trim((string)($_GET['search'] ?? ''));
+
+        // 2. Parameter Sorting
+        $allowedSorts = ['nama', 'layanan', 'id'];
+        $sort = in_array($_GET['sort'] ?? '', $allowedSorts, true) ? $_GET['sort'] : 'id';
+        $order = (strtolower((string)($_GET['order'] ?? '')) === 'desc') ? 'desc' : 'asc';
+
+        // 3. Parameter Paginasi
+        $allowedPerPage = [10, 25, 50];
+        $rawPerPage = (int)($_GET['per_page'] ?? 10);
+        $perPage = in_array($rawPerPage, $allowedPerPage, true) ? $rawPerPage : 10;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+
+        $where = ["k.is_active = 1"];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = "k.nama_kategori LIKE ?";
+            $params[] = "%{$search}%";
+        }
+
+        $whereSql = implode(" AND ", $where);
+
+        // 4. Hitung Total Kategori (Count)
+        $stmtCount = $db->prepare("SELECT COUNT(*) FROM kategori k WHERE {$whereSql}");
+        $stmtCount->execute($params);
+        $totalItems = (int)$stmtCount->fetchColumn();
+
+        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        $page = min(max(1, $page), $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        // 5. Query Data Kategori
+        $sortColumn = match ($sort) {
+            'nama'    => 'k.nama_kategori',
+            'layanan' => 'jumlah_layanan',
+            default   => 'k.id_kategori',
+        };
+        $orderDir = ($order === 'desc') ? 'DESC' : 'ASC';
+
+        $dataSql = "
             SELECT 
                 k.id_kategori,
                 k.nama_kategori,
                 COUNT(l.id_layanan) AS jumlah_layanan
             FROM kategori k
             LEFT JOIN layanan l ON k.id_kategori = l.id_kategori AND l.status != 'archived'
-            WHERE k.is_active = 1
+            WHERE {$whereSql}
             GROUP BY k.id_kategori, k.nama_kategori
-            ORDER BY k.id_kategori ASC
-        ");
+            ORDER BY {$sortColumn} {$orderDir}
+            LIMIT {$perPage} OFFSET {$offset}
+        ";
+
+        $stmt = $db->prepare($dataSql);
+        $stmt->execute($params);
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Ambil preview layanan per kategori (hanya non-archived)
-        $stmtServices = $db->query("
-            SELECT id_layanan, id_kategori, nama_layanan, url
-            FROM layanan
-            WHERE status != 'archived'
-            ORDER BY id_kategori ASC, id_layanan ASC
-        ");
-        $allServices = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
-
         $servicesByCategory = [];
-        foreach ($allServices as $srv) {
-            $catId = (int)$srv['id_kategori'];
-            if (!isset($servicesByCategory[$catId])) {
-                $servicesByCategory[$catId] = [];
-            }
-            if (count($servicesByCategory[$catId]) < 3) {
-                $servicesByCategory[$catId][] = $srv;
+        if (!empty($categories)) {
+            $catIds = array_column($categories, 'id_kategori');
+            $inPlaceholders = implode(',', array_fill(0, count($catIds), '?'));
+            $stmtServices = $db->prepare("
+                SELECT id_layanan, id_kategori, nama_layanan, url
+                FROM layanan
+                WHERE status != 'archived' AND id_kategori IN ({$inPlaceholders})
+                ORDER BY id_kategori ASC, id_layanan ASC
+            ");
+            $stmtServices->execute($catIds);
+            $allServices = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($allServices as $srv) {
+                $catId = (int)$srv['id_kategori'];
+                if (!isset($servicesByCategory[$catId])) {
+                    $servicesByCategory[$catId] = [];
+                }
+                if (count($servicesByCategory[$catId]) < 3) {
+                    $servicesByCategory[$catId][] = $srv;
+                }
             }
         }
+
+        $hasFilters = ($search !== '');
 
         return $this->render('kategori/index', [
             'title'              => 'Kelola Kategori',
             'categories'         => $categories,
             'servicesByCategory' => $servicesByCategory,
+            'search'             => $search,
+            'sort'               => $sort,
+            'order'              => $order,
+            'hasFilters'         => $hasFilters,
+            'pagination'         => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total_items' => $totalItems,
+                'total_pages' => $totalPages,
+                'from'        => $totalItems > 0 ? $offset + 1 : 0,
+                'to'          => min($offset + $perPage, $totalItems),
+            ],
+            'user'               => $this->user(),
         ]);
     }
 
