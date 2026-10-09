@@ -36,7 +36,7 @@ Dokumen ini adalah **dokumen hidup** untuk mencatat seluruh asumsi, konfigurasi,
 ## 2. Aturan Khusus Apache (`.htaccess` & VirtualHost)
 
 - **Modul Apache yang Dibutuhkan:**
-  - `mod_rewrite`: Untuk penulisan ulang URL dan routing modern.
+  - `mod_rewrite`: Untuk penulisan ulang URL dan front controller routing (`public/index.php`).
   - `mod_headers`: Untuk menetapkan header keamanan (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`).
 - **Direktif VirtualHost:**
   - Mengarahkan DocumentRoot langsung ke folder `public/`, bukan folder root proyek:
@@ -47,15 +47,41 @@ Dokumen ini adalah **dokumen hidup** untuk mencatat seluruh asumsi, konfigurasi,
         Require all granted
     </Directory>
     ```
-- **Proteksi Berkas Sensitif:**
-  - Berkas `.env`, `.log`, `.sql`, `composer.json`, dan dokumentasi `.md` dilindungi agar tidak dapat diunduh lewat browser.
-- **Proteksi Folder Uploads (`public/uploads/` & `storage/uploads/`):**
+- **Front Controller & Proteksi Eksekusi PHP (`public/.htaccess`):**
+  - Mengalihkan semua request non-file ke `index.php`, memblokir ekstensi sensitif, dan membatasi eksekusi file PHP **hanya** pada `index.php`:
+    ```apache
+    Options -Indexes -MultiViews
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+
+    <FilesMatch "^\.|\.(sql|log|bak|old|ini|md|lock|sh|env)$">
+        Require all denied
+    </FilesMatch>
+
+    <FilesMatch "\.(php|phtml|phar)$">
+        Require all denied
+    </FilesMatch>
+    <Files "index.php">
+        Require all granted
+    </Files>
+    ```
+  - *Padanan Nginx:*
+    `location / { try_files $uri /index.php?$query_string; }`
+    `location = /index.php { include fastcgi_params; fastcgi_pass ...; }`
+    `location ~ \.php$ { return 404; }`
+- **Proteksi Folder Uploads (`public/uploads/.htaccess`):**
   - Mencegah eksekusi script PHP yang diunggah pengguna lewat `.htaccess`:
     ```apache
-    <FilesMatch "\.(php|phtml|php3|php4|php5|phps)$">
+    php_flag engine off
+    Options -Indexes -ExecCGI
+    <FilesMatch "\.(php|phtml|phar|php[0-9])$">
         Require all denied
     </FilesMatch>
     ```
+  - *Padanan Nginx:*
+    `location ^~ /uploads/ { location ~ \.php$ { return 403; } }`
 
 ---
 

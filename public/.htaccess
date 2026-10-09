@@ -1,24 +1,18 @@
-# ==========================================================
-# Apache Configuration - Public Webroot
-# ==========================================================
-
 Options -Indexes -MultiViews
+RewriteEngine On
 
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Redirect non-existing files/directories to Front Controller
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^ index.php [L]
-</IfModule>
-
-<FilesMatch "^\.|\.(env|log|sql|ini|sh|bak|md)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order Deny,Allow
-        Deny from all
-    </IfModule>
+# Blokir berkas tersembunyi dan ekstensi sensitif
+<FilesMatch "^\.|\.(sql|log|bak|old|ini|md|lock|sh|env)$">
+    Require all denied
 </FilesMatch>
+
+# Blokir akses langsung ke berkas .php fisik selain index.php
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_FILENAME} !index\.php$
+RewriteCond %{REQUEST_URI} \.(php|phtml|phar)$
+RewriteRule ^ - [F]
+
+# Bukan berkas atau folder nyata -> front controller index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
