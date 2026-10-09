@@ -486,7 +486,7 @@ Spesifikasi di Lampiran D.
 - [x] Unggah logo: pratinjau, penggantian menghapus berkas lama, dan tampilan cadangan (inisial) bila logo tidak ada.
 
 ### 7.14 Dashboard ringkasan yang benar
-- [ ] Angka total layanan, publik, VPN, kategori, dan `pending`; aktivitas terbaru dari `audit_log`; pintasan ke aksi umum. Query efisien dan angkanya cocok dengan data.
+- [x] Angka total layanan, publik, VPN, kategori, dan `pending`; aktivitas terbaru dari `audit_log`; pintasan ke aksi umum. Query efisien dan angkanya cocok dengan data.
 
 ### 7.15 Aksesibilitas, responsif, dan halaman error
 - [ ] Label form terhubung ke input, urutan fokus keyboard wajar, kontras cukup, tabel dapat dipakai di layar kecil.
@@ -762,7 +762,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [7.8-7.9] feat(me): implement personal preferences and isolated bookmarks api | search history, pinned services, theme preferences, isolated bookmarks with 403 guard | 36c77e5
 [2026-10-09] [7.10-7.11] feat(analytics): implement personal clicks tracking, stats gamification, cleanup script, and health endpoint | link clicks tracking, private stats gamification, cleanup cron script, /api/v1/health endpoint | ef38764
 [2026-10-09] [7.12] feat(management): implement search, filters, sorting, and server-side pagination for layanan, kategori, and users | 10/25/50 per-page pagination, reusable pagination partial, multi-filters, empty states | a871407
-[2026-10-09] [7.13] feat(forms): implement per-field validation, double-click prevention, logo preview, and initials avatar fallback | per-field server errors, input retention, live logo preview, initials badge with onerror fallback, informative confirmations | HEAD
+[2026-10-09] [7.13] feat(forms): implement per-field validation, double-click prevention, logo preview, and initials avatar fallback | per-field server errors, input retention, live logo preview, initials badge with onerror fallback, informative confirmations | 12d0568
+[2026-10-09] [7.14] feat(dashboard): implement accurate summary metrics, quick actions, and recent audit activity feed | 5 metric cards, quick actions toolbar, recent audit log feed, category filter, 6 unit tests green | HEAD
 ```
 
 ---
