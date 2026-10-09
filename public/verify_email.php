@@ -299,7 +299,7 @@ if ($token === '') {
         <!-- LOGO -->
 
         <img
-            src="uploads/logo_bps.jpg"
+            src="assets/logo_bps.jpg"
             alt="Logo BPS"
             class="logo"
             onerror="this.style.display='none';"
