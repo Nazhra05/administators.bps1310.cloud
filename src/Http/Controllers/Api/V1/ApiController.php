@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\LoginThrottleService;
 use App\Services\PasswordService;
 use App\Support\Json;
 use PDO;
@@ -97,23 +98,29 @@ class ApiController extends Controller
     /**
      * POST /api/v1/auth/login
      */
-    public function login(): string
+    public function login(array $vars = [], ?array $payload = null): string
     {
-        $input = json_decode((string)file_get_contents('php://input'), true);
+        $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
         if (!is_array($input)) {
             return Json::error('bad_request', 'Data JSON tidak valid', 400);
         }
 
-        $username = trim($input['username'] ?? $input['identity'] ?? '');
+        $username = trim((string)($input['username'] ?? $input['identity'] ?? ''));
         $password = (string)($input['password'] ?? '');
 
         if ($username === '' || $password === '') {
             return Json::error('validation_failed', 'Username dan password wajib diisi', 422);
         }
 
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
         try {
+            if (LoginThrottleService::isIpThrottled($this->db(), $ip)) {
+                return Json::error('too_many_requests', 'Terlalu banyak percobaan login gagal dari IP Anda. Silakan coba lagi nanti.', 429);
+            }
+
             $stmt = $this->db()->prepare("
-                SELECT id_admin, first_name, last_name, username, email, password, status, role
+                SELECT id_admin, first_name, last_name, username, email, password, status, role, unit_id, is_active, failed_attempts, locked_until
                 FROM admin
                 WHERE (email = ? OR username = ?)
                 LIMIT 1
@@ -121,13 +128,14 @@ class ApiController extends Controller
             $stmt->execute([$username, $username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$user) {
-                PasswordService::dummyVerify();
+            if (!$user || empty($user['password'])) {
+                LoginThrottleService::handleFailedLogin($this->db(), null, $ip, $username);
                 return Json::error('unauthorized', 'Kredensial login tidak valid', 401);
             }
 
-            if ($user['status'] !== 'approved') {
-                return Json::error('forbidden', 'Akun belum disetujui atau masih pending', 403);
+            if (LoginThrottleService::isAccountLocked($user)) {
+                PasswordService::dummyVerify();
+                return Json::error('unauthorized', 'Akun sementara terkunci karena terlalu banyak percobaan gagal. Silakan coba lagi nanti.', 401);
             }
 
             $valid = PasswordService::verify(
@@ -138,22 +146,54 @@ class ApiController extends Controller
             );
 
             if (!$valid) {
+                LoginThrottleService::handleFailedLogin($this->db(), $user, $ip, $username);
                 return Json::error('unauthorized', 'Kredensial login tidak valid', 401);
             }
 
+            if ($user['status'] !== 'approved' || (isset($user['is_active']) && (int)$user['is_active'] === 0)) {
+                return Json::error('forbidden', 'Akun tidak aktif atau belum disetujui', 403);
+            }
+
+            LoginThrottleService::handleSuccessfulLogin($this->db(), (int)$user['id_admin'], $ip, $username);
+
+            // Opportunistically clean up expired sessions
+            try {
+                $cleanStmt = $this->db()->prepare("DELETE FROM sessions WHERE expires_at < ?");
+                $cleanStmt->execute([date('Y-m-d H:i:s')]);
+            } catch (\Throwable) {
+                // Silently ignore cleanup error
+            }
+
+            // Create 8-hour session token
             $token = bin2hex(random_bytes(32));
-            $expiresAt = date('c', time() + (7 * 24 * 3600));
+            $expiresAtTimestamp = time() + (8 * 3600);
+            $expiresAtDb = date('Y-m-d H:i:s', $expiresAtTimestamp);
+            $expiresAtIso = date('c', $expiresAtTimestamp);
+            $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+
+            $sessionStmt = $this->db()->prepare("
+                INSERT INTO sessions (token, user_id, expires_at, created_at, ip, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $sessionStmt->execute([
+                $token,
+                (int)$user['id_admin'],
+                $expiresAtDb,
+                date('Y-m-d H:i:s'),
+                $ip,
+                $userAgent,
+            ]);
 
             return Json::ok([
                 'token'      => $token,
-                'expires_at' => $expiresAt,
+                'expires_at' => $expiresAtIso,
                 'user'       => [
                     'id'           => (int)$user['id_admin'],
                     'username'     => $user['username'],
                     'display_name' => trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: $user['username'],
                     'email'        => $user['email'],
-                    'role'         => $user['role'],
-                    'unit_id'      => null,
+                    'role'         => $user['role'] ?? 'user',
+                    'unit_id'      => $user['unit_id'] !== null ? (int)$user['unit_id'] : null,
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -166,15 +206,61 @@ class ApiController extends Controller
      */
     public function session(): string
     {
-        $sessionToken = $_SERVER['HTTP_X_SESSION'] ?? '';
-        if (empty($sessionToken)) {
+        $sessionToken = trim($_SERVER['HTTP_X_SESSION'] ?? '');
+        if ($sessionToken === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (preg_match('/^Bearer\s+([a-f0-9]{64})/i', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+                $sessionToken = $matches[1];
+            }
+        }
+
+        if ($sessionToken === '') {
             return Json::error('unauthorized', 'Header X-Session wajib disertakan', 401);
         }
 
-        return Json::ok([
-            'authenticated' => true,
-            'session_token' => $sessionToken,
-        ]);
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT s.token, s.expires_at, s.user_id,
+                       a.id_admin, a.first_name, a.last_name, a.username, a.email, a.role, a.unit_id, a.is_active, a.status
+                FROM sessions s
+                JOIN admin a ON a.id_admin = s.user_id
+                WHERE s.token = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$sessionToken]);
+            $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$session) {
+                return Json::error('unauthorized', 'Sesi tidak valid atau telah berakhir', 401);
+            }
+
+            if (strtotime((string)$session['expires_at']) <= time()) {
+                try {
+                    $delStmt = $this->db()->prepare("DELETE FROM sessions WHERE token = ?");
+                    $delStmt->execute([$sessionToken]);
+                } catch (\Throwable) {
+                }
+                return Json::error('unauthorized', 'Sesi telah kedaluwarsa', 401);
+            }
+
+            if ($session['status'] !== 'approved' || (isset($session['is_active']) && (int)$session['is_active'] === 0)) {
+                return Json::error('forbidden', 'Akun tidak aktif atau belum disetujui', 403);
+            }
+
+            return Json::ok([
+                'token'      => $session['token'],
+                'expires_at' => date('c', strtotime((string)$session['expires_at'])),
+                'user'       => [
+                    'id'           => (int)$session['id_admin'],
+                    'username'     => $session['username'],
+                    'display_name' => trim(($session['first_name'] ?? '') . ' ' . ($session['last_name'] ?? '')) ?: $session['username'],
+                    'email'        => $session['email'],
+                    'role'         => $session['role'] ?? 'user',
+                    'unit_id'      => $session['unit_id'] !== null ? (int)$session['unit_id'] : null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memverifikasi sesi', 500);
+        }
     }
 
     /**
@@ -182,6 +268,22 @@ class ApiController extends Controller
      */
     public function logout(): string
     {
+        $sessionToken = trim($_SERVER['HTTP_X_SESSION'] ?? '');
+        if ($sessionToken === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (preg_match('/^Bearer\s+([a-f0-9]{64})/i', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+                $sessionToken = $matches[1];
+            }
+        }
+
+        if ($sessionToken !== '') {
+            try {
+                $stmt = $this->db()->prepare("DELETE FROM sessions WHERE token = ?");
+                $stmt->execute([$sessionToken]);
+            } catch (\Throwable) {
+                // Silently handle
+            }
+        }
+
         http_response_code(204);
         return '';
     }

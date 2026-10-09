@@ -428,11 +428,11 @@ Untuk tiap halaman: controller di `src/Http/`, view di `src/views/`, rute di `ro
 
 ### 7.1 [W] Auth API untuk App B
 Spesifikasi di Lampiran D.
-- [ ] `POST /api/v1/auth/login` (butuh `X-API-KEY`): menerima **password mentah**, memverifikasi (6.3/6.4), membuat baris `sessions` (token `bin2hex(random_bytes(32))`, kedaluwarsa 8 jam), mengembalikan token dan data pengguna.
-- [ ] `GET /api/v1/auth/session` (header `X-Session`): valid → data pengguna; tidak valid/kedaluwarsa → 401.
-- [ ] `POST /api/v1/auth/logout`: hapus baris sesi.
-- [ ] Hapus sesi kedaluwarsa secara oportunistik saat login.
-- [ ] Pertahankan alur login lama sebagai alias (hasil 1.3) sampai App B beralih.
+- [x] `POST /api/v1/auth/login` (butuh `X-API-KEY`): menerima **password mentah**, memverifikasi (6.3/6.4), membuat baris `sessions` (token `bin2hex(random_bytes(32))`, kedaluwarsa 8 jam), mengembalikan token dan data pengguna.
+- [x] `GET /api/v1/auth/session` (header `X-Session`): valid → data pengguna; tidak valid/kedaluwarsa → 401.
+- [x] `POST /api/v1/auth/logout`: hapus baris sesi.
+- [x] Hapus sesi kedaluwarsa secara oportunistik saat login.
+- [x] Pertahankan alur login lama sebagai alias (hasil 1.3) sampai App B beralih.
 - **Selesai jika:** tes HTTP untuk login, session, dan logout lulus, dan token tidak pernah muncul di log.
 
 ### 7.2 [W] Manajemen pengguna (admin saja)
@@ -753,6 +753,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [6.7] feat(security): enforce token hashing and registration toggle | ALLOW_PUBLIC_REGISTER toggle with 404 response, SHA-256 token hashing, 1-hour expiry, rate limiting on verification emails | 1743403
 [2026-10-09] [6.8-6.11] feat(security): implement input validation, CSP, security headers, and GD upload protection | Validator helper, Content-Security-Policy with nonce, strict security headers, GD image re-encoding stripping polyglots | 9fd5a06
 [2026-10-09] [6.12-6.13] test(security): verify zero composer vulnerabilities and comprehensive automated security tests | composer audit 0 advisories, 62 phpunit tests green, 0 phpstan errors, 60 vitest tests green | 9fd5a06
+[2026-10-09] [7.1] feat(api): implement v1 auth endpoints with 8-hour sessions for App B | POST /api/v1/auth/login, GET /api/v1/auth/session, POST /api/v1/auth/logout, 8-hour sessions in DB, opportunistic cleanup, unit tests green | b58b341
 ```
 
 ---
