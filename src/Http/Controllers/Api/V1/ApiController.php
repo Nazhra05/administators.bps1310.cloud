@@ -845,4 +845,183 @@ class ApiController extends Controller
             return Json::error('server_error', 'Gagal menghapus bookmark', 500);
         }
     }
+
+    /**
+     * POST /api/v1/me/clicks (Task 7.10)
+     */
+    public function recordClick(array $vars = [], ?array $payload = null): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return Json::error('bad_request', 'Data JSON tidak valid', 400);
+        }
+
+        $layananId = (int)($input['layanan_id'] ?? $input['id_layanan'] ?? 0);
+        if ($layananId <= 0) {
+            return Json::error('validation_failed', 'layanan_id wajib diisi berupa integer positif', 422);
+        }
+
+        // 1. Check layanan exists & published
+        $stmtLayanan = $this->db()->prepare("SELECT id_layanan FROM layanan WHERE id_layanan = ? AND status = 'published' LIMIT 1");
+        $stmtLayanan->execute([$layananId]);
+        if (!$stmtLayanan->fetchColumn()) {
+            return Json::error('not_found', 'Layanan tidak ditemukan atau belum dipublikasikan', 404);
+        }
+
+        // 2. Rate limiting: max 60 clicks per minute per user
+        $oneMinuteAgo = date('Y-m-d H:i:s', time() - 60);
+        $stmtRate = $this->db()->prepare("SELECT COUNT(*) FROM link_clicks WHERE user_id = ? AND clicked_at >= ?");
+        $stmtRate->execute([$userId, $oneMinuteAgo]);
+        if ((int)$stmtRate->fetchColumn() >= 60) {
+            return Json::error('too_many_requests', 'Batas klik terlampaui (maksimal 60 klik per menit). Silakan coba lagi nanti.', 429);
+        }
+
+        try {
+            $now = date('Y-m-d H:i:s');
+            $stmtInsert = $this->db()->prepare("INSERT INTO link_clicks (user_id, layanan_id, clicked_at) VALUES (?, ?, ?)");
+            $stmtInsert->execute([$userId, $layananId, $now]);
+            $clickId = (int)$this->db()->lastInsertId();
+
+            return Json::ok([
+                'id'         => $clickId,
+                'layanan_id' => $layananId,
+                'clicked_at' => $now,
+            ], 201);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal mencatat klik layanan', 500);
+        }
+    }
+
+    /**
+     * GET /api/v1/me/stats (Task 7.10)
+     */
+    public function getStats(): string
+    {
+        $authUser = $this->getAuthenticatedUser();
+        if ($authUser === null) {
+            return Json::error('unauthorized', 'Autentikasi diperlukan', 401);
+        }
+
+        if (!empty($authUser['must_change_password'])) {
+            return Json::error('password_change_required', 'Wajib mengganti password sebelum mengakses fitur portal', 403);
+        }
+
+        $userId = (int)$authUser['id_admin'];
+
+        try {
+            // 1. Total clicks
+            $stmtTotal = $this->db()->prepare("SELECT COUNT(*) FROM link_clicks WHERE user_id = ?");
+            $stmtTotal->execute([$userId]);
+            $totalClicks = (int)$stmtTotal->fetchColumn();
+
+            // 2. Unique services used
+            $stmtUnique = $this->db()->prepare("SELECT COUNT(DISTINCT layanan_id) FROM link_clicks WHERE user_id = ?");
+            $stmtUnique->execute([$userId]);
+            $uniqueServices = (int)$stmtUnique->fetchColumn();
+
+            // 3. Most frequent services (Top 5)
+            $stmtFrequent = $this->db()->prepare("
+                SELECT lc.layanan_id, l.nama_layanan, COUNT(*) AS click_count
+                FROM link_clicks lc
+                LEFT JOIN layanan l ON lc.layanan_id = l.id_layanan
+                WHERE lc.user_id = ?
+                GROUP BY lc.layanan_id, l.nama_layanan
+                ORDER BY click_count DESC, lc.layanan_id ASC
+                LIMIT 5
+            ");
+            $stmtFrequent->execute([$userId]);
+            $frequentRows = $stmtFrequent->fetchAll(PDO::FETCH_ASSOC);
+            $mostFrequent = [];
+            foreach ($frequentRows as $fr) {
+                $mostFrequent[] = [
+                    'layanan_id'   => (int)$fr['layanan_id'],
+                    'nama_layanan' => $fr['nama_layanan'] ?? 'Layanan',
+                    'click_count'  => (int)$fr['click_count'],
+                ];
+            }
+
+            // 4. Daily streak calculation
+            $stmtDates = $this->db()->prepare("
+                SELECT DISTINCT SUBSTR(clicked_at, 1, 10) AS click_date
+                FROM link_clicks
+                WHERE user_id = ?
+                ORDER BY click_date DESC
+            ");
+            $stmtDates->execute([$userId]);
+            $dates = $stmtDates->fetchAll(PDO::FETCH_COLUMN);
+
+            $dailyStreak = 0;
+            if (!empty($dates)) {
+                $today = date('Y-m-d');
+                $yesterday = date('Y-m-d', strtotime('-1 day'));
+
+                $firstDate = (string)$dates[0];
+                if ($firstDate === $today || $firstDate === $yesterday) {
+                    $expectedTimestamp = strtotime($firstDate);
+                    foreach ($dates as $d) {
+                        $dateTs = strtotime((string)$d);
+                        if ($dateTs === $expectedTimestamp) {
+                            $dailyStreak++;
+                            $expectedTimestamp -= 86400;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 5. Server-calculated badges (from own data only)
+            $badges = [
+                [
+                    'id'          => 'pemula',
+                    'name'        => 'Pemula Portal',
+                    'description' => 'Membuka layanan pertama kali di portal',
+                    'unlocked'    => $totalClicks >= 1,
+                    'progress'    => min(1, $totalClicks) . '/1',
+                ],
+                [
+                    'id'          => 'penjelajah',
+                    'name'        => 'Penjelajah',
+                    'description' => 'Menggunakan minimal 10 layanan yang berbeda',
+                    'unlocked'    => $uniqueServices >= 10,
+                    'progress'    => min(10, $uniqueServices) . '/10',
+                ],
+                [
+                    'id'          => 'rutin',
+                    'name'        => 'Rutin',
+                    'description' => 'Mencapai streak harian penggunaan selama 7 hari berturut-turut',
+                    'unlocked'    => $dailyStreak >= 7,
+                    'progress'    => min(7, $dailyStreak) . '/7',
+                ],
+                [
+                    'id'          => 'produktif',
+                    'name'        => 'Produktif',
+                    'description' => 'Mencapai total 50 kali pembukaan layanan',
+                    'unlocked'    => $totalClicks >= 50,
+                    'progress'    => min(50, $totalClicks) . '/50',
+                ],
+            ];
+
+            return Json::ok([
+                'total_clicks'           => $totalClicks,
+                'unique_services_used'   => $uniqueServices,
+                'daily_streak'           => $dailyStreak,
+                'most_frequent_services' => $mostFrequent,
+                'badges'                 => $badges,
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memuat statistik pengguna', 500);
+        }
+    }
 }

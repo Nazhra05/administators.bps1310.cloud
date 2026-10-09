@@ -159,3 +159,9 @@ Router::get('/api/v1/me/bookmarks', [\App\Http\Controllers\Api\V1\ApiController:
 Router::post('/api/v1/me/bookmarks', [\App\Http\Controllers\Api\V1\ApiController::class, 'createBookmark'], [ApiKey::class]);
 Router::put('/api/v1/me/bookmarks/{id:\d+}', [\App\Http\Controllers\Api\V1\ApiController::class, 'updateBookmark'], [ApiKey::class]);
 Router::delete('/api/v1/me/bookmarks/{id:\d+}', [\App\Http\Controllers\Api\V1\ApiController::class, 'deleteBookmark'], [ApiKey::class]);
+
+// -----------------------------------------------------------------------------
+// Personal Clicks & Stats API (Task 7.10)
+// -----------------------------------------------------------------------------
+Router::post('/api/v1/me/clicks', [\App\Http\Controllers\Api\V1\ApiController::class, 'recordClick'], [ApiKey::class]);
+Router::get('/api/v1/me/stats', [\App\Http\Controllers\Api\V1\ApiController::class, 'getStats'], [ApiKey::class]);

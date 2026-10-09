@@ -468,13 +468,13 @@ Spesifikasi di Lampiran D.
 - [x] Tes: pengguna A tidak bisa membaca/mengubah/menghapus bookmark pengguna B (harus 404 atau 403).
 
 ### 7.10 Klik dan statistik pribadi (bahan penghargaan)
-- [ ] `POST /api/v1/me/clicks` `{layanan_id}`; pembatas laju (mis. 60 per menit per pengguna).
-- [ ] `GET /api/v1/me/stats`: layanan paling sering dibuka, jumlah layanan berbeda yang dipakai, streak harian, dan **lencana yang dihitung server** dari data milik sendiri (contoh: "Penjelajah" 10 layanan berbeda, "Rutin" streak 7 hari). **Tanpa leaderboard antar pegawai.**
-- [ ] Retensi klik 12 bulan (dibersihkan oleh `scripts/cleanup.php`, 10.7).
-- [ ] Catat data yang disimpan di `docs/PRIVACY_NOTES.md` (9.4).
+- [x] `POST /api/v1/me/clicks` `{layanan_id}`; pembatas laju (mis. 60 per menit per pengguna).
+- [x] `GET /api/v1/me/stats`: layanan paling sering dibuka, jumlah layanan berbeda yang dipakai, streak harian, dan **lencana yang dihitung server** dari data milik sendiri (contoh: "Penjelajah" 10 layanan berbeda, "Rutin" streak 7 hari). **Tanpa leaderboard antar pegawai.**
+- [x] Retensi klik 12 bulan (dibersihkan oleh `scripts/cleanup.php`, 10.7).
+- [x] Catat data yang disimpan di `docs/PRIVACY_NOTES.md` (9.4).
 
 ### 7.11 [W] Health endpoint
-- [ ] `GET /api/v1/health` (tanpa autentikasi): cek koneksi DB singkat (timeout 2 detik), balas `{"data":{"status":"ok"},"error":null}` atau 503. **Tidak menampilkan** versi, path, atau detail error.
+- [x] `GET /api/v1/health` (tanpa autentikasi): cek koneksi DB singkat (timeout 2 detik), balas `{"data":{"status":"ok"},"error":null}` atau 503. **Tidak menampilkan** versi, path, atau detail error.
 
 ### 7.12 [W] Tabel kelola yang nyaman (layanan, kategori, pengguna)
 - [ ] Pencarian, filter (kategori, akses publik/VPN, status), pengurutan, dan **paginasi sisi server** (10/25/50). Parameter ada di URL sehingga hasilnya bisa dibagikan.
