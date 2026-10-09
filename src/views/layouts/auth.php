@@ -61,7 +61,7 @@
     </div>
 
     <?php if (!empty($extraJs)): ?>
-        <script><?= $extraJs ?></script>
+        <script nonce="<?= e(csp_nonce()) ?>"><?= $extraJs ?></script>
     <?php endif; ?>
 </body>
 </html>

@@ -46,6 +46,7 @@ $isDebug = filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN);
 
 if (!headers_sent()) {
     header('X-Request-Id: ' . request_id());
+    \App\Support\SecurityHeaders::send();
 }
 
 set_error_handler(function (int $severity, string $message, string $file, int $line): bool {

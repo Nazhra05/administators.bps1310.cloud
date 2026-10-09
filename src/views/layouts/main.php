@@ -21,9 +21,9 @@
         </div>
     </main>
 
-    <script src="<?= e(asset('assets/dashboard.js')) ?>"></script>
+    <script nonce="<?= e(csp_nonce()) ?>" src="<?= e(asset('assets/dashboard.js')) ?>"></script>
     <?php if (!empty($extraJs)): ?>
-        <script><?= $extraJs ?></script>
+        <script nonce="<?= e(csp_nonce()) ?>"><?= $extraJs ?></script>
     <?php endif; ?>
 </body>
 </html>

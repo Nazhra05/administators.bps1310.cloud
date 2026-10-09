@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Support\Validator;
 use PDO;
 
 class KategoriController extends Controller
@@ -132,7 +133,7 @@ class KategoriController extends Controller
      */
     public function edit(array $params = []): string
     {
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_GET['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_GET['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('kategori.php');
@@ -163,7 +164,7 @@ class KategoriController extends Controller
      */
     public function update(array $params = []): string
     {
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? $_GET['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_POST['id'] ?? $_GET['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('kategori.php');
@@ -174,7 +175,7 @@ class KategoriController extends Controller
             die('Sesi keamanan tidak valid atau telah kedaluwarsa.');
         }
 
-        $namaKategori = trim($_POST['nama_kategori'] ?? '');
+        $namaKategori = Validator::string($_POST['nama_kategori'] ?? '', 100);
 
         if ($namaKategori === '') {
             return $this->render('kategori/edit', [
@@ -224,7 +225,7 @@ class KategoriController extends Controller
             return;
         }
 
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_POST['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('kategori.php');

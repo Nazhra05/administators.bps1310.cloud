@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Support\Validator;
 use finfo;
 use PDO;
 
@@ -115,11 +116,14 @@ class LayananController extends Controller
             ]);
         }
 
+        $idKategori = Validator::int($form['id_kategori'], 0, 1);
+        $urlValid = Validator::url($form['url']);
+
         if (
             $form['nama_layanan'] === '' ||
             $form['deskripsi_layanan'] === '' ||
             $form['url'] === '' ||
-            $form['id_kategori'] === '' ||
+            $idKategori <= 0 ||
             $form['akses'] === '' ||
             $form['vpn'] === ''
         ) {
@@ -127,6 +131,15 @@ class LayananController extends Controller
                 'title'      => 'Tambah Layanan',
                 'categories' => $categories,
                 'error'      => 'Semua data wajib diisi.',
+                'form'       => $form,
+            ]);
+        }
+
+        if ($urlValid === null) {
+            return $this->render('layanan/create', [
+                'title'      => 'Tambah Layanan',
+                'categories' => $categories,
+                'error'      => 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.',
                 'form'       => $form,
             ]);
         }
@@ -203,7 +216,7 @@ class LayananController extends Controller
      */
     public function edit(array $params = []): string
     {
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_GET['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_GET['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('layanan.php');
@@ -252,7 +265,7 @@ class LayananController extends Controller
      */
     public function update(array $params = []): string
     {
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? $_GET['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_POST['id'] ?? $_GET['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('layanan.php');
@@ -307,11 +320,14 @@ class LayananController extends Controller
             ]);
         }
 
+        $idKategori = Validator::int($form['id_kategori'], 0, 1);
+        $urlValid = Validator::url($form['url']);
+
         if (
             $form['nama_layanan'] === '' ||
             $form['deskripsi_layanan'] === '' ||
             $form['url'] === '' ||
-            $form['id_kategori'] === '' ||
+            $idKategori <= 0 ||
             $form['akses'] === '' ||
             $form['vpn'] === ''
         ) {
@@ -320,6 +336,15 @@ class LayananController extends Controller
                 'layanan'    => array_merge($layanan, $form),
                 'categories' => $categories,
                 'error'      => 'Semua data wajib diisi.',
+            ]);
+        }
+
+        if ($urlValid === null) {
+            return $this->render('layanan/edit', [
+                'title'      => 'Edit Layanan',
+                'layanan'    => array_merge($layanan, $form),
+                'categories' => $categories,
+                'error'      => 'Format URL tidak valid. Hanya URL dengan protokol http:// atau https:// yang diperbolehkan.',
             ]);
         }
 
@@ -336,7 +361,7 @@ class LayananController extends Controller
             }
             // Hapus logo lama jika bukan default
             if (!empty($logo) && $logo !== 'logo_bps.jpg') {
-                $oldFile = dirname(__DIR__, 2) . '/public/uploads/' . basename($logo);
+                $oldFile = dirname(__DIR__, 3) . '/public/uploads/' . basename($logo);
                 if (is_file($oldFile)) {
                     @unlink($oldFile);
                 }
@@ -392,7 +417,7 @@ class LayananController extends Controller
             return;
         }
 
-        $id = isset($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? 0);
+        $id = Validator::int($params['id'] ?? $_POST['id'] ?? 0);
 
         if ($id <= 0) {
             $this->redirect('layanan.php');
@@ -415,12 +440,12 @@ class LayananController extends Controller
      */
     private function handleLogoUpload(array $file): array
     {
-        $folderUpload = dirname(__DIR__, 2) . '/public/uploads/';
+        $folderUpload = dirname(__DIR__, 3) . '/public/uploads/';
         if (!is_dir($folderUpload)) {
             mkdir($folderUpload, 0755, true);
         }
 
-        $originalName = basename((string)$file['name']);
+        $originalName = basename((string)($file['name'] ?? ''));
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
 
@@ -428,23 +453,51 @@ class LayananController extends Controller
             return ['filename' => '', 'error' => 'Format file logo tidak didukung. Gunakan JPG, PNG, atau WebP.'];
         }
 
+        $tmpPath = (string)($file['tmp_name'] ?? '');
+        if ($tmpPath === '' || !file_exists($tmpPath)) {
+            return ['filename' => '', 'error' => 'File upload tidak valid.'];
+        }
+
+        if ((int)($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            return ['filename' => '', 'error' => 'Ukuran file logo maksimal 2MB.'];
+        }
+
+        $normalizedTmp = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $tmpPath);
         $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file((string)$file['tmp_name']);
+        $mime = @$finfo->file($normalizedTmp) ?: '';
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
 
         if (!in_array($mime, $allowedMimes, true)) {
             return ['filename' => '', 'error' => 'Tipe MIME gambar logo tidak valid.'];
         }
 
-        if ((int)$file['size'] > 2 * 1024 * 1024) {
-            return ['filename' => '', 'error' => 'Ukuran file logo maksimal 2MB.'];
+        // Re-process image through GD to strip malicious EXIF/polyglot PHP payloads
+        $image = match ($mime) {
+            'image/jpeg' => @imagecreatefromjpeg($tmpPath),
+            'image/png'  => @imagecreatefrompng($tmpPath),
+            'image/webp' => @imagecreatefromwebp($tmpPath),
+            default      => false,
+        };
+
+        if ($image === false) {
+            return ['filename' => '', 'error' => 'Gambar logo rusak atau tidak valid.'];
         }
 
-        $newFilename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $originalName);
+        $safeExt = ($ext === 'jpeg') ? 'jpg' : $ext;
+        $newFilename = bin2hex(random_bytes(16)) . '.' . $safeExt;
         $target = $folderUpload . $newFilename;
 
-        if (!move_uploaded_file((string)$file['tmp_name'], $target)) {
-            return ['filename' => '', 'error' => 'Gagal memindahkan file upload logo ke server.'];
+        $saved = match ($safeExt) {
+            'jpg'   => imagejpeg($image, $target, 90),
+            'png'   => imagepng($image, $target, 8),
+            'webp'  => imagewebp($image, $target, 90),
+            default => false,
+        };
+
+        imagedestroy($image);
+
+        if (!$saved || !file_exists($target)) {
+            return ['filename' => '', 'error' => 'Gagal mengolah dan menyimpan file upload logo ke server.'];
         }
 
         return ['filename' => $newFilename, 'error' => null];

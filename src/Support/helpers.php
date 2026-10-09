@@ -209,3 +209,17 @@ if (!function_exists('request_id')) {
     }
 }
 
+if (!function_exists('csp_nonce')) {
+    /**
+     * Retrieve or generate per-request CSP nonce.
+     */
+    function csp_nonce(): string
+    {
+        static $nonce = null;
+        if ($nonce === null) {
+            $nonce = base64_encode(random_bytes(16));
+        }
+        return $nonce;
+    }
+}
+
