@@ -88,3 +88,28 @@ Router::get('/hapus_kategori.php', function () {
     echo "Metode tidak diizinkan. Penghapusan harus melalui POST.";
 }, [RequireLogin::class]);
 
+// -----------------------------------------------------------------------------
+// Layanan Routes (Clean URLs & Backward Compatibility Aliases)
+// -----------------------------------------------------------------------------
+Router::get('/layanan', [\App\Http\Controllers\LayananController::class, 'index'], [RequireLogin::class]);
+Router::get('/layanan.php', [\App\Http\Controllers\LayananController::class, 'index'], [RequireLogin::class]);
+
+Router::get('/layanan/tambah', [\App\Http\Controllers\LayananController::class, 'create'], [RequireLogin::class]);
+Router::get('/tambah_layanan.php', [\App\Http\Controllers\LayananController::class, 'create'], [RequireLogin::class]);
+Router::post('/layanan/tambah', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class]);
+Router::post('/tambah_layanan.php', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class]);
+
+Router::get('/layanan/{id:\d+}/edit', [\App\Http\Controllers\LayananController::class, 'edit'], [RequireLogin::class]);
+Router::get('/edit_layanan.php', [\App\Http\Controllers\LayananController::class, 'edit'], [RequireLogin::class]);
+Router::post('/layanan/{id:\d+}/edit', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class]);
+Router::post('/edit_layanan.php', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class]);
+
+Router::post('/layanan/{id:\d+}/hapus', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class]);
+Router::post('/hapus_layanan.php', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class]);
+Router::get('/hapus_layanan.php', function () {
+    http_response_code(405);
+    header('Allow: POST');
+    echo "Metode tidak diizinkan. Penghapusan harus melalui POST.";
+}, [RequireLogin::class]);
+
+
