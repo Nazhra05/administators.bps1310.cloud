@@ -307,7 +307,7 @@ Untuk tiap halaman: controller di `src/Http/`, view di `src/views/`, rute di `ro
 - [ ] **Hapus semua header CORS.** Hanya server-ke-server.
 
 ### 4.6 Layout bersama
-- [ ] `src/views/layout.php` (header, navbar, flash message, footer). Helper `e()` untuk escape.
+- [x] `src/views/layout.php` (header, navbar, flash message, footer). Helper `e()` untuk escape.
 
 ### 4.7 [W] Apache ketat (`.htaccess` front controller)
 - [ ] Terapkan `public/.htaccess` versi **ketat** (Lampiran E4): semua permintaan yang bukan berkas nyata dialihkan ke `index.php`, hanya `index.php` yang boleh dieksekusi, `.php` lain dijawab 403.
@@ -734,6 +734,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [4.1] feat(structure): initialize target directory layout in src/, views/, and migrations | src/Http, src/Auth, src/Models, src/Services, src/Support, database/migrations created | -
 [2026-10-09] [4.2] feat(bootstrap): create src/bootstrap.php and core support classes | Dotenv loaded, env validated, timezone set, secure session (Lampiran F), lazy PDO, centralized logging, and helpers tested | -
 [2026-10-09] [4.3] feat(router): implement FastRoute router engine, middlewares pipeline, and error views | Router, ApiKey, RequireLogin, RequireRole, VerifyCsrf, routes.php, and 404/403/405 views created and tested | -
+[2026-10-09] [4.6] feat(views): build shared master layout, auth layout, and navigation partials | layouts/main.php, layouts/auth.php, sidebar, navbar, flash alerts, and assets/dashboard.css created | -
 ```
 
 ---
