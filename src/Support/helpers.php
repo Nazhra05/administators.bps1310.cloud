@@ -177,3 +177,23 @@ if (!function_exists('db')) {
         return Database::pdo();
     }
 }
+
+if (!function_exists('request_id')) {
+    /**
+     * Retrieve or generate unique trace request ID for the current lifecycle.
+     */
+    function request_id(): string
+    {
+        static $id = null;
+        if ($id === null) {
+            $incoming = $_SERVER['HTTP_X_REQUEST_ID'] ?? null;
+            if (!empty($incoming) && is_string($incoming) && preg_match('/^[a-zA-Z0-9_\-\.]{8,64}$/', $incoming)) {
+                $id = $incoming;
+            } else {
+                $id = bin2hex(random_bytes(8));
+            }
+        }
+        return $id;
+    }
+}
+
