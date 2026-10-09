@@ -1971,18 +1971,27 @@ $admin_role = $_SESSION['admin_role'] ?? '';
  
                                             <!-- DELETE --> 
  
-                                            <a 
-                                                href="hapus_layanan.php?id=<?= $layanan['id_layanan']; ?>" 
-                                                class="action-btn delete-btn" 
-                                                title="Hapus" 
-                                                onclick=" 
-                                                    return confirm( 
-                                                        'Yakin ingin menghapus layanan ini?' 
-                                                    ); 
-                                                " 
-                                            > 
-                                                🗑 
-                                            </a> 
+                                            <form
+                                                method="POST"
+                                                action="hapus_layanan.php"
+                                                style="display: inline;"
+                                                onsubmit="return confirm('Yakin ingin menghapus layanan ini?');"
+                                            >
+                                                <?= csrf_field(); ?>
+                                                <input
+                                                    type="hidden"
+                                                    name="id"
+                                                    value="<?= (int) $layanan['id_layanan']; ?>"
+                                                >
+                                                <button
+                                                    type="submit"
+                                                    class="action-btn delete-btn"
+                                                    title="Hapus"
+                                                    style="cursor: pointer; font-family: inherit;"
+                                                >
+                                                    🗑
+                                                </button>
+                                            </form> 
  
  
                                         </div> 

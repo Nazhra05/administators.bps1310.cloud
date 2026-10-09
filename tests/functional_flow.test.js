@@ -284,8 +284,40 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(json.data.vpn).toBe('Yes');
     });
 
-    it('deletes the test layanan via current legacy GET hapus_layanan.php', async () => {
-      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php?id=${createdLayananId}`);
+    it('BUG-002: rejects deletion of layanan via GET method (405 Method Not Allowed)', async () => {
+      const getRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php?id=${createdLayananId}`);
+      expect(getRes.status).toBe(405);
+    });
+
+    it('BUG-002: rejects deletion of layanan via POST without valid CSRF token (403 Forbidden)', async () => {
+      const params = new URLSearchParams();
+      params.append('id', String(createdLayananId));
+      params.append('csrf_token', 'invalid_token_xyz');
+
+      const postRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(postRes.status).toBe(403);
+    });
+
+    it('BUG-002: safely deletes test layanan via POST with valid CSRF token and reflects in API', async () => {
+      const pageRes = await fetchWithSession(`${BASE_URL}/layanan.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+
+      const params = new URLSearchParams();
+      params.append('id', String(createdLayananId));
+      params.append('csrf_token', csrfToken);
+
+      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
       expect([200, 302]).toContain(deleteRes.status);
 
       // Verify removal in API
@@ -293,10 +325,6 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
         headers: { 'X-API-KEY': API_KEY }
       });
       expect(apiRes.status).toBe(404);
-    });
-
-    it.skip('BUG-002: Safe deletion of layanan via POST + CSRF token', async () => {
-      // In Fase 3, deletion must require POST + CSRF, not GET
     });
   });
 

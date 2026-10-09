@@ -3,11 +3,26 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/auth.php';
 
+/* Hanya izinkan metode POST (Cegah CSRF via GET) */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    echo "Metode tidak diizinkan. Penghapusan harus melalui POST.";
+    exit;
+}
+
+/* Verifikasi token CSRF */
+if (!csrf_verify()) {
+    http_response_code(403);
+    echo "Token keamanan CSRF tidak valid atau telah kedaluwarsa.";
+    exit;
+}
+
 /* =========================
-   AMBIL ID LAYANAN
+   AMBIL ID LAYANAN DARI POST
 ========================= */
 
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 
 if (!$id || $id <= 0) {
     header('Location: layanan.php');
