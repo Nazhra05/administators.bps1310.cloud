@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# ==========================================================
+# BPS Solok Selatan - Pre-Commit Hook (Task 8.4)
+# Menolak file .env, *.sql di luar schema/migrations/seeds,
+# dan string yang mirip kunci/rahasia pribadi.
+# ==========================================================
+
+set -e
+
+# 1. Periksa nama berkas yang di-stage
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+for file in $staged_files; do
+    # Tolak file .env dan variannya (kecuali .env.example)
+    if [[ "$file" =~ ^\.env ]] && [[ "$file" != ".env.example" ]]; then
+        echo "❌ [PRE-COMMIT REJECTED] Berkas rahasia terdeteksi: $file"
+        echo "   Dilarang meng-commit file .env atau varian rahasianya ke repositori!"
+        exit 1
+    fi
+
+    # Tolak file *.sql di luar database/schema.sql, database/migrations/, database/seeds/, docs/xampp/
+    if [[ "$file" =~ \.sql$ ]]; then
+        if [[ "$file" != "database/schema.sql" ]] && \
+           [[ ! "$file" =~ ^database/migrations/ ]] && \
+           [[ ! "$file" =~ ^database/seeds/ ]] && \
+           [[ ! "$file" =~ ^docs/xampp/ ]]; then
+            echo "❌ [PRE-COMMIT REJECTED] File SQL di luar folder resmi terdeteksi: $file"
+            echo "   Hanya database/schema.sql, database/migrations/, database/seeds/, dan docs/xampp/ yang diizinkan."
+            exit 1
+        fi
+    fi
+done
+
+# 2. Periksa konten yang di-stage untuk string rahasia / private key
+staged_diff=$(git diff --cached -U0)
+
+# Cek Private Key
+if echo "$staged_diff" | grep -Eq '^\+.*-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----'; then
+    echo "❌ [PRE-COMMIT REJECTED] Terdeteksi Private Key kriptografis di dalam commit!"
+    exit 1
+fi
+
+# Cek potensi kebocoran password atau secret di luar .env.example
+if echo "$staged_diff" | grep -Eq '^\+ *(DB_PASS|SMTP_PASS|SECRET_KEY|API_KEY_APP_B) *= *[^"'"'"' ][^"'"'"' ]{6,}'; then
+    # Kecualikan jika hanya mengedit .env.example atau docs
+    non_example_files=$(echo "$staged_files" | grep -v '\.env\.example' | grep -v '^docs/' || true)
+    if [ -n "$non_example_files" ]; then
+        echo "❌ [PRE-COMMIT REJECTED] Terdeteksi penetapan rahasia/password mentah di dalam perubahan!"
+        exit 1
+    fi
+fi
+
+exit 0
