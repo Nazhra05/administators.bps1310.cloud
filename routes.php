@@ -11,8 +11,11 @@ use App\Http\Middleware\ApiKey;
  */
 
 // -----------------------------------------------------------------------------
-// Health Check (Public, No Auth, Lampiran D)
+// Protected Dashboard Routes
 // -----------------------------------------------------------------------------
+Router::get('/', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
+Router::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
+Router::get('/index.php', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
 Router::get('/api/v1/health', function () {
     try {
         $pdo = \App\Support\Database::pdo();
@@ -34,6 +37,29 @@ Router::get('/api/v1/health', function () {
 });
 
 // -----------------------------------------------------------------------------
-// Public Authentication Routes (Web)
+// Authentication Routes (Web & Backward Compatibility Aliases)
 // -----------------------------------------------------------------------------
-// Note: Will be attached to AuthController in Task 4.4
+Router::get('/login', [\App\Http\Controllers\AuthController::class, 'loginForm']);
+Router::get('/login.php', [\App\Http\Controllers\AuthController::class, 'loginForm']);
+Router::post('/login', [\App\Http\Controllers\AuthController::class, 'loginSubmit']);
+Router::post('/login.php', [\App\Http\Controllers\AuthController::class, 'loginSubmit']);
+
+Router::get('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+Router::get('/logout.php', [\App\Http\Controllers\AuthController::class, 'logout']);
+Router::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+
+Router::get('/register', [\App\Http\Controllers\AuthController::class, 'registerForm']);
+Router::get('/register.php', [\App\Http\Controllers\AuthController::class, 'registerForm']);
+Router::post('/register', [\App\Http\Controllers\AuthController::class, 'registerSubmit']);
+Router::post('/register.php', [\App\Http\Controllers\AuthController::class, 'registerSubmit']);
+
+Router::get('/verify-email', [\App\Http\Controllers\AuthController::class, 'verifyEmail']);
+Router::get('/verify_email.php', [\App\Http\Controllers\AuthController::class, 'verifyEmail']);
+
+Router::get('/verify-user', [\App\Http\Controllers\AuthController::class, 'verifyUser']);
+Router::get('/verify_user.php', [\App\Http\Controllers\AuthController::class, 'verifyUser']);
+
+Router::get('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserForm']);
+Router::get('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserForm']);
+Router::post('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);
+Router::post('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);

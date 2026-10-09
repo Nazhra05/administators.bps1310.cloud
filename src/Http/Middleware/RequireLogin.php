@@ -27,7 +27,8 @@ class RequireLogin implements MiddlewareInterface
             }
 
             flash('error', 'Silakan login terlebih dahulu untuk mengakses dashboard.');
-            redirect('/login');
+            header('Location: login.php');
+            exit;
         }
 
         return $next($vars);

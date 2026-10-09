@@ -44,6 +44,13 @@ if (!function_exists('url')) {
     function url(string $path = '/'): string
     {
         $base = rtrim((string)env('APP_BASE_PATH', ''), '/');
+        if ($base === '') {
+            $appUrlPath = parse_url((string)env('APP_URL', ''), PHP_URL_PATH);
+            if (!empty($appUrlPath) && $appUrlPath !== '/') {
+                $base = rtrim($appUrlPath, '/');
+            }
+        }
+
         $cleanPath = '/' . ltrim($path, '/');
 
         if ($cleanPath === '/' && !empty($base)) {

@@ -112,6 +112,13 @@ class Router
 
         // 2. Strip APP_BASE_PATH if running in a subdirectory
         $basePath = rtrim((string)env('APP_BASE_PATH', ''), '/');
+        if ($basePath === '') {
+            $appUrlPath = parse_url((string)env('APP_URL', ''), PHP_URL_PATH);
+            if (!empty($appUrlPath) && $appUrlPath !== '/') {
+                $basePath = rtrim($appUrlPath, '/');
+            }
+        }
+
         if (!empty($basePath) && str_starts_with($path, $basePath)) {
             $path = substr($path, strlen($basePath));
             if ($path === '' || !str_starts_with($path, '/')) {

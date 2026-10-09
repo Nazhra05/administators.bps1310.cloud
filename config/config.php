@@ -148,6 +148,7 @@ if (session_status() === PHP_SESSION_NONE) {
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
+    session_name('admin_sid');
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
