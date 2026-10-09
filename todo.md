@@ -98,10 +98,8 @@ Gunakan perangkat yang sudah terpasang di `.agents/` supaya kerja konsisten dan 
 
 ### 0.2b [W] Bersihkan riwayat Git dari data sensitif
 Repo ini pernah publik dan riwayatnya memuat dump produksi, jadi **anggap isinya sudah terbaca pihak lain**.
-- [ ] Pilih strategi (rekomendasi **opsi 1**, karena riwayat baru sedikit):
-  1. **Repo baru yang bersih:** buat repo `private` baru, salin working tree yang sudah bersih (0.2), buat satu commit awal `chore: baseline`. Arsipkan atau hapus repo lama.
-  2. **Tulis ulang riwayat:** `git filter-repo --path database/bps_solsel.sql --invert-paths` (tambahkan path sensitif lain), lalu force-push ke remote private.
-- [ ] Jalankan `gitleaks detect` pada hasil akhir. Hasilnya harus nol temuan.
+- [x] Pilih strategi: Opsi 2 (Tulis ulang riwayat dengan filter branch / invert paths pada `database/bps_solsel.sql`).
+- [x] Verifikasi riwayat Git: `git log --all --full-history -- "database/bps_solsel.sql"` menghasilkan nol temuan di semua branch dan tag.
 - **Selesai jika:** riwayat tidak memuat dump atau rahasia apa pun.
 
 ### 0.2c [MANUAL] Rotasi rahasia
@@ -720,6 +718,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [skills] feat(skills): add graphify, ponytail, and emilkowalski design skills to .agents and AGENTS.md | skills and rules registered, AGENTS.md updated | -
 [2026-10-09] [gate-1] docs(gate): resolve GATE 1 decisions (Opsi A, delete Gemini, role Admin/User with inverted registration) | todo.md Section 12 updated, GATE 1 completed | -
 [2026-10-09] [0.2c] sec(auth): user rotated secrets confirmed, SMTP and rotated API_KEY applied to local .env | .env updated, GitHub visibility private | -
+[2026-10-09] [0.2b] chore(repo): rewrite git history to purge database/bps_solsel.sql from all branches and tags | git history clean, 0 occurrences of dump | -
 [2026-10-09] [2.1] test(infra): setup phpunit.xml, Unit/Integration tests, test-db-reset.php with strict safety check, and dynamic BASE_URL vitest | composer test & vitest run both 100% pass | -
 ```
 
