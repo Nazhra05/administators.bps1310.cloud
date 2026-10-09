@@ -45,6 +45,7 @@ class ApiController extends Controller
                     k.nama_kategori AS category_name
                 FROM layanan l
                 LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
+                WHERE l.status = 'published' AND (k.is_active = 1 OR k.id_kategori IS NULL)
                 ORDER BY l.id_layanan DESC
             ");
             $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -76,6 +77,7 @@ class ApiController extends Controller
                     nama_kategori AS name,
                     deskripsi AS description
                 FROM kategori
+                WHERE is_active = 1
                 ORDER BY id_kategori ASC
             ");
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);

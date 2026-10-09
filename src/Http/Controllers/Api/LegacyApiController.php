@@ -87,7 +87,7 @@ class LegacyApiController extends Controller
                         k.nama_kategori
                     FROM layanan l
                     LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
-                    WHERE l.id_layanan = ?
+                    WHERE l.id_layanan = ? AND l.status = 'published'
                     LIMIT 1
                 ");
                 $stmt->execute([$id]);
@@ -125,6 +125,7 @@ class LegacyApiController extends Controller
                     k.nama_kategori
                 FROM layanan l
                 LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
+                WHERE l.status = 'published' AND (k.is_active = 1 OR k.id_kategori IS NULL)
                 ORDER BY l.id_layanan DESC
             ");
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -172,7 +173,7 @@ class LegacyApiController extends Controller
                 $stmt = $this->db()->prepare("
                     SELECT id_kategori, nama_kategori, deskripsi
                     FROM kategori
-                    WHERE id_kategori = ?
+                    WHERE id_kategori = ? AND is_active = 1
                     LIMIT 1
                 ");
                 $stmt->execute([$id]);
@@ -197,6 +198,7 @@ class LegacyApiController extends Controller
             $stmt = $this->db()->query("
                 SELECT id_kategori, nama_kategori, deskripsi
                 FROM kategori
+                WHERE is_active = 1
                 ORDER BY id_kategori ASC
             ");
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -254,6 +256,7 @@ class LegacyApiController extends Controller
                     k.nama_kategori
                 FROM layanan l
                 LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
+                WHERE l.status = 'published' AND k.is_active = 1
                 ORDER BY k.id_kategori ASC, l.id_layanan ASC
             ");
             $layanan = $stmt->fetchAll(PDO::FETCH_ASSOC);

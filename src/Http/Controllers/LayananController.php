@@ -21,11 +21,11 @@ class LayananController extends Controller
             $selectedKategori = (int)$_GET['id_kategori'];
         }
 
-        // Ambil kategori untuk filter dropdown
-        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
+        // Ambil kategori untuk filter dropdown (hanya aktif)
+        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat->fetchAll(PDO::FETCH_ASSOC);
 
-        // Query layanan
+        // Query layanan (hanya non-archived)
         $sql = "
             SELECT 
                 l.id_layanan, 
@@ -36,14 +36,16 @@ class LayananController extends Controller
                 l.logo, 
                 l.akses, 
                 l.vpn, 
+                l.status,
                 k.nama_kategori 
             FROM layanan l 
             LEFT JOIN kategori k ON l.id_kategori = k.id_kategori 
+            WHERE l.status != 'archived'
         ";
         $params = [];
 
         if ($selectedKategori !== null) {
-            $sql .= " WHERE l.id_kategori = ?";
+            $sql .= " AND l.id_kategori = ?";
             $params[] = $selectedKategori;
         }
 
@@ -67,7 +69,7 @@ class LayananController extends Controller
     public function create(): string
     {
         $db = $this->db();
-        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
+        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->render('layanan/create', [
@@ -91,7 +93,7 @@ class LayananController extends Controller
     public function store(): string
     {
         $db = $this->db();
-        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
+        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat->fetchAll(PDO::FETCH_ASSOC);
 
         $form = [
@@ -193,7 +195,7 @@ class LayananController extends Controller
         }
 
         $db = $this->db();
-        $stmt = $db->prepare("SELECT * FROM layanan WHERE id_layanan = ?");
+        $stmt = $db->prepare("SELECT * FROM layanan WHERE id_layanan = ? AND status != 'archived'");
         $stmt->execute([$id]);
         $layanan = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -205,7 +207,7 @@ class LayananController extends Controller
             ]);
         }
 
-        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
+        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->render('layanan/edit', [
@@ -228,7 +230,7 @@ class LayananController extends Controller
         }
 
         $db = $this->db();
-        $stmt = $db->prepare("SELECT * FROM layanan WHERE id_layanan = ?");
+        $stmt = $db->prepare("SELECT * FROM layanan WHERE id_layanan = ? AND status != 'archived'");
         $stmt->execute([$id]);
         $layanan = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -240,7 +242,7 @@ class LayananController extends Controller
             ]);
         }
 
-        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
+        $stmtKat = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1 ORDER BY nama_kategori ASC");
         $categories = $stmtKat->fetchAll(PDO::FETCH_ASSOC);
 
         $form = [
@@ -344,22 +346,8 @@ class LayananController extends Controller
         }
 
         $db = $this->db();
-        $stmtLogo = $db->prepare("SELECT logo FROM layanan WHERE id_layanan = ?");
-        $stmtLogo->execute([$id]);
-        $layanan = $stmtLogo->fetch(PDO::FETCH_ASSOC);
-
-        $stmtDelete = $db->prepare("DELETE FROM layanan WHERE id_layanan = ?");
+        $stmtDelete = $db->prepare("UPDATE layanan SET status = 'archived' WHERE id_layanan = ?");
         $stmtDelete->execute([$id]);
-
-        if (!empty($layanan['logo'])) {
-            $logoName = basename($layanan['logo']);
-            if ($logoName !== 'logo_bps.jpg') {
-                $filePath = dirname(__DIR__, 2) . '/public/uploads/' . $logoName;
-                if (is_file($filePath)) {
-                    @unlink($filePath);
-                }
-            }
-        }
 
         flash('success', 'Layanan berhasil dihapus.');
         $this->redirect('layanan.php');

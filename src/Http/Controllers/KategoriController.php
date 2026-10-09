@@ -15,23 +15,25 @@ class KategoriController extends Controller
     {
         $db = $this->db();
 
-        // Ambil semua kategori + jumlah layanan
+        // Ambil semua kategori aktif + jumlah layanan non-archived
         $stmt = $db->query("
             SELECT 
                 k.id_kategori,
                 k.nama_kategori,
                 COUNT(l.id_layanan) AS jumlah_layanan
             FROM kategori k
-            LEFT JOIN layanan l ON k.id_kategori = l.id_kategori
+            LEFT JOIN layanan l ON k.id_kategori = l.id_kategori AND l.status != 'archived'
+            WHERE k.is_active = 1
             GROUP BY k.id_kategori, k.nama_kategori
             ORDER BY k.id_kategori ASC
         ");
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Ambil preview layanan per kategori
+        // Ambil preview layanan per kategori (hanya non-archived)
         $stmtServices = $db->query("
             SELECT id_layanan, id_kategori, nama_layanan, url
             FROM layanan
+            WHERE status != 'archived'
             ORDER BY id_kategori ASC, id_layanan ASC
         ");
         $allServices = $stmtServices->fetchAll(PDO::FETCH_ASSOC);
@@ -92,19 +94,30 @@ class KategoriController extends Controller
 
         $db = $this->db();
 
-        // Cek duplikasi
-        $stmt = $db->prepare("SELECT COUNT(*) FROM kategori WHERE nama_kategori = ?");
+        // Cek duplikasi (termasuk yang diarsip/soft-deleted)
+        $stmt = $db->prepare("SELECT id_kategori, is_active FROM kategori WHERE nama_kategori = ? LIMIT 1");
         $stmt->execute([$namaKategori]);
-        if ((int)$stmt->fetchColumn() > 0) {
-            return $this->render('kategori/create', [
-                'title'         => 'Tambah Kategori',
-                'error'         => 'Kategori tersebut sudah ada.',
-                'nama_kategori' => $namaKategori,
-            ]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            if ((int)$existing['is_active'] === 1) {
+                return $this->render('kategori/create', [
+                    'title'         => 'Tambah Kategori',
+                    'error'         => 'Kategori tersebut sudah ada.',
+                    'nama_kategori' => $namaKategori,
+                ]);
+            }
+
+            // Jika pernah di-soft-delete, re-aktifkan kembali
+            $stmtReactivate = $db->prepare("UPDATE kategori SET is_active = 1 WHERE id_kategori = ?");
+            $stmtReactivate->execute([(int)$existing['id_kategori']]);
+
+            flash('success', 'Kategori baru berhasil ditambahkan.');
+            $this->redirect('kategori.php');
         }
 
         // Insert
-        $stmtInsert = $db->prepare("INSERT INTO kategori (nama_kategori) VALUES (?)");
+        $stmtInsert = $db->prepare("INSERT INTO kategori (nama_kategori, is_active) VALUES (?, 1)");
         $stmtInsert->execute([$namaKategori]);
 
         flash('success', 'Kategori baru berhasil ditambahkan.');
@@ -123,7 +136,7 @@ class KategoriController extends Controller
         }
 
         $db = $this->db();
-        $stmt = $db->prepare("SELECT * FROM kategori WHERE id_kategori = ?");
+        $stmt = $db->prepare("SELECT * FROM kategori WHERE id_kategori = ? AND is_active = 1");
         $stmt->execute([$id]);
         $kategori = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -170,8 +183,8 @@ class KategoriController extends Controller
 
         $db = $this->db();
 
-        // Cek duplikasi dengan kategori lain
-        $stmt = $db->prepare("SELECT COUNT(*) FROM kategori WHERE nama_kategori = ? AND id_kategori != ?");
+        // Cek duplikasi dengan kategori lain yang aktif
+        $stmt = $db->prepare("SELECT COUNT(*) FROM kategori WHERE nama_kategori = ? AND id_kategori != ? AND is_active = 1");
         $stmt->execute([$namaKategori, $id]);
         if ((int)$stmt->fetchColumn() > 0) {
             return $this->render('kategori/edit', [
@@ -189,7 +202,7 @@ class KategoriController extends Controller
     }
 
     /**
-     * Hapus kategori (hanya POST dengan CSRF)
+     * Hapus kategori (soft delete is_active = 0, hanya POST dengan CSRF)
      */
     public function destroy(array $params = []): void
     {
@@ -214,8 +227,8 @@ class KategoriController extends Controller
 
         $db = $this->db();
 
-        // Cek apakah ada layanan yang memakai kategori ini
-        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM layanan WHERE id_kategori = ?");
+        // Cek apakah ada layanan aktif (non-archived) yang memakai kategori ini
+        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM layanan WHERE id_kategori = ? AND status != 'archived'");
         $stmtCheck->execute([$id]);
         $hasServices = (int)$stmtCheck->fetchColumn();
 
@@ -224,7 +237,8 @@ class KategoriController extends Controller
             $this->redirect('kategori.php');
         }
 
-        $stmtDelete = $db->prepare("DELETE FROM kategori WHERE id_kategori = ?");
+        // Soft delete: is_active = 0
+        $stmtDelete = $db->prepare("UPDATE kategori SET is_active = 0 WHERE id_kategori = ?");
         $stmtDelete->execute([$id]);
 
         flash('success', 'Kategori berhasil dihapus.');
