@@ -242,9 +242,9 @@ Izin lanjut ke Fase 2 diberikan.
 - **Selesai jika:** seorang pembaca bisa memanggil API tanpa membaca kode.
 
 ### 2.3 [W] Tes karakterisasi (mengunci perilaku saat ini)
-- [ ] Tes: tanpa `X-API-KEY` → ditolak; key salah → ditolak; key benar → 200 dengan **bentuk JSON yang sama** seperti kontrak (nama field, tipe).
-- [ ] Tes: halaman dashboard tanpa login → redirect ke login.
-- [ ] Tes alur login yang dipakai App B (hasil 1.3).
+- [x] Tes: tanpa `X-API-KEY` → ditolak; key salah → ditolak; key benar → 200 dengan **bentuk JSON yang sama** seperti kontrak (nama field, tipe).
+- [x] Tes: halaman dashboard tanpa login → redirect ke login.
+- [x] Tes alur login yang dipakai App B (hasil 1.3).
 - **Selesai jika:** semua tes lulus pada kode **belum diubah**. Ini jaring pengaman untuk Fase 3–7.
 
 ### 2.4 [W] Tes alur fungsional
@@ -721,6 +721,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [0.2b] chore(repo): rewrite git history to purge database/bps_solsel.sql from all branches and tags | git history clean, 0 occurrences of dump | -
 [2026-10-09] [2.1] test(infra): setup phpunit.xml, Unit/Integration tests, test-db-reset.php with strict safety check, and dynamic BASE_URL vitest | composer test & vitest run both 100% pass | -
 [2026-10-09] [2.2] docs(api): document exact API contracts for App B in docs/API_CONTRACT.md | all 8 endpoints, request/response models, and error codes documented | -
+[2026-10-09] [2.3] test(contract): create characterization test suite in tests/api_contract.test.js locking API, auth, and redirection | 20 contract tests added, 40 total tests pass (100%) | -
 ```
 
 ---
