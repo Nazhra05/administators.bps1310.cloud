@@ -771,7 +771,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [8.2] test(quality): expand minimum test coverage for Validator, helpers e(), and migration reversibility | ValidatorTest, HelpersTest, MigrationRollbackTest added; 157 phpunit tests green | 7093b27
 [2026-10-09] [8.3-8.4] feat(quality): add template CI workflow and local pre-commit hook rejecting secrets and raw sql | docs/ci.yml.example, .githooks/pre-commit, install-hooks.ps1, PreCommitHookTest | 20bf699
 [2026-10-09] [8.5-8.7] docs(quality): create QA checklist, cross-app test report, and Phase 8 Go/No-Go report | QA_CHECKLIST.md, GO_NO_GO.md, verification-loop & agent-self-evaluation completed, Phase 8 GO | 20bf699
-[2026-10-09] [9.1-9.6] docs(release): finalize README.md, ARCHITECTURE.md, CHANGELOG.md v0.9.0-rc1, and complete Phase 9 | full documentation aligned, DoD and Go/No-Go 100% checked, Phase 9 complete | -
+[2026-10-09] [9.1-9.6] docs(release): finalize README.md, ARCHITECTURE.md, CHANGELOG.md v0.9.0-rc1, and complete Phase 9 | full documentation aligned, DoD and Go/No-Go 100% checked, Phase 9 complete | b0e35d6
 ```
 
 ---
