@@ -260,16 +260,16 @@ Kunci alur utama sebelum mengubah kode (gunakan `docs/FUNGSI_MATRIX.md` sebagai 
 
 Aturan: **satu penghapusan = satu commit**, pesan memuat bukti (hasil pencarian referensi). Setelah tiap penghapusan, `phpunit` + smoke test.
 
-- [ ] **3.0 [W]** Perbaiki semua bug di `docs/FUNGSI_MATRIX.md`, **satu bug satu commit**, dengan `/tdd-workflow`: aktifkan tes `skip`-nya (gagal) → perbaiki → tes lulus. Urutan: bug yang memblokir login dan CRUD dulu, lalu mayor, lalu minor. Update status di matriks.
-- [ ] **3.1 [W]** Pindahkan `public/test_api.php` ke `tools/test_api.php` (di luar `public/`) atau hapus. Tidak boleh bisa diakses lewat web.
-- [ ] **3.2 [W]** `public/pengaturan.php`: jika hanya menampilkan info sistem (versi PHP, `phpinfo`, path), **hapus**. Jika berguna, ganti dengan halaman minimal tanpa detail server.
-- [ ] **3.3** `public/api/website.php`: jika tidak dipanggil siapa pun (App B hanya memakai layanan, kategori, login), hapus dengan bukti. Jika dipakai, dokumentasikan di kontrak.
-- [ ] **3.4** Fitur trending/Gemini: **ikuti keputusan GATE 1.** Default sementara: bungkus dengan `FEATURE_TRENDING` (default `false`), jangan dihapus sebelum ada keputusan. Jika diputuskan hapus: hapus `trending-topics.php`, `scripts/generate-topics.php`, `scripts/.env.example`, `GEMINI_API_KEY`, dan bagian cron di README.
-- [ ] **3.5** Tooling JS: periksa `.vitest/`, `package.json`, `vitest.config.js`, dan isi `tests/`. Jika tidak menguji PHP, hapus semuanya; tes PHP yang sah pindah ke struktur PHPUnit (2.1).
-- [ ] **3.6 [W]** Hapus aset yang salah tempat: pindahkan `public/uploads/logo_bps.jpg` ke `public/assets/` (folder `uploads/` hanya untuk unggahan pengguna).
-- [ ] **3.7** Kode mati: jalankan PHPStan (level 3 dulu) untuk fungsi/variabel tak terpakai, dan cari `include/require` yatim. Hapus kode yang dikomentari, `var_dump`, `print_r`, `error_log` debug.
-- [ ] **3.8** Hapus **duplikasi tata letak**: header, navbar, footer yang disalin di tiap halaman → dipindah ke satu layout bersama (dikerjakan di 4.6, di sini cukup tandai).
-- [ ] **3.9 [W]** Rapikan `.htaccess`: karena XAMPP memakai Apache, aturannya **berlaku** di lokal. Hapus aturan basi atau duplikat (mis. `X-XSS-Protection`), pertahankan yang berguna (blokir dotfile, `.sql`, `.log`; `Options -Indexes`; front controller di 4.7), dan catat setiap aturan khusus Apache di `docs/SERVER_NOTES.md`.
+- [x] **3.0 [W]** Perbaiki semua bug di `docs/FUNGSI_MATRIX.md`, **satu bug satu commit**, dengan `/tdd-workflow`: aktifkan tes `skip`-nya (gagal) → perbaiki → tes lulus. Urutan: bug yang memblokir login dan CRUD dulu, lalu mayor, lalu minor. Update status di matriks.
+- [x] **3.1 [W]** Pindahkan `public/test_api.php` ke `tools/test_api.php` (di luar `public/`) atau hapus. Tidak boleh bisa diakses lewat web.
+- [x] **3.2 [W]** `public/pengaturan.php`: jika hanya menampilkan info sistem (versi PHP, `phpinfo`, path), **hapus**. Jika berguna, ganti dengan halaman minimal tanpa detail server.
+- [x] **3.3** `public/api/website.php`: jika tidak dipanggil siapa pun (App B hanya memakai layanan, kategori, login), hapus dengan bukti. Jika dipakai, dokumentasikan di kontrak.
+- [x] **3.4** Fitur trending/Gemini: **ikuti keputusan GATE 1.** Default sementara: bungkus dengan `FEATURE_TRENDING` (default `false`), jangan dihapus sebelum ada keputusan. Jika diputuskan hapus: hapus `trending-topics.php`, `scripts/generate-topics.php`, `scripts/.env.example`, `GEMINI_API_KEY`, dan bagian cron di README.
+- [x] **3.5** Tooling JS: periksa `.vitest/`, `package.json`, `vitest.config.js`, dan isi `tests/`. Jika tidak menguji PHP, hapus semuanya; tes PHP yang sah pindah ke struktur PHPUnit (2.1).
+- [x] **3.6 [W]** Hapus aset yang salah tempat: pindahkan `public/uploads/logo_bps.jpg` ke `public/assets/` (folder `uploads/` hanya untuk unggahan pengguna).
+- [x] **3.7** Kode mati: jalankan PHPStan (level 3 dulu) untuk fungsi/variabel tak terpakai, dan cari `include/require` yatim. Hapus kode yang dikomentari, `var_dump`, `print_r`, `error_log` debug.
+- [x] **3.8** Hapus **duplikasi tata letak**: header, navbar, footer yang disalin di tiap halaman → dipindah ke satu layout bersama (dikerjakan di 4.6, di sini cukup tandai).
+- [x] **3.9 [W]** Rapikan `.htaccess`: karena XAMPP memakai Apache, aturannya **berlaku** di lokal. Hapus aturan basi atau duplikat (mis. `X-XSS-Protection`), pertahankan yang berguna (blokir dotfile, `.sql`, `.log`; `Options -Indexes`; front controller di 4.7), dan catat setiap aturan khusus Apache di `docs/SERVER_NOTES.md`.
 - **Selesai jika:** daftar "dihapus" dan "dipertahankan" dicatat di `docs/CLEANUP.md` lengkap dengan alasan.
 
 ---
@@ -723,6 +723,14 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [2.2] docs(api): document exact API contracts for App B in docs/API_CONTRACT.md | all 8 endpoints, request/response models, and error codes documented | -
 [2026-10-09] [2.3] test(contract): create characterization test suite in tests/api_contract.test.js locking API, auth, and redirection | 20 contract tests added, 40 total tests pass (100%) | -
 [2026-10-09] [2.4] test(flow): build functional flow characterization tests in tests/functional_flow.test.js with known bugs skipped | 17 flow tests created (12 pass, 5 skipped), 57 total vitest tests pass | -
+[2026-10-09] [3.0] fix(kategori): enforce POST method and CSRF validation on category deletion (BUG-001) | hapus_kategori.php requires POST & csrf_verify, form inline in kategori.php, test unskipped | 4b60f76
+[2026-10-09] [3.0] fix(layanan): enforce POST method and CSRF validation on service deletion (BUG-002) | hapus_layanan.php requires POST & csrf_verify, form inline in layanan.php, test unskipped | 0316524
+[2026-10-09] [3.0] fix(auth): resolve IDOR vulnerability and upgrade portal user hashing to bcrypt (BUG-003, BUG-004) | verify_user.php keeps token, setup_user.php validates token and uses password_hash BCRYPT, tests unskipped | d3ad9fe
+[2026-10-09] [3.0] feat(pengaturan): add change password form with verification and bcrypt hashing (BUG-006) | pengaturan.php provides change password form, verifies old password with SHA-256 fallback, enforces 8 chars & Bcrypt | 87fca69
+[2026-10-09] [3.1] refactor(tools): move test_api.php out of public webroot to tools/ | test_api.php relocated, tools/.htaccess added with Require all denied | bd2b4f1
+[2026-10-09] [3.4] chore(trending): remove abandoned Gemini AI trending topics feature per Gate 1 decision | removed trending-topics.php, scripts/generate-topics.php, scripts/.env.example, cleaned README.md and .env.example | c17a2f0
+[2026-10-09] [3.6] refactor(assets): relocate brand logo from uploads/ to assets/ folder | public/uploads/logo_bps.jpg moved to public/assets/logo_bps.jpg, updated img references in login, register, verify_email | 7d63131
+[2026-10-09] [3.9] docs(cleanup): generate docs/CLEANUP.md and tidy .htaccess configuration | .htaccess tidied (removed X-XSS-Protection, blocked tools/), tools/.htaccess created, comprehensive CLEANUP.md generated | 6ce20ea
 ```
 
 ---
