@@ -296,23 +296,23 @@ Aturan: **satu penghapusan = satu commit**, pesan memuat bukti (hasil pencarian 
 ### 4.4 [W] Pindahkan halaman satu per satu
 Urutan: `login`/`logout` → dashboard (`index`) → `kategori` → `layanan` → `kelola_admin`.
 Untuk tiap halaman: controller di `src/Http/`, view di `src/views/`, rute di `routes.php`, tes, lalu hapus file lama.
-- [ ] Aksi yang mengubah data **hanya `POST`** + CSRF, contoh `POST /layanan/{id}/hapus`. Tidak ada `hapus_*.php` lewat `GET`.
-- [ ] URL bersih: `/layanan`, `/layanan/tambah`, `/layanan/{id}/edit`, `/kategori`, `/admin/pengguna`, dst.
+- [x] Aksi yang mengubah data **hanya `POST`** + CSRF, contoh `POST /layanan/{id}/hapus`. Tidak ada `hapus_*.php` lewat `GET`.
+- [x] URL bersih: `/layanan`, `/layanan/tambah`, `/layanan/{id}/edit`, `/kategori`, `/admin/pengguna`, dst.
 - **Selesai jika:** tidak ada lagi `public/*.php` selain `index.php`, dan semua alur dashboard bisa dijalankan.
 
 ### 4.5 [W] API v1 dan alias kompatibilitas
-- [ ] Endpoint baru: `/api/v1/layanan`, `/api/v1/kategori`, `/api/v1/auth/...` (lihat Lampiran D).
-- [ ] **Pertahankan alias lama** (`/api/layanan.php`, `/api/kategori.php`) dengan **bentuk JSON lama**, sampai App B beralih. Tes kontrak Fase 2 harus tetap lulus.
-- [ ] Format respons v1 seragam (Lampiran C). Helper `Json::ok()` dan `Json::error()`.
-- [ ] **Hapus semua header CORS.** Hanya server-ke-server.
+- [x] Endpoint baru: `/api/v1/layanan`, `/api/v1/kategori`, `/api/v1/auth/...` (lihat Lampiran D).
+- [x] **Pertahankan alias lama** (`/api/layanan.php`, `/api/kategori.php`) dengan **bentuk JSON lama**, sampai App B beralih. Tes kontrak Fase 2 harus tetap lulus.
+- [x] Format respons v1 seragam (Lampiran C). Helper `Json::ok()` dan `Json::error()`.
+- [x] **Hapus semua header CORS.** Hanya server-ke-server.
 
 ### 4.6 Layout bersama
 - [x] `src/views/layout.php` (header, navbar, flash message, footer). Helper `e()` untuk escape.
 
 ### 4.7 [W] Apache ketat (`.htaccess` front controller)
-- [ ] Terapkan `public/.htaccess` versi **ketat** (Lampiran E4): semua permintaan yang bukan berkas nyata dialihkan ke `index.php`, hanya `index.php` yang boleh dieksekusi, `.php` lain dijawab 403.
-- [ ] `public/uploads/.htaccess` (Lampiran E4) mematikan eksekusi PHP di folder unggahan.
-- [ ] Catat semua direktif Apache ini di `docs/SERVER_NOTES.md` sebagai "perlu diterjemahkan".
+- [x] Terapkan `public/.htaccess` versi **ketat** (Lampiran E4): semua permintaan yang bukan berkas nyata dialihkan ke `index.php`, hanya `index.php` yang boleh dieksekusi, `.php` lain dijawab 403.
+- [x] `public/uploads/.htaccess` (Lampiran E4) mematikan eksekusi PHP di folder unggahan.
+- [x] Catat semua direktif Apache ini di `docs/SERVER_NOTES.md` sebagai "perlu diterjemahkan".
 - **Selesai jika:** menaruh `public/uploads/x.php` lalu mengaksesnya menghasilkan 403/404; membuka `/login.php` lama menghasilkan 403/404; seluruh dashboard tetap berjalan.
 
 ---
@@ -734,7 +734,10 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [4.1] feat(structure): initialize target directory layout in src/, views/, and migrations | src/Http, src/Auth, src/Models, src/Services, src/Support, database/migrations created | -
 [2026-10-09] [4.2] feat(bootstrap): create src/bootstrap.php and core support classes | Dotenv loaded, env validated, timezone set, secure session (Lampiran F), lazy PDO, centralized logging, and helpers tested | -
 [2026-10-09] [4.3] feat(router): implement FastRoute router engine, middlewares pipeline, and error views | Router, ApiKey, RequireLogin, RequireRole, VerifyCsrf, routes.php, and 404/403/405 views created and tested | -
-[2026-10-09] [4.6] feat(views): build shared master layout, auth layout, and navigation partials | layouts/main.php, layouts/auth.php, sidebar, navbar, flash alerts, and assets/dashboard.css created | -
+[2026-10-09] [4.6] feat(views): build shared master layout, auth layout, and navigation partials | layouts/main.php, layouts/auth.php, sidebar, navbar, flash alerts, and assets/dashboard.css created | ef26dfa
+[2026-10-09] [4.4] feat(pages): migrate all procedural pages to MVC controllers, views, and single public/index.php entry point | controllers and clean views built, all procedural public/*.php removed, 60 vitest and 14 phpunit tests green | d5710f6
+[2026-10-09] [4.5] feat(api): implement v1 API endpoints, legacy compatibility router, and uniform JSON envelope | Json::ok/error helper, LegacyApiController, v1 ApiController, no CORS headers, contracts preserved | 7411cb1
+[2026-10-09] [4.7] sec(apache): enforce strict .htaccess front controller and document server translation | public/.htaccess blocks physical PHP scripts and routes non-files to index.php, uploads/.htaccess blocks script execution, verified 403 on test files | 17a454a
 ```
 
 ---
