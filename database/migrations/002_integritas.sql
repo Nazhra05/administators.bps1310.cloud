@@ -1,0 +1,12 @@
+-- Migration 002: Integrity constraints, timestamps, and indexes
+ALTER TABLE `kategori`
+  ADD COLUMN IF NOT EXISTS `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE `layanan`
+  ADD COLUMN IF NOT EXISTS `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- Create indexes if they don't already exist
+CREATE INDEX IF NOT EXISTS `idx_layanan_nama` ON `layanan` (`nama_layanan`);
+CREATE INDEX IF NOT EXISTS `idx_layanan_akses` ON `layanan` (`akses`);
