@@ -516,7 +516,7 @@ npx vitest run      # tes HTTP black-box (BASE_URL=http://admin.test)
 - [x] HTTP: kontrak API, otorisasi, CSRF, upload, login.
 
 ### 8.3 CI (opsional, ditunda sampai repo bersih)
-- [x] `.github/workflows/ci.yml`: PHP 8.3, layanan MySQL, `composer install`, migrasi, `composer check`. Berjalan pada pull request.
+- [x] `docs/ci.yml.example`: template CI workflow (PHP 8.3, MySQL, `composer install`, migrasi, `composer check`).
 
 ### 8.4 Git hook lokal
 - [x] Pre-commit: tolak file `.env`, `*.sql` di luar `migrations/seeds`, dan string yang mirip kunci/rahasia.
@@ -769,8 +769,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [7.16] feat(layanan): implement CSV export, template download, and row-by-row validated CSV import | UTF-8 BOM CSV export, row-by-row validation with error reporting, audit logging, unit tests green | f8ac83c
 [2026-10-09] [8.1] feat(quality): configure .php-cs-fixer.php PSR-12, upgrade PHPStan to level 5, verify composer check and vitest | composer check passes clean (lint, phpstan level 5, 146 tests), vitest 60 tests green | 2fbde10
 [2026-10-09] [8.2] test(quality): expand minimum test coverage for Validator, helpers e(), and migration reversibility | ValidatorTest, HelpersTest, MigrationRollbackTest added; 157 phpunit tests green | 7093b27
-[2026-10-09] [8.3-8.4] feat(quality): add GitHub CI workflow and local pre-commit hook rejecting secrets and raw sql | .github/workflows/ci.yml, .githooks/pre-commit, install-hooks.ps1, PreCommitHookTest | 294e713
-[2026-10-09] [8.5-8.7] docs(quality): create QA checklist, cross-app test report, and Phase 8 Go/No-Go report | QA_CHECKLIST.md, GO_NO_GO.md, verification-loop & agent-self-evaluation completed, Phase 8 GO | 2845e1d
+[2026-10-09] [8.3-8.4] feat(quality): add template CI workflow and local pre-commit hook rejecting secrets and raw sql | docs/ci.yml.example, .githooks/pre-commit, install-hooks.ps1, PreCommitHookTest | 20bf699
+[2026-10-09] [8.5-8.7] docs(quality): create QA checklist, cross-app test report, and Phase 8 Go/No-Go report | QA_CHECKLIST.md, GO_NO_GO.md, verification-loop & agent-self-evaluation completed, Phase 8 GO | 20bf699
 ```
 
 ---
