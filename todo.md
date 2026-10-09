@@ -288,10 +288,10 @@ Aturan: **satu penghapusan = satu commit**, pesan memuat bukti (hasil pencarian 
 - **Selesai jika:** error sengaja (mis. query salah) tercatat di log dan **tidak** tampil di browser saat `APP_DEBUG=false`.
 
 ### 4.3 [W] Router dan front controller
-- [ ] `public/index.php` memanggil bootstrap, lalu `FastRoute` memuat `routes.php`.
-- [ ] Middleware sederhana (fungsi/kelas kecil): `ApiKey`, `RequireLogin`, `RequireRole`, `VerifyCsrf`. Default rute **dilindungi**; rute publik harus dinyatakan eksplisit.
-- [ ] 404 dan 405 mengembalikan halaman (dashboard) atau JSON (API) yang seragam.
-- [ ] **Base path:** router membaca `APP_BASE_PATH` dari `.env` (kosong untuk vhost `admin.test`, `/adminDashboard` untuk fallback subfolder), membuangnya dari `REQUEST_URI` sebelum mencocokkan rute, dan menyediakan helper `url('/layanan')` untuk semua tautan dan form. **Tidak ada URL yang ditulis keras** di view.
+- [x] `public/index.php` memanggil bootstrap, lalu `FastRoute` memuat `routes.php`.
+- [x] Middleware sederhana (fungsi/kelas kecil): `ApiKey`, `RequireLogin`, `RequireRole`, `VerifyCsrf`. Default rute **dilindungi**; rute publik harus dinyatakan eksplisit.
+- [x] 404 dan 405 mengembalikan halaman (dashboard) atau JSON (API) yang seragam.
+- [x] **Base path:** router membaca `APP_BASE_PATH` dari `.env` (kosong untuk vhost `admin.test`, `/adminDashboard` untuk fallback subfolder), membuangnya dari `REQUEST_URI` sebelum mencocokkan rute, dan menyediakan helper `url('/layanan')` untuk semua tautan dan form. **Tidak ada URL yang ditulis keras** di view.
 
 ### 4.4 [W] Pindahkan halaman satu per satu
 Urutan: `login`/`logout` → dashboard (`index`) → `kategori` → `layanan` → `kelola_admin`.
@@ -733,6 +733,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [3.9] docs(cleanup): generate docs/CLEANUP.md and tidy .htaccess configuration | .htaccess tidied (removed X-XSS-Protection, blocked tools/), tools/.htaccess created, comprehensive CLEANUP.md generated | 6ce20ea
 [2026-10-09] [4.1] feat(structure): initialize target directory layout in src/, views/, and migrations | src/Http, src/Auth, src/Models, src/Services, src/Support, database/migrations created | -
 [2026-10-09] [4.2] feat(bootstrap): create src/bootstrap.php and core support classes | Dotenv loaded, env validated, timezone set, secure session (Lampiran F), lazy PDO, centralized logging, and helpers tested | -
+[2026-10-09] [4.3] feat(router): implement FastRoute router engine, middlewares pipeline, and error views | Router, ApiKey, RequireLogin, RequireRole, VerifyCsrf, routes.php, and 404/403/405 views created and tested | -
 ```
 
 ---
