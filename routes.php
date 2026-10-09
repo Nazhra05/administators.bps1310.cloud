@@ -98,11 +98,15 @@ Router::get('/hapus_layanan.php', function () {
 // Admin & User Management Routes (Clean URLs & Backward Compatibility Aliases)
 // -----------------------------------------------------------------------------
 Router::get('/admin', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/admin/kelola', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::get('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::post('/admin/tambah', [\App\Http\Controllers\AdminController::class, 'storeUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 
 Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/admin/user', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/admin/pengguna', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
