@@ -348,7 +348,8 @@ class AdminController extends Controller
                 if ($targetActive === 0) {
                     try {
                         $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$idAdmin]);
-                    } catch (\Throwable) {}
+                    } catch (\Throwable) {
+                    }
                     audit_log('deactivate', 'admin', $idAdmin);
                     flash('success', 'Akun berhasil dinonaktifkan.');
                 } else {
@@ -370,7 +371,8 @@ class AdminController extends Controller
 
                 try {
                     $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$idAdmin]);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $stmtUser = $db->prepare("SELECT username FROM admin WHERE id_admin = ?");
                 $stmtUser->execute([$idAdmin]);
@@ -447,7 +449,8 @@ class AdminController extends Controller
 
                 try {
                     $db->prepare("DELETE FROM sessions WHERE user_id = ?")->execute([$idAdmin]);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $stmtDelete = $db->prepare("DELETE FROM admin WHERE id_admin = ?");
                 $stmtDelete->execute([$idAdmin]);
@@ -688,7 +691,7 @@ class AdminController extends Controller
 
         while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $rowNum++;
-            if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) {
+            if (empty(array_filter($row, fn ($v) => trim((string)$v) !== ''))) {
                 continue;
             }
 

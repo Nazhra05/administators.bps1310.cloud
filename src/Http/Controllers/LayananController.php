@@ -769,7 +769,6 @@ class LayananController extends Controller
             'image/jpeg' => @imagecreatefromjpeg($tmpPath),
             'image/png'  => @imagecreatefrompng($tmpPath),
             'image/webp' => @imagecreatefromwebp($tmpPath),
-            default      => false,
         };
 
         if ($image === false) {
@@ -784,7 +783,6 @@ class LayananController extends Controller
             'jpg'   => imagejpeg($image, $target, 90),
             'png'   => imagepng($image, $target, 8),
             'webp'  => imagewebp($image, $target, 90),
-            default => false,
         };
 
         imagedestroy($image);
@@ -959,7 +957,7 @@ class LayananController extends Controller
         while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $lineNum++;
 
-            if (empty(array_filter($row, fn($val) => trim((string)$val) !== ''))) {
+            if (empty(array_filter($row, fn ($val) => trim((string)$val) !== ''))) {
                 continue;
             }
 
@@ -1000,7 +998,7 @@ class LayananController extends Controller
             if ($aliasesRaw !== '') {
                 $parts = array_map('trim', explode(',', $aliasesRaw));
                 $parts = array_map('strtolower', $parts);
-                $parts = array_unique(array_filter($parts, fn($p) => $p !== ''));
+                $parts = array_unique(array_filter($parts, fn ($p) => $p !== ''));
                 $normalizedAliases = implode(', ', $parts);
             }
 
@@ -1047,4 +1045,3 @@ class LayananController extends Controller
         $this->redirect('layanan.php');
     }
 }
-

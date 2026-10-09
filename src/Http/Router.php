@@ -1,12 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http;
 
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
-use function FastRoute\simpleDispatcher;
 use RuntimeException;
+
+use function FastRoute\simpleDispatcher;
 
 class Router
 {

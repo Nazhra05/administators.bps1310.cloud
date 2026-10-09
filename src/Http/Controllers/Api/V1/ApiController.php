@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
@@ -570,7 +571,7 @@ class ApiController extends Controller
                 return Json::error('validation_failed', 'Maksimal 12 layanan yang dapat disematkan (pinned)', 422);
             }
 
-            $rawPinned = array_unique(array_filter(array_map('intval', $input['pinned_layanan']), fn($id) => $id > 0));
+            $rawPinned = array_unique(array_filter(array_map('intval', $input['pinned_layanan']), fn ($id) => $id > 0));
             if (!empty($rawPinned)) {
                 $placeholders = implode(',', array_fill(0, count($rawPinned), '?'));
                 $stmtCheck = $this->db()->prepare("SELECT id_layanan FROM layanan WHERE id_layanan IN ({$placeholders}) AND status = 'published'");

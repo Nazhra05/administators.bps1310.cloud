@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use App\Support\Database;
@@ -13,7 +14,7 @@ if (!function_exists('env')) {
     function env(string $key, mixed $default = null): mixed
     {
         $val = $_ENV[$key] ?? getenv($key);
-        if ($val === false || $val === null) {
+        if ($val === false) {
             return $default;
         }
 
@@ -266,4 +267,3 @@ if (!function_exists('service_color')) {
         return $palette[abs($hash) % count($palette)];
     }
 }
-

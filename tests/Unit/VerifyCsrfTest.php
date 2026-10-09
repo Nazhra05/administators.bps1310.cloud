@@ -75,7 +75,7 @@ class VerifyCsrfTest extends TestCase
 
         $this->assertFalse(Csrf::verify('invalid_token_value'));
         $this->assertFalse(Csrf::verify(''));
-        
+
         $_POST['csrf_token'] = 'tampered';
         $this->assertFalse(Csrf::verify());
 
