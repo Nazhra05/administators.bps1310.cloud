@@ -48,6 +48,14 @@ class Database
     }
 
     /**
+     * Alias for pdo() for backward compatibility.
+     */
+    public static function getConnection(): PDO
+    {
+        return self::pdo();
+    }
+
+    /**
      * Override connection instance (useful for testing or switching database).
      */
     public static function setPdo(?PDO $pdo): void

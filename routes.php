@@ -63,3 +63,28 @@ Router::get('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupU
 Router::get('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserForm']);
 Router::post('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);
 Router::post('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);
+
+// -----------------------------------------------------------------------------
+// Kategori Routes (Clean URLs & Backward Compatibility Aliases)
+// -----------------------------------------------------------------------------
+Router::get('/kategori', [\App\Http\Controllers\KategoriController::class, 'index'], [RequireLogin::class]);
+Router::get('/kategori.php', [\App\Http\Controllers\KategoriController::class, 'index'], [RequireLogin::class]);
+
+Router::get('/kategori/tambah', [\App\Http\Controllers\KategoriController::class, 'create'], [RequireLogin::class]);
+Router::get('/tambah_kategori.php', [\App\Http\Controllers\KategoriController::class, 'create'], [RequireLogin::class]);
+Router::post('/kategori/tambah', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class]);
+Router::post('/tambah_kategori.php', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class]);
+
+Router::get('/kategori/{id:\d+}/edit', [\App\Http\Controllers\KategoriController::class, 'edit'], [RequireLogin::class]);
+Router::get('/edit_kategori.php', [\App\Http\Controllers\KategoriController::class, 'edit'], [RequireLogin::class]);
+Router::post('/kategori/{id:\d+}/edit', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class]);
+Router::post('/edit_kategori.php', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class]);
+
+Router::post('/kategori/{id:\d+}/hapus', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class]);
+Router::post('/hapus_kategori.php', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class]);
+Router::get('/hapus_kategori.php', function () {
+    http_response_code(405);
+    header('Allow: POST');
+    echo "Metode tidak diizinkan. Penghapusan harus melalui POST.";
+}, [RequireLogin::class]);
+

@@ -77,9 +77,13 @@ if (!function_exists('redirect')) {
      */
     function redirect(string $path, int $status = 302): never
     {
-        $target = str_starts_with($path, 'http://') || str_starts_with($path, 'https://')
-            ? $path
-            : url($path);
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $target = $path;
+        } elseif (str_starts_with($path, '/')) {
+            $target = url($path);
+        } else {
+            $target = $path;
+        }
 
         header("Location: {$target}", true, $status);
         exit;
