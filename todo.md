@@ -249,10 +249,10 @@ Izin lanjut ke Fase 2 diberikan.
 
 ### 2.4 [W] Tes alur fungsional
 Kunci alur utama sebelum mengubah kode (gunakan `docs/FUNGSI_MATRIX.md` sebagai daftar).
-- [ ] Login → dashboard → buat kategori → ubah → arsip/hapus → pastikan hasilnya di API.
-- [ ] Login → buat layanan (dengan unggah logo) → ubah → arsip → pastikan hasilnya di API dan logo tersimpan benar.
-- [ ] Kelola pengguna: tambah, ubah, nonaktifkan.
-- [ ] Tes yang menunjukkan **bug yang diketahui** ditandai `skip` dengan ID bug, lalu diaktifkan saat bug diperbaiki di Fase 3.
+- [x] Login → dashboard → buat kategori → ubah → arsip/hapus → pastikan hasilnya di API.
+- [x] Login → buat layanan (dengan unggah logo) → ubah → arsip → pastikan hasilnya di API dan logo tersimpan benar.
+- [x] Kelola pengguna: tambah, ubah, nonaktifkan.
+- [x] Tes yang menunjukkan **bug yang diketahui** ditandai `skip` dengan ID bug, lalu diaktifkan saat bug diperbaiki di Fase 3.
 
 ---
 
@@ -722,6 +722,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [2.1] test(infra): setup phpunit.xml, Unit/Integration tests, test-db-reset.php with strict safety check, and dynamic BASE_URL vitest | composer test & vitest run both 100% pass | -
 [2026-10-09] [2.2] docs(api): document exact API contracts for App B in docs/API_CONTRACT.md | all 8 endpoints, request/response models, and error codes documented | -
 [2026-10-09] [2.3] test(contract): create characterization test suite in tests/api_contract.test.js locking API, auth, and redirection | 20 contract tests added, 40 total tests pass (100%) | -
+[2026-10-09] [2.4] test(flow): build functional flow characterization tests in tests/functional_flow.test.js with known bugs skipped | 17 flow tests created (12 pass, 5 skipped), 57 total vitest tests pass | -
 ```
 
 ---
