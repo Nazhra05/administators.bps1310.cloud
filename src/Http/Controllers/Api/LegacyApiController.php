@@ -344,7 +344,7 @@ class LegacyApiController extends Controller
 
         try {
             $stmt = $this->db()->prepare("
-                SELECT id_admin, username, email, password, status, role
+                SELECT id_admin, username, email, password, status, role, must_change_password
                 FROM admin
                 WHERE (email = ? OR username = ?)
                 LIMIT 1
@@ -387,10 +387,120 @@ class LegacyApiController extends Controller
                 'status'  => true,
                 'message' => 'Login berhasil',
                 'data'    => [
-                    'id_admin' => (int)$user['id_admin'],
-                    'username' => $user['username'],
-                    'email'    => $user['email'],
-                    'role'     => $user['role'],
+                    'id_admin'             => (int)$user['id_admin'],
+                    'username'             => $user['username'],
+                    'email'                => $user['email'],
+                    'role'                 => $user['role'],
+                    'must_change_password' => !empty($user['must_change_password']),
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            return Json::raw([
+                'status'  => false,
+                'message' => 'Terjadi kesalahan pada server',
+                'data'    => null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Legacy POST /api/auth/changePassword.php
+     */
+    public function changePassword(): string
+    {
+        if ($authError = $this->verifyApiKey()) {
+            return $authError;
+        }
+
+        $input = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($input)) {
+            return Json::raw([
+                'status'  => false,
+                'message' => 'Data JSON tidak valid',
+                'data'    => null,
+            ], 400);
+        }
+
+        $identity = trim((string)($input['identity'] ?? $input['username'] ?? ''));
+        $currentPassword = (string)($input['current_password'] ?? '');
+        $newPassword = (string)($input['new_password'] ?? '');
+        $confirmPassword = (string)($input['confirm_password'] ?? $input['password_confirmation'] ?? $newPassword);
+
+        if ($identity === '' || $currentPassword === '' || $newPassword === '') {
+            return Json::raw([
+                'status'  => false,
+                'message' => 'Identity, current_password, dan new_password wajib diisi',
+                'data'    => null,
+            ], 400);
+        }
+
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT id_admin, username, email, password, status, role
+                FROM admin
+                WHERE (email = ? OR username = ?)
+                LIMIT 1
+            ");
+            $stmt->execute([$identity, $identity]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                return Json::raw([
+                    'status'  => false,
+                    'message' => 'Akun tidak ditemukan',
+                    'data'    => null,
+                ], 404);
+            }
+
+            if ($newPassword !== $confirmPassword) {
+                return Json::raw([
+                    'status'  => false,
+                    'message' => 'Konfirmasi password baru tidak cocok',
+                    'data'    => null,
+                ], 422);
+            }
+
+            $policyErr = PasswordService::validatePolicy($newPassword, (string)$user['username']);
+            if ($policyErr !== null) {
+                return Json::raw([
+                    'status'  => false,
+                    'message' => $policyErr,
+                    'data'    => null,
+                ], 422);
+            }
+
+            $valid = PasswordService::verify(
+                $currentPassword,
+                (string)$user['password'],
+                (int)$user['id_admin'],
+                $this->db()
+            );
+
+            if (!$valid) {
+                return Json::raw([
+                    'status'  => false,
+                    'message' => 'Password saat ini salah',
+                    'data'    => null,
+                ], 401);
+            }
+
+            $newHash = PasswordService::hash($newPassword);
+            $stmtUp = $this->db()->prepare("
+                UPDATE admin
+                SET password = ?, must_change_password = 0
+                WHERE id_admin = ?
+            ");
+            $stmtUp->execute([$newHash, (int)$user['id_admin']]);
+
+            audit_log('change_password', 'user', (int)$user['id_admin']);
+
+            return Json::raw([
+                'status'  => true,
+                'message' => 'Password berhasil diperbarui',
+                'data'    => [
+                    'id_admin'             => (int)$user['id_admin'],
+                    'username'             => $user['username'],
+                    'must_change_password' => false,
                 ],
             ], 200);
         } catch (\Throwable $e) {

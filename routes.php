@@ -109,8 +109,10 @@ Router::post('/admin/tambah', [\App\Http\Controllers\AdminController::class, 'st
 Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::get('/admin/user', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::get('/admin/pengguna', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
+Router::get('/admin/users/template', [\App\Http\Controllers\AdminController::class, 'downloadTemplateCsv'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
 Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::post('/admin/users/import', [\App\Http\Controllers\AdminController::class, 'importUsersCsv'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 
 Router::get('/admin/audit', [\App\Http\Controllers\AdminController::class, 'auditLog'], [RequireLogin::class, new RequireRole(['ADMIN IT'])]);
@@ -133,6 +135,7 @@ Router::get('/api/layanan.php', [\App\Http\Controllers\Api\LegacyApiController::
 Router::get('/api/kategori.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'kategori']);
 Router::get('/api/website.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'website']);
 Router::post('/api/auth/loginPortal.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'loginPortal']);
+Router::post('/api/auth/changePassword.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'changePassword']);
 
 // -----------------------------------------------------------------------------
 // API v1 Modern Routes (Lampiran C & D)
@@ -142,5 +145,6 @@ Router::get('/api/v1/layanan', [\App\Http\Controllers\Api\V1\ApiController::clas
 Router::get('/api/v1/kategori', [\App\Http\Controllers\Api\V1\ApiController::class, 'kategori'], [ApiKey::class]);
 Router::post('/api/v1/auth/login', [\App\Http\Controllers\Api\V1\ApiController::class, 'login'], [ApiKey::class]);
 Router::get('/api/v1/auth/session', [\App\Http\Controllers\Api\V1\ApiController::class, 'session'], [ApiKey::class]);
+Router::post('/api/v1/auth/change-password', [\App\Http\Controllers\Api\V1\ApiController::class, 'changePassword'], [ApiKey::class]);
 Router::post('/api/v1/auth/logout', [\App\Http\Controllers\Api\V1\ApiController::class, 'logout'], [ApiKey::class]);
 Router::get('/api/v1/settings/public', [\App\Http\Controllers\Api\V1\ApiController::class, 'publicSettings'], [ApiKey::class]);

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Services\LoginThrottleService;
 use App\Services\Mailer;
 use App\Services\PasswordService;
+use App\Support\Session;
 use PDO;
 
 class AdminController extends Controller
@@ -380,22 +381,244 @@ class AdminController extends Controller
     public function manageUser(): string
     {
         $this->authorizeAdminIt();
+
+        if (($_GET['action'] ?? '') === 'template') {
+            $this->downloadTemplateCsv();
+        }
+
         $db = $this->db();
 
         $stmt = $db->query("
-            SELECT id_admin, username, email, status, role, email_verified, created_at
-            FROM admin
-            WHERE role = 'USER APP PORTAL'
-            ORDER BY id_admin DESC
+            SELECT a.id_admin, a.username, a.first_name, a.last_name, a.email, a.status, a.role,
+                   a.email_verified, a.must_change_password, a.created_at, u.nama AS unit_name
+            FROM admin a
+            LEFT JOIN units u ON a.unit_id = u.id
+            WHERE a.role = 'USER APP PORTAL'
+            ORDER BY a.id_admin DESC
         ");
         $users = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
+        $importedCredentials = Session::get('imported_credentials') ?? [];
+        Session::remove('imported_credentials');
+
         return $this->render('admin/manage_user', [
-            'title'       => 'Kelola User Portal',
-            'users'       => $users,
-            'error'       => '',
-            'email_value' => '',
+            'title'               => 'Kelola User Portal',
+            'users'               => $users,
+            'importedCredentials' => $importedCredentials,
+            'error'               => '',
+            'email_value'         => '',
         ]);
+    }
+
+    /**
+     * Unduh template CSV untuk impor akun pegawai
+     */
+    public function downloadTemplateCsv(): void
+    {
+        $this->authorizeAdminIt();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="template_impor_pegawai.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        if ($output !== false) {
+            fputcsv($output, ['username', 'nama', 'unit', 'email']);
+            fputcsv($output, ['budi.santoso', 'Budi Santoso', 'Fungsi Statistik Sosial', 'budi.santoso@bps.go.id']);
+            fputcsv($output, ['siti.aminah', 'Siti Aminah', 'Subbagian Umum', 'siti.aminah@bps.go.id']);
+            fputcsv($output, ['ahmad.dahlan', 'Ahmad Dahlan', 'Fungsi Statistik Produksi', 'ahmad.dahlan@bps.go.id']);
+            fclose($output);
+        }
+        exit;
+    }
+
+    /**
+     * Impor Akun Pegawai (Role USER APP PORTAL) melalui CSV (Task 7.7)
+     */
+    public function importUsersCsv(): void
+    {
+        $this->authorizeAdminIt();
+
+        if (!csrf_verify()) {
+            flash('error', 'Sesi keamanan tidak valid atau telah kedaluwarsa.');
+            $this->redirect('kelola_user.php');
+        }
+
+        if (empty($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            flash('error', 'Silakan pilih file CSV yang valid untuk diunggah.');
+            $this->redirect('kelola_user.php');
+        }
+
+        $file = $_FILES['csv_file'];
+        $tmpName = (string)$file['tmp_name'];
+        $fileName = (string)$file['name'];
+
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            flash('error', 'Hanya berkas berformat .csv yang diperbolehkan.');
+            $this->redirect('kelola_user.php');
+        }
+
+        if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash('error', 'Ukuran file CSV maksimal 2 MB.');
+            $this->redirect('kelola_user.php');
+        }
+
+        $handle = fopen($tmpName, 'r');
+        if ($handle === false) {
+            flash('error', 'Gagal membaca berkas CSV.');
+            $this->redirect('kelola_user.php');
+        }
+
+        $firstLine = fgets($handle);
+        if ($firstLine === false) {
+            fclose($handle);
+            flash('error', 'Berkas CSV kosong.');
+            $this->redirect('kelola_user.php');
+        }
+        $delimiter = str_contains($firstLine, ';') ? ';' : ',';
+        rewind($handle);
+
+        $header = fgetcsv($handle, 0, $delimiter);
+        if ($header === false || empty($header)) {
+            fclose($handle);
+            flash('error', 'Header berkas CSV tidak terbaca.');
+            $this->redirect('kelola_user.php');
+        }
+
+        $headerMap = [];
+        foreach ($header as $idx => $colName) {
+            $normalized = strtolower(trim((string)$colName));
+            $normalized = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $normalized) ?? $normalized;
+            $headerMap[$normalized] = $idx;
+        }
+
+        $usernameIdx = $headerMap['username'] ?? null;
+        $namaIdx = $headerMap['nama'] ?? $headerMap['name'] ?? $headerMap['nama_lengkap'] ?? null;
+        $unitIdx = $headerMap['unit'] ?? $headerMap['unit_kerja'] ?? null;
+        $emailIdx = $headerMap['email'] ?? null;
+
+        if ($usernameIdx === null || $namaIdx === null) {
+            fclose($handle);
+            flash('error', 'Format header CSV wajib memuat kolom: username, nama, unit.');
+            $this->redirect('kelola_user.php');
+        }
+
+        $db = $this->db();
+        $stmtUnits = $db->query("SELECT id, nama FROM units");
+        $unitsList = $stmtUnits ? $stmtUnits->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        $imported = [];
+        $skipped = [];
+        $rowNum = 1;
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rowNum++;
+            if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) {
+                continue;
+            }
+
+            $username = trim((string)($row[$usernameIdx] ?? ''));
+            $nama = trim((string)($row[$namaIdx] ?? ''));
+            $unitStr = $unitIdx !== null ? trim((string)($row[$unitIdx] ?? '')) : '';
+            $email = $emailIdx !== null ? trim((string)($row[$emailIdx] ?? '')) : '';
+
+            if ($username === '' || !preg_match('/^[a-zA-Z0-9_.]{3,50}$/', $username)) {
+                $skipped[] = "Baris {$rowNum}: Username '{$username}' tidak valid (wajib 3-50 karakter alfanumerik/titik/underscore).";
+                continue;
+            }
+
+            if ($nama === '') {
+                $nama = $username;
+            }
+
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $email = strtolower($username) . '@bps.go.id';
+            }
+
+            $stmtCheck = $db->prepare("SELECT id_admin FROM admin WHERE username = ? OR email = ? LIMIT 1");
+            $stmtCheck->execute([$username, $email]);
+            if ($stmtCheck->fetch()) {
+                $skipped[] = "Baris {$rowNum}: Akun dengan username '{$username}' atau email '{$email}' sudah terdaftar.";
+                continue;
+            }
+
+            $matchedUnitId = null;
+            $matchedUnitName = 'Subbagian Umum';
+            if ($unitStr !== '') {
+                if (is_numeric($unitStr)) {
+                    $uId = (int)$unitStr;
+                    foreach ($unitsList as $u) {
+                        if ((int)$u['id'] === $uId) {
+                            $matchedUnitId = $uId;
+                            $matchedUnitName = (string)$u['nama'];
+                            break;
+                        }
+                    }
+                } else {
+                    foreach ($unitsList as $u) {
+                        if (stripos((string)$u['nama'], $unitStr) !== false || stripos($unitStr, (string)$u['nama']) !== false) {
+                            $matchedUnitId = (int)$u['id'];
+                            $matchedUnitName = (string)$u['nama'];
+                            break;
+                        }
+                    }
+                }
+            }
+            if ($matchedUnitId === null && !empty($unitsList)) {
+                $matchedUnitId = (int)$unitsList[0]['id'];
+                $matchedUnitName = (string)$unitsList[0]['nama'];
+            }
+
+            $parts = explode(' ', $nama, 2);
+            $firstName = $parts[0];
+            $lastName = $parts[1] ?? '';
+
+            $tempPassword = 'Bps!' . bin2hex(random_bytes(4));
+            $hash = PasswordService::hash($tempPassword);
+
+            $stmtIns = $db->prepare("
+                INSERT INTO admin (
+                    first_name, last_name, username, email, password,
+                    status, role, unit_id, is_active, must_change_password, email_verified
+                ) VALUES (?, ?, ?, ?, ?, 'approved', 'USER APP PORTAL', ?, 1, 1, 1)
+            ");
+            $stmtIns->execute([
+                $firstName,
+                $lastName ?: null,
+                $username,
+                $email,
+                $hash,
+                $matchedUnitId,
+            ]);
+
+            $imported[] = [
+                'username'      => $username,
+                'name'          => $nama,
+                'unit'          => $matchedUnitName,
+                'email'         => $email,
+                'temp_password' => $tempPassword,
+            ];
+        }
+        fclose($handle);
+
+        if (!empty($imported)) {
+            audit_log('import_csv', 'user', null, [
+                'count'     => count($imported),
+                'usernames' => array_column($imported, 'username'),
+            ]);
+            Session::set('imported_credentials', $imported);
+            $msg = 'Berhasil mengimpor ' . count($imported) . ' akun pegawai.';
+            if (!empty($skipped)) {
+                $msg .= ' (' . count($skipped) . ' baris dilewati).';
+            }
+            flash('success', $msg);
+        } else {
+            flash('error', 'Tidak ada akun pegawai yang berhasil diimpor. ' . implode(' ', array_slice($skipped, 0, 3)));
+        }
+
+        $this->redirect('kelola_user.php');
     }
 
     /**
@@ -404,6 +627,11 @@ class AdminController extends Controller
     public function inviteUser(): string
     {
         $this->authorizeAdminIt();
+
+        if (($_POST['action'] ?? '') === 'import_csv') {
+            $this->importUsersCsv();
+            return '';
+        }
 
         $email = trim($_POST['email'] ?? '');
         $db = $this->db();

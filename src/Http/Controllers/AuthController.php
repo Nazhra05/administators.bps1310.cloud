@@ -151,7 +151,7 @@ class AuthController extends Controller
                 'title'          => 'Login Admin',
                 'headerTitle'    => 'Login Administrator',
                 'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
-                'error'          => 'Akun USER APP PORTAL tidak dapat login ke Dashboard Admin.',
+                'error'          => 'Akun pegawai portal tidak dapat login ke Dashboard Admin.',
             ], 'layouts/auth');
         }
 

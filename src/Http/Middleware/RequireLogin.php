@@ -31,6 +31,14 @@ class RequireLogin implements MiddlewareInterface
             exit;
         }
 
+        $role = (string)Session::get('admin_role', '');
+        if ($role === 'USER APP PORTAL' || $role === 'user') {
+            Session::destroy();
+            flash('error', 'Akun pegawai portal tidak memiliki hak akses ke Dashboard Administrator.');
+            header('Location: login.php');
+            exit;
+        }
+
         return $next($vars);
     }
 }

@@ -125,7 +125,7 @@ class ApiController extends Controller
             }
 
             $stmt = $this->db()->prepare("
-                SELECT id_admin, first_name, last_name, username, email, password, status, role, unit_id, is_active, failed_attempts, locked_until
+                SELECT id_admin, first_name, last_name, username, email, password, status, role, unit_id, is_active, failed_attempts, locked_until, must_change_password
                 FROM admin
                 WHERE (email = ? OR username = ?)
                 LIMIT 1
@@ -193,12 +193,13 @@ class ApiController extends Controller
                 'token'      => $token,
                 'expires_at' => $expiresAtIso,
                 'user'       => [
-                    'id'           => (int)$user['id_admin'],
-                    'username'     => $user['username'],
-                    'display_name' => trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: $user['username'],
-                    'email'        => $user['email'],
-                    'role'         => $user['role'] ?? 'user',
-                    'unit_id'      => $user['unit_id'] !== null ? (int)$user['unit_id'] : null,
+                    'id'                   => (int)$user['id_admin'],
+                    'username'             => $user['username'],
+                    'display_name'         => trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: $user['username'],
+                    'email'                => $user['email'],
+                    'role'                 => $user['role'] ?? 'user',
+                    'unit_id'              => $user['unit_id'] !== null ? (int)$user['unit_id'] : null,
+                    'must_change_password' => !empty($user['must_change_password']),
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -225,7 +226,7 @@ class ApiController extends Controller
         try {
             $stmt = $this->db()->prepare("
                 SELECT s.token, s.expires_at, s.user_id,
-                       a.id_admin, a.first_name, a.last_name, a.username, a.email, a.role, a.unit_id, a.is_active, a.status
+                       a.id_admin, a.first_name, a.last_name, a.username, a.email, a.role, a.unit_id, a.is_active, a.status, a.must_change_password
                 FROM sessions s
                 JOIN admin a ON a.id_admin = s.user_id
                 WHERE s.token = ?
@@ -255,16 +256,105 @@ class ApiController extends Controller
                 'token'      => $session['token'],
                 'expires_at' => date('c', strtotime((string)$session['expires_at'])),
                 'user'       => [
-                    'id'           => (int)$session['id_admin'],
-                    'username'     => $session['username'],
-                    'display_name' => trim(($session['first_name'] ?? '') . ' ' . ($session['last_name'] ?? '')) ?: $session['username'],
-                    'email'        => $session['email'],
-                    'role'         => $session['role'] ?? 'user',
-                    'unit_id'      => $session['unit_id'] !== null ? (int)$session['unit_id'] : null,
+                    'id'                   => (int)$session['id_admin'],
+                    'username'             => $session['username'],
+                    'display_name'         => trim(($session['first_name'] ?? '') . ' ' . ($session['last_name'] ?? '')) ?: $session['username'],
+                    'email'                => $session['email'],
+                    'role'                 => $session['role'] ?? 'user',
+                    'unit_id'              => $session['unit_id'] !== null ? (int)$session['unit_id'] : null,
+                    'must_change_password' => !empty($session['must_change_password']),
                 ],
             ]);
         } catch (\Throwable $e) {
             return Json::error('server_error', 'Gagal memverifikasi sesi', 500);
+        }
+    }
+
+    /**
+     * POST /api/v1/auth/change-password
+     */
+    public function changePassword(array $vars = [], ?array $payload = null): string
+    {
+        $sessionToken = trim($_SERVER['HTTP_X_SESSION'] ?? '');
+        if ($sessionToken === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (preg_match('/^Bearer\s+([a-f0-9]{64})/i', $_SERVER['HTTP_AUTHORIZATION'], $matches)) {
+                $sessionToken = $matches[1];
+            }
+        }
+
+        if ($sessionToken === '') {
+            return Json::error('unauthorized', 'Header X-Session wajib disertakan', 401);
+        }
+
+        try {
+            $stmt = $this->db()->prepare("
+                SELECT s.token, s.expires_at, s.user_id,
+                       a.id_admin, a.username, a.password, a.must_change_password
+                FROM sessions s
+                JOIN admin a ON a.id_admin = s.user_id
+                WHERE s.token = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$sessionToken]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                return Json::error('unauthorized', 'Sesi tidak valid atau telah berakhir', 401);
+            }
+
+            if (strtotime((string)$user['expires_at']) <= time()) {
+                return Json::error('unauthorized', 'Sesi telah kedaluwarsa', 401);
+            }
+
+            $input = $payload ?? json_decode((string)file_get_contents('php://input'), true);
+            if (!is_array($input)) {
+                return Json::error('bad_request', 'Data JSON tidak valid', 400);
+            }
+
+            $currentPassword = (string)($input['current_password'] ?? '');
+            $newPassword = (string)($input['new_password'] ?? '');
+            $confirmPassword = (string)($input['confirm_password'] ?? $input['password_confirmation'] ?? '');
+
+            if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+                return Json::error('validation_failed', 'Semua kolom password wajib diisi', 422);
+            }
+
+            if ($newPassword !== $confirmPassword) {
+                return Json::error('validation_failed', 'Konfirmasi password baru tidak cocok', 422);
+            }
+
+            $policyErr = PasswordService::validatePolicy($newPassword, (string)$user['username']);
+            if ($policyErr !== null) {
+                return Json::error('validation_failed', $policyErr, 422);
+            }
+
+            $valid = PasswordService::verify(
+                $currentPassword,
+                (string)$user['password'],
+                (int)$user['id_admin'],
+                $this->db()
+            );
+
+            if (!$valid) {
+                return Json::error('unauthorized', 'Password saat ini salah', 401);
+            }
+
+            $newHash = PasswordService::hash($newPassword);
+            $stmtUp = $this->db()->prepare("
+                UPDATE admin
+                SET password = ?, must_change_password = 0
+                WHERE id_admin = ?
+            ");
+            $stmtUp->execute([$newHash, (int)$user['id_admin']]);
+
+            audit_log('change_password', 'user', (int)$user['id_admin']);
+
+            return Json::ok([
+                'message'              => 'Password berhasil diperbarui',
+                'must_change_password' => false,
+            ]);
+        } catch (\Throwable $e) {
+            return Json::error('server_error', 'Gagal memperbarui password', 500);
         }
     }
 

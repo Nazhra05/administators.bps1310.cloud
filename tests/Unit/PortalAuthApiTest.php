@@ -35,6 +35,7 @@ class PortalAuthApiTest extends TestCase
                 role TEXT NOT NULL DEFAULT 'user',
                 unit_id INTEGER NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
+                must_change_password INTEGER NOT NULL DEFAULT 0,
                 failed_attempts INTEGER NOT NULL DEFAULT 0,
                 locked_until DATETIME NULL,
                 last_login_at DATETIME NULL

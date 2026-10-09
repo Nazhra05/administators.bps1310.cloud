@@ -454,8 +454,8 @@ Spesifikasi di Lampiran D.
 - [x] CRUD kecil `settings` untuk admin (email/WhatsApp unit, jam layanan). `GET /api/v1/settings/public` mengembalikan hanya kunci yang diperbolehkan (whitelist).
 
 ### 7.7 [W] Akun pegawai (role `user`)
-- [ ] Admin membuat akun pegawai lewat **impor CSV** (`username, nama, unit`). Password sementara acak dibuat per akun, ditampilkan/diekspor **sekali**, dan `must_change_password=1`.
-- [ ] Saat login pertama pengguna wajib mengganti password (validasi 6.3). Role `user` tidak bisa masuk dashboard.
+- [x] Admin membuat akun pegawai lewat **impor CSV** (`username, nama, unit`). Password sementara acak dibuat per akun, ditampilkan/diekspor **sekali**, dan `must_change_password=1`.
+- [x] Saat login pertama pengguna wajib mengganti password (validasi 6.3). Role `user` tidak bisa masuk dashboard.
 - **Selesai jika:** impor 20 akun contoh berhasil, dan login pertama memaksa ganti password.
 
 ### 7.8 [W] Preferensi pribadi (riwayat pencarian, pin, tema)
