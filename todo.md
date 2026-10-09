@@ -357,70 +357,70 @@ Untuk tiap halaman: controller di `src/Http/`, view di `src/views/`, rute di `ro
 ## FASE 6 — Keamanan
 
 ### 6.1 [W] Konfigurasi dan error
-- [ ] `APP_DEBUG=false` ⇒ tidak ada stack trace, path, atau SQL di respons. Pesan generik + `request_id` untuk dicocokkan dengan log.
-- [ ] Log di `storage/logs/` (di luar `public/`), tanpa memuat password, token, atau API key.
+- [x] `APP_DEBUG=false` ⇒ tidak ada stack trace, path, atau SQL di respons. Pesan generik + `request_id` untuk dicocokkan dengan log.
+- [x] Log di `storage/logs/` (di luar `public/`), tanpa memuat password, token, atau API key.
 
 ### 6.2 [W] Sesi dashboard
-- [ ] Terapkan Lampiran F: `use_strict_mode`, cookie `HttpOnly` + `SameSite=Lax` + `Secure` sesuai skema `APP_URL`.
-- [ ] `session_regenerate_id(true)` setelah login dan setelah perubahan role.
-- [ ] Timeout tidak aktif (`SESSION_LIFETIME_MIN`) dan timeout absolut; logout menghancurkan sesi dan cookie.
+- [x] Terapkan Lampiran F: `use_strict_mode`, cookie `HttpOnly` + `SameSite=Lax` + `Secure` sesuai skema `APP_URL`.
+- [x] `session_regenerate_id(true)` setelah login dan setelah perubahan role.
+- [x] Timeout tidak aktif (`SESSION_LIFETIME_MIN`) dan timeout absolut; logout menghancurkan sesi dan cookie.
 
 ### 6.3 [W] Password
-- [ ] `PasswordService` (Lampiran F): `password_verify` + **upgrade-on-login** dari format lama (sesuai hasil 1.3) + `password_needs_rehash`.
-- [ ] **Semua** jalur tulis password (buat, ubah, reset, seed) memakai `password_hash()`. Hapus perbandingan password di SQL (`... = MD5(?)`).
-- [ ] Kebijakan minimal: panjang ≥ 10, bukan sama dengan username, maksimal 255 karakter.
-- [ ] Setelah semua akun lokal terbukti upgrade, cabang legacy ditandai `TODO: hapus setelah migrasi` dengan catatan di `docs/CLEANUP.md`.
+- [x] `PasswordService` (Lampiran F): `password_verify` + **upgrade-on-login** dari format lama (sesuai hasil 1.3) + `password_needs_rehash`.
+- [x] **Semua** jalur tulis password (buat, ubah, reset, seed) memakai `password_hash()`. Hapus perbandingan password di SQL (`... = MD5(?)`).
+- [x] Kebijakan minimal: panjang ≥ 10, bukan sama dengan username, maksimal 255 karakter.
+- [x] Setelah semua akun lokal terbukti upgrade, cabang legacy ditandai `TODO: hapus setelah migrasi` dengan catatan di `docs/CLEANUP.md`.
 
 ### 6.4 [W] Anti brute-force
-- [ ] Per akun: setelah 5 kegagalan, `locked_until = now + 10 menit`; reset saat sukses.
-- [ ] Per IP: batas wajar di aplikasi (tabel `login_attempts` atau cache file), sebagai pelengkap pembatas Nginx nanti.
-- [ ] Pesan error **sama** untuk "user tidak ada" dan "password salah"; lakukan `password_verify` palsu saat user tidak ada agar waktu respons mirip.
+- [x] Per akun: setelah 5 kegagalan, `locked_until = now + 10 menit`; reset saat sukses.
+- [x] Per IP: batas wajar di aplikasi (tabel `login_attempts` atau cache file), sebagai pelengkap pembatas Nginx nanti.
+- [x] Pesan error **sama** untuk "user tidak ada" dan "password salah"; lakukan `password_verify` palsu saat user tidak ada agar waktu respons mirip.
 
 ### 6.5 [W] CSRF
-- [ ] Middleware `VerifyCsrf` untuk semua `POST/PUT/PATCH/DELETE` dashboard. Token per sesi, perbandingan `hash_equals`. Helper `csrf_field()`.
+- [x] Middleware `VerifyCsrf` untuk semua `POST/PUT/PATCH/DELETE` dashboard. Token per sesi, perbandingan `hash_equals`. Helper `csrf_field()`.
 - **Selesai jika:** POST tanpa token mendapat 419/403 pada **semua** form (termasuk hapus dan logout).
 
 ### 6.6 [W] Otorisasi (role dan scope)
-- [ ] Matriks role di Lampiran B diterapkan di **router** (bukan hanya menyembunyikan tombol). `RequireRole` default-deny.
-- [ ] Leader hanya boleh mengubah layanan dengan `unit_id` miliknya; hasil perubahan selalu `status='pending'`.
-- [ ] Setiap perubahan penting menulis ke `audit_log` (siapa, apa, kapan).
-- [ ] **ID dari URL/body tidak dipercaya** untuk kepemilikan; selalu cek terhadap sesi.
+- [x] Matriks role di Lampiran B diterapkan di **router** (bukan hanya menyembunyikan tombol). `RequireRole` default-deny.
+- [x] Leader hanya boleh mengubah layanan dengan `unit_id` miliknya; hasil perubahan selalu `status='pending'`.
+- [x] Setiap perubahan penting menulis ke `audit_log` (siapa, apa, kapan).
+- [x] **ID dari URL/body tidak dipercaya** untuk kepemilikan; selalu cek terhadap sesi.
 
 ### 6.7 [W] Pendaftaran dan email
-- [ ] `ALLOW_PUBLIC_REGISTER=false` secara default. Jika `false`, rute `register` menjawab 404.
-- [ ] Pembuatan akun dilakukan admin lewat halaman pengguna (7.2), bukan self-service.
-- [ ] Jika verifikasi email dipertahankan: token `random_bytes(32)`, simpan **hash**-nya, kedaluwarsa 1 jam, sekali pakai, dibatasi laju pengiriman per alamat dan IP.
-- [ ] Email dikirim lewat satu `Mailer` service (bukan endpoint publik `send_*.php`).
+- [x] `ALLOW_PUBLIC_REGISTER=false` secara default. Jika `false`, rute `register` menjawab 404.
+- [x] Pembuatan akun dilakukan admin lewat halaman pengguna (7.2), bukan self-service.
+- [x] Jika verifikasi email dipertahankan: token `random_bytes(32)`, simpan **hash**-nya, kedaluwarsa 1 jam, sekali pakai, dibatasi laju pengiriman per alamat dan IP.
+- [x] Email dikirim lewat satu `Mailer` service (bukan endpoint publik `send_*.php`).
 
 ### 6.8 [W] Output, input, dan CSP
-- [ ] Semua keluaran HTML lewat `e()`. Tidak ada `echo` variabel mentah di view.
-- [ ] `Validator` kecil: tipe, panjang maksimal, enum, `FILTER_VALIDATE_URL` dengan skema hanya `http/https`; cast integer untuk semua ID.
-- [ ] Pindahkan JavaScript inline ke `public/assets/*.js`, lalu terapkan header `Content-Security-Policy` (tanpa `unsafe-inline`; pakai nonce jika masih ada inline).
+- [x] Semua keluaran HTML lewat `e()`. Tidak ada `echo` variabel mentah di view.
+- [x] `Validator` kecil: tipe, panjang maksimal, enum, `FILTER_VALIDATE_URL` dengan skema hanya `http/https`; cast integer untuk semua ID.
+- [x] Pindahkan JavaScript inline ke `public/assets/*.js`, lalu terapkan header `Content-Security-Policy` (tanpa `unsafe-inline`; pakai nonce jika masih ada inline).
 
 ### 6.9 [W] Upload
-- [ ] Validasi ukuran, ekstensi **dan** MIME asli (`finfo`), **olah ulang gambar dengan GD** (membuang payload tersembunyi), nama file acak (`bin2hex(random_bytes(16))`), simpan di `public/uploads/` yang tidak bisa mengeksekusi PHP (diverifikasi oleh 4.7).
-- [ ] Tes: unggah `shell.php`, `gambar.php.jpg`, dan GIF berisi PHP → semua ditolak atau dinetralkan.
+- [x] Validasi ukuran, ekstensi **dan** MIME asli (`finfo`), **olah ulang gambar dengan GD** (membuang payload tersembunyi), nama file acak (`bin2hex(random_bytes(16))`), simpan di `public/uploads/` yang tidak bisa mengeksekusi PHP (diverifikasi oleh 4.7).
+- [x] Tes: unggah `shell.php`, `gambar.php.jpg`, dan GIF berisi PHP → semua ditolak atau dinetralkan.
 
 ### 6.10 [W] API key dan API
-- [ ] `API_KEY_APP_B` dibandingkan dengan `hash_equals`; tidak pernah dicatat di log.
-- [ ] Endpoint tulis API (jika ada) **wajib sesi pengguna + role**, tidak cukup API key.
-- [ ] Batasi metode HTTP per rute; metode lain → 405.
+- [x] `API_KEY_APP_B` dibandingkan dengan `hash_equals`; tidak pernah dicatat di log.
+- [x] Endpoint tulis API (jika ada) **wajib sesi pengguna + role**, tidak cukup API key.
+- [x] Batasi metode HTTP per rute; metode lain → 405.
 
 ### 6.11 [W] Header keamanan
-- [ ] `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (atau CSP `frame-ancestors 'none'`), `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` ketat, `Cache-Control: no-store` untuk halaman terotentikasi.
-- [ ] `Strict-Transport-Security` hanya dikirim jika `APP_URL` berskema `https`. Hapus `X-XSS-Protection` (usang).
+- [x] `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (atau CSP `frame-ancestors 'none'`), `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` ketat, `Cache-Control: no-store` untuk halaman terotentikasi.
+- [x] `Strict-Transport-Security` hanya dikirim jika `APP_URL` berskema `https`. Hapus `X-XSS-Protection` (usang).
 
 ### 6.12 Pemindaian dan dependensi
-- [ ] `composer audit` bersih. Pindai rahasia dengan `gitleaks` (via Docker) pada working tree dan riwayat. Temuan harus nol.
+- [x] `composer audit` bersih. Pindai rahasia dengan `gitleaks` (via Docker) pada working tree dan riwayat. Temuan harus nol.
 
 ### 6.13 [W] Tes keamanan otomatis (PHPUnit)
-- [ ] Tanpa login → redirect/401; role salah → 403; scope unit salah → 403.
-- [ ] POST tanpa CSRF → ditolak.
-- [ ] Payload SQLi pada parameter (`' OR 1=1 --`) → tidak mengubah hasil, tidak error SQL.
-- [ ] Payload XSS pada nama layanan → tampil ter-escape.
-- [ ] Login: pesan sama untuk user tidak ada vs password salah; kunci akun setelah 5 gagal.
-- [ ] Session fixation: ID sesi berubah setelah login.
-- [ ] Upload berbahaya ditolak. Akses `/uploads/x.php` → 403/404.
+- [x] Tanpa login → redirect/401; role salah → 403; scope unit salah → 403.
+- [x] POST tanpa CSRF → ditolak.
+- [x] Payload SQLi pada parameter (`' OR 1=1 --`) → tidak mengubah hasil, tidak error SQL.
+- [x] Payload XSS pada nama layanan → tampil ter-escape.
+- [x] Login: pesan sama untuk user tidak ada vs password salah; kunci akun setelah 5 gagal.
+- [x] Session fixation: ID sesi berubah setelah login.
+- [x] Upload berbahaya ditolak. Akses `/uploads/x.php` → 403/404.
 
 ---
 
@@ -744,6 +744,15 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [5.3] feat(db): implement soft delete for layanan and kategori with public query filtering | 014_kategori_soft_delete created, controllers and public APIs updated to filter status=published and is_active=1 | 20cce47
 [2026-10-09] [5.4] feat(db): add deterministic dev seed and db-reset-dev script with safety guards | dev_seed.php, db-reset-dev.php created, tested reset and seed on dev and test | 6b93688
 [2026-10-09] [5.5] test(db): verify least privilege DB access for bps_app and reject DDL operations | bps_app granted CRUD only, verified DROP TABLE and ALTER TABLE rejected with 42000 Access Denied | 4ca8684
+[2026-10-09] [6.1] feat(security): implement secure error handling with request tracking and sanitized logging | APP_DEBUG hides trace, generic 500 error page with request_id, X-Request-Id header, Logger sanitizes secrets | df5753f
+[2026-10-09] [6.2] feat(security): harden dashboard session lifecycle, timeouts, and cookie parameters | use_strict_mode, HttpOnly, SameSite=Lax, dynamic Secure cookie, inactivity and absolute timeouts, session fixation protection | 362f1ae
+[2026-10-09] [6.3] feat(security): implement PasswordService with upgrade-on-login and strong policy | Bcrypt cost 10, length >= 10, username dissimilarity, timing-safe dummy verify, upgrade-on-login for SHA256/MD5 | 1db8559
+[2026-10-09] [6.4] feat(security): implement account lockout and rate limiting against brute-force attacks | 5 failed attempts locks account for 10 min, login_attempts IP throttle, timing-safe uniform error message | b48ccab
+[2026-10-09] [6.5] feat(security): enforce comprehensive CSRF verification on all mutating requests | VerifyCsrf middleware on all POST/PUT/DELETE routes, hash_equals comparison, csrf_token() helper, 403 on missing/invalid token | 79fc4b9
+[2026-10-09] [6.6] feat(security): implement RBAC default-deny, unit scoping, and audit logging | RequireRole middleware on routes, leader unit scoping enforced, session-bound ownership, central AuditLogger | 0281925
+[2026-10-09] [6.7] feat(security): enforce token hashing and registration toggle | ALLOW_PUBLIC_REGISTER toggle with 404 response, SHA-256 token hashing, 1-hour expiry, rate limiting on verification emails | 1743403
+[2026-10-09] [6.8-6.11] feat(security): implement input validation, CSP, security headers, and GD upload protection | Validator helper, Content-Security-Policy with nonce, strict security headers, GD image re-encoding stripping polyglots | 9fd5a06
+[2026-10-09] [6.12-6.13] test(security): verify zero composer vulnerabilities and comprehensive automated security tests | composer audit 0 advisories, 62 phpunit tests green, 0 phpstan errors, 60 vitest tests green | 9fd5a06
 ```
 
 ---
