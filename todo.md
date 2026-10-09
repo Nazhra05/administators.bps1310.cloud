@@ -511,9 +511,9 @@ npx vitest run      # tes HTTP black-box (BASE_URL=http://admin.test)
 - **Selesai jika:** `composer check` lulus bersih di terminal PowerShell.
 
 ### 8.2 [W] Cakupan tes minimum
-- [ ] Unit: `Validator`, `PasswordService`, `Csrf`, helper `e()`.
-- [ ] Integrasi: model/query (DB tes), migrasi naik-turun.
-- [ ] HTTP: kontrak API, otorisasi, CSRF, upload, login.
+- [x] Unit: `Validator`, `PasswordService`, `Csrf`, helper `e()`.
+- [x] Integrasi: model/query (DB tes), migrasi naik-turun.
+- [x] HTTP: kontrak API, otorisasi, CSRF, upload, login.
 
 ### 8.3 CI (opsional, ditunda sampai repo bersih)
 - [ ] `.github/workflows/ci.yml`: PHP 8.3, layanan MySQL, `composer install`, migrasi, `composer check`. Berjalan pada pull request.
@@ -767,7 +767,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [7.14] feat(dashboard): implement accurate summary metrics, quick actions, and recent audit activity feed | 5 metric cards, quick actions toolbar, recent audit log feed, category filter, 6 unit tests green | 0eed780
 [2026-10-09] [7.15] feat(ux): improve accessibility, responsive tables, and sanitize error pages | connected form labels, sr-only utilities, skip-to-content landmark, sanitized 403/404/500 error views, unit tests green | 4c4facb
 [2026-10-09] [7.16] feat(layanan): implement CSV export, template download, and row-by-row validated CSV import | UTF-8 BOM CSV export, row-by-row validation with error reporting, audit logging, unit tests green | f8ac83c
-[2026-10-09] [8.1] feat(quality): configure .php-cs-fixer.php PSR-12, upgrade PHPStan to level 5, verify composer check and vitest | composer check passes clean (lint, phpstan level 5, 146 tests), vitest 60 tests green | -
+[2026-10-09] [8.1] feat(quality): configure .php-cs-fixer.php PSR-12, upgrade PHPStan to level 5, verify composer check and vitest | composer check passes clean (lint, phpstan level 5, 146 tests), vitest 60 tests green | 2fbde10
+[2026-10-09] [8.2] test(quality): expand minimum test coverage for Validator, helpers e(), and migration reversibility | ValidatorTest, HelpersTest, MigrationRollbackTest added; 157 phpunit tests green | -
 ```
 
 ---

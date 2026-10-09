@@ -26,8 +26,8 @@ if (!str_ends_with($targetDb, '_test')) {
 
 $host = env('DB_HOST', '127.0.0.1');
 $port = env('DB_PORT', '3306');
-$user = env('DB_MIGRATOR_USER', env('DB_USER', 'bps_app'));
-$pass = env('DB_MIGRATOR_PASS', env('DB_PASS', 'change_me_dev'));
+$user = env('DB_MIGRATOR_USER', 'bps_migrator');
+$pass = env('DB_MIGRATOR_PASS', 'change_me_migrator_dev');
 
 $schemaFile = dirname(__DIR__) . '/database/schema.sql';
 $seedFile   = dirname(__DIR__) . '/database/seeds/dev_seed.sql';
