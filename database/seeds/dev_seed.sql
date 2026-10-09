@@ -45,6 +45,8 @@ INSERT INTO `admin` (
   `status`,
   `role`,
   `email_verified`,
+  `verification_token`,
+  `verification_expires`,
   `created_at`
 ) VALUES
 (
@@ -57,6 +59,8 @@ INSERT INTO `admin` (
   'approved',
   'ADMIN IT',
   1,
+  NULL,
+  NULL,
   NOW()
 ),
 (
@@ -69,6 +73,36 @@ INSERT INTO `admin` (
   'approved',
   'ADMIN DASHBOARD',
   1,
+  NULL,
+  NULL,
+  NOW()
+),
+(
+  3,
+  'Pegawai',
+  'Portal',
+  'pegawai_portal',
+  'pegawai@bps1310.cloud',
+  '$2y$10$WPStqy5c/MblYyyFG48cmub1BR/mhYEqNzYTP3PhJvHqUlG3N40Em',
+  'approved',
+  'USER APP PORTAL',
+  1,
+  NULL,
+  NULL,
+  NOW()
+),
+(
+  4,
+  'Calon',
+  'User',
+  NULL,
+  'calon_user@bps1310.cloud',
+  NULL,
+  'pending',
+  'USER APP PORTAL',
+  0,
+  'token_test_portal_aktif',
+  DATE_ADD(NOW(), INTERVAL 1 DAY),
   NOW()
 )
 ON DUPLICATE KEY UPDATE 
@@ -77,7 +111,9 @@ ON DUPLICATE KEY UPDATE
   `password` = VALUES(`password`),
   `status` = VALUES(`status`),
   `role` = VALUES(`role`),
-  `email_verified` = VALUES(`email_verified`);
+  `email_verified` = VALUES(`email_verified`),
+  `verification_token` = VALUES(`verification_token`),
+  `verification_expires` = VALUES(`verification_expires`);
 
 -- 3. Data Layanan Contoh (Mix Public & Internal VPN)
 INSERT INTO `layanan` (
