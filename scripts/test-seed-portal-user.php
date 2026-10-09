@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/config.php';
 
+/** @var \PDO $conn */
 $stmt = $conn->prepare("
     UPDATE admin
     SET
