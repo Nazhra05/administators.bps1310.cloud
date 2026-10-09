@@ -16,25 +16,6 @@ use App\Http\Middleware\ApiKey;
 Router::get('/', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
 Router::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
 Router::get('/index.php', [\App\Http\Controllers\DashboardController::class, 'index'], [RequireLogin::class]);
-Router::get('/api/v1/health', function () {
-    try {
-        $pdo = \App\Support\Database::pdo();
-        $pdo->query('SELECT 1');
-        return [
-            'data'  => ['status' => 'ok'],
-            'error' => null,
-        ];
-    } catch (\Throwable $e) {
-        http_response_code(503);
-        return [
-            'data'  => null,
-            'error' => [
-                'code'    => 'service_unavailable',
-                'message' => 'Database connection failed',
-            ],
-        ];
-    }
-});
 
 // -----------------------------------------------------------------------------
 // Authentication Routes (Web & Backward Compatibility Aliases)
@@ -133,5 +114,21 @@ Router::get('/pengaturan.php', [\App\Http\Controllers\PengaturanController::clas
 Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
 Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
 
+// -----------------------------------------------------------------------------
+// Legacy API Compatibility Routes (For App B)
+// -----------------------------------------------------------------------------
+Router::get('/api/layanan.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'layanan']);
+Router::get('/api/kategori.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'kategori']);
+Router::get('/api/website.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'website']);
+Router::post('/api/auth/loginPortal.php', [\App\Http\Controllers\Api\LegacyApiController::class, 'loginPortal']);
 
-
+// -----------------------------------------------------------------------------
+// API v1 Modern Routes (Lampiran C & D)
+// -----------------------------------------------------------------------------
+Router::get('/api/v1/health', [\App\Http\Controllers\Api\V1\ApiController::class, 'health']);
+Router::get('/api/v1/layanan', [\App\Http\Controllers\Api\V1\ApiController::class, 'layanan'], [ApiKey::class]);
+Router::get('/api/v1/kategori', [\App\Http\Controllers\Api\V1\ApiController::class, 'kategori'], [ApiKey::class]);
+Router::post('/api/v1/auth/login', [\App\Http\Controllers\Api\V1\ApiController::class, 'login'], [ApiKey::class]);
+Router::get('/api/v1/auth/session', [\App\Http\Controllers\Api\V1\ApiController::class, 'session'], [ApiKey::class]);
+Router::post('/api/v1/auth/logout', [\App\Http\Controllers\Api\V1\ApiController::class, 'logout'], [ApiKey::class]);
+Router::get('/api/v1/settings/public', [\App\Http\Controllers\Api\V1\ApiController::class, 'publicSettings'], [ApiKey::class]);
