@@ -160,8 +160,41 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(found?.nama_kategori).toBe(updatedCategoryName);
     });
 
-    it('deletes the test category via current legacy GET hapus_kategori.php', async () => {
-      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php?id=${createdKategoriId}`);
+    it('BUG-001: rejects deletion of kategori via GET method (405 Method Not Allowed)', async () => {
+      const getRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php?id=${createdKategoriId}`);
+      expect(getRes.status).toBe(405);
+    });
+
+    it('BUG-001: rejects deletion of kategori via POST without valid CSRF token (403 Forbidden)', async () => {
+      const params = new URLSearchParams();
+      params.append('id', String(createdKategoriId));
+      params.append('csrf_token', 'invalid_token_123');
+
+      const postRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(postRes.status).toBe(403);
+    });
+
+    it('BUG-001: safely deletes category via POST with valid CSRF token and reflects in API', async () => {
+      // Fetch kategori.php to grab valid csrf token
+      const pageRes = await fetchWithSession(`${BASE_URL}/kategori.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+
+      const params = new URLSearchParams();
+      params.append('id', String(createdKategoriId));
+      params.append('csrf_token', csrfToken);
+
+      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
       expect([200, 302]).toContain(deleteRes.status);
 
       // Verify category no longer exists in API
@@ -171,10 +204,6 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       const json = await apiRes.json();
       const found = json.data.find(k => k.id_kategori === createdKategoriId);
       expect(found).toBeUndefined();
-    });
-
-    it.skip('BUG-001: Safe deletion of kategori via POST + CSRF token', async () => {
-      // In Fase 3, deletion must be POST + CSRF, not GET
     });
   });
 

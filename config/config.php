@@ -179,6 +179,11 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . $token . '">';
 }
 
+function csrf_input(): string
+{
+    return csrf_field();
+}
+
 function csrf_verify(?string $token = null): bool
 {
     if ($token === null) {
