@@ -1,8 +1,35 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { Window } from 'happy-dom';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const BASE_URL = 'http://localhost/administators.bps1310.cloud/public';
-const API_KEY = 'BPS_SOLSEL_API_2026_GANTI_DENGAN_KEY_RAHASIA';
+function loadEnv() {
+  const envPath = path.resolve(process.cwd(), '.env');
+  const env = {};
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx !== -1) {
+        const key = trimmed.slice(0, idx).trim();
+        const val = trimmed.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
+        env[key] = val;
+      }
+    }
+  }
+  return env;
+}
+
+const env = loadEnv();
+const rawBaseUrl = process.env.TEST_BASE_URL ||
+  (process.env.APP_URL && process.env.APP_URL.startsWith('http') ? process.env.APP_URL : null) ||
+  env.APP_URL ||
+  'http://admin.test';
+
+const BASE_URL = rawBaseUrl.replace(/\/+$/, '');
+const API_KEY = process.env.API_KEY_APP_B || env.API_KEY_APP_B || env.API_KEY || 'BPS_SOLSEL_API_2026_GANTI_DENGAN_KEY_RAHASIA';
 
 function parseHtml(html) {
   const window = new Window();

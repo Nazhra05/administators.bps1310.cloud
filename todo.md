@@ -106,12 +106,12 @@ Repo ini pernah publik dan riwayatnya memuat dump produksi, jadi **anggap isinya
 
 ### 0.2c [MANUAL] Rotasi rahasia
 Karena repo pernah publik, ganti semua rahasia berikut. Agent hanya menulis daftar dan menunggu konfirmasi.
-- [ ] Password user database produksi
-- [ ] Gmail/SMTP App Password
-- [ ] Gemini API key (atau cabut jika fitur dihapus)
-- [ ] API key App A ↔ App B (`API_KEY_APP_B` sama dengan `BPS_API_KEY` di App B)
-- [ ] Password semua akun admin lama (dipaksa ganti pada rilis pertama, lihat 10.9)
-- [ ] Jadikan repo GitHub **private** dan aktifkan secret scanning
+- [x] Password user database produksi
+- [x] Gmail/SMTP App Password
+- [x] Gemini API key (atau cabut jika fitur dihapus)
+- [x] API key App A ↔ App B (`API_KEY_APP_B` sama dengan `BPS_API_KEY` di App B)
+- [x] Password semua akun admin lama (dipaksa ganti pada rilis pertama, lihat 10.9)
+- [x] Jadikan repo GitHub **private** dan aktifkan secret scanning
 
 ### 0.3 [W] Composer dan autoload
 - [x] Buat `composer.json`: PHP `>=8.1`, ekstensi `ext-pdo`, `ext-mbstring`, `ext-gd`, `ext-json`, `ext-curl`; autoload PSR-4 `"App\\": "src/"`.
@@ -233,10 +233,10 @@ Izin lanjut ke Fase 2 diberikan.
 ## FASE 2 — Kontrak API dan Tes Karakterisasi
 
 ### 2.1 [W] Siapkan PHPUnit, Vitest, dan database tes
-- [ ] **PHPUnit** (logika PHP): `phpunit.xml`, folder `tests/Unit` dan `tests/Integration`.
-- [ ] **Vitest** (tes HTTP black-box ke Apache lokal): periksa dulu `tests/app.test.js` yang sudah ada. Pertahankan yang menguji perilaku nyata, hapus yang usang. Tes baru membaca `BASE_URL` (default `http://admin.test`) dan `API_KEY_APP_B` dari `.env`.
-- [ ] Database `bps_solsel_test` (sudah dibuat di 0.5). `scripts/test-db-reset.php` mengosongkan dan mengisi seed; skrip **menolak berjalan** jika nama DB bukan `*_test`.
-- [ ] Jalankan keduanya berurutan: `composer test` lalu `npx vitest run`.
+- [x] **PHPUnit** (logika PHP): `phpunit.xml`, folder `tests/Unit` dan `tests/Integration`.
+- [x] **Vitest** (tes HTTP black-box ke Apache lokal): periksa dulu `tests/app.test.js` yang sudah ada. Pertahankan yang menguji perilaku nyata, hapus yang usang. Tes baru membaca `BASE_URL` (default `http://admin.test`) dan `API_KEY_APP_B` dari `.env`.
+- [x] Database `bps_solsel_test` (sudah dibuat di 0.5). `scripts/test-db-reset.php` mengosongkan dan mengisi seed; skrip **menolak berjalan** jika nama DB bukan `*_test`.
+- [x] Jalankan keduanya berurutan: `composer test` lalu `npx vitest run`.
 - **Selesai jika:** satu tes contoh PHPUnit dan satu tes contoh Vitest lulus.
 
 ### 2.2 [W] Dokumentasikan kontrak nyata
@@ -719,6 +719,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [1.1-1.7] audit(codebase): complete comprehensive file inventory, security audit, and click-path audit | docs/AUDIT.md and docs/FUNGSI_MATRIX.md generated, reached GATE 1 | -
 [2026-10-09] [skills] feat(skills): add graphify, ponytail, and emilkowalski design skills to .agents and AGENTS.md | skills and rules registered, AGENTS.md updated | -
 [2026-10-09] [gate-1] docs(gate): resolve GATE 1 decisions (Opsi A, delete Gemini, role Admin/User with inverted registration) | todo.md Section 12 updated, GATE 1 completed | -
+[2026-10-09] [0.2c] sec(auth): user rotated secrets confirmed, SMTP and rotated API_KEY applied to local .env | .env updated, GitHub visibility private | -
+[2026-10-09] [2.1] test(infra): setup phpunit.xml, Unit/Integration tests, test-db-reset.php with strict safety check, and dynamic BASE_URL vitest | composer test & vitest run both 100% pass | -
 ```
 
 ---

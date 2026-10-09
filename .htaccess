@@ -28,7 +28,11 @@ Options -Indexes
     RewriteEngine On
 
     # Block direct access to sensitive directories
-    RewriteRule ^(config|scripts|app|database|\.agents|\.git)/ - [F,L]
+    RewriteRule ^(config|scripts|app|database|src|storage|tests|vendor|docs|\.agents|\.git)(/|$) - [F,L]
+
+    # Fallback rewrite to public/ folder for subfolder access
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
 </IfModule>
 
 # Security HTTP Headers
