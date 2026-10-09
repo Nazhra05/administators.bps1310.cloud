@@ -38,17 +38,14 @@ administators.bps1310.cloud/
 │   ├── layanan.php              # Halaman kelola layanan
 │   ├── login.php                # Autentikasi akun admin
 │   ├── logout.php               # Pembersihan sesi aman
-│   ├── pengaturan.php           # Informasi sistem
-│   ├── register.php             # Pendaftaran admin baru
+│   ├── pengaturan.php           # Informasi sistem dan ubah password
+│   ├── register.php             # Pendaftaran akun portal baru
 │   ├── send_admin_notification.php
 │   ├── send_verification_email.php
-│   ├── test_api.php             # Alat uji endpoint API
-│   ├── trending-topics.php      # Endpoint JSON trending topics untuk landing page
 │   └── verify_email.php         # Verifikasi token email pendaftar
 ├── scripts/
-│   ├── .htaccess                # Proteksi folder cron/script dari web
-│   ├── .env.example             # Template env untuk cron script
-│   └── generate-topics.php      # Generator trending topics harian (Google Gemini AI)
+│   ├── .htaccess                # Proteksi folder script dari web
+│   └── test-db-reset.php        # Skrip reset database test lokal
 ├── .env.example                 # Template environment variables (aman untuk commit)
 ├── .gitignore                   # Aturan pengabaian file sensitif / rahasia Git
 ├── .htaccess                    # Pengamanan direktori root, MIME, dan HTTP headers
@@ -162,14 +159,4 @@ DB_PASS=PasswordKuatAnda123!
 
 # URL Endpoint API Produksi
 API_URL=https://administators.bps1310.cloud/api/layanan.php
-```
-
-### 4. Konfigurasi Cron Job untuk Trending Topics AI
-Jalankan generator trending topics otomatis setiap hari jam 06:00 pagi:
-```bash
-crontab -e
-```
-Tambahkan baris berikut:
-```cron
-0 6 * * * /usr/bin/php /var/www/administators.bps1310.cloud/scripts/generate-topics.php >> /var/www/administators.bps1310.cloud/scripts/generate-topics.log 2>&1
 ```

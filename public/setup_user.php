@@ -12,16 +12,16 @@ $message = '';
 $type = 'error';
 
 $user = null;
-$userId = (int) ($_GET['id'] ?? $_POST['id_admin'] ?? 0);
+$token = trim($_GET['token'] ?? $_POST['token'] ?? '');
 
 
 /* =========================
-   CEK ID USER
+   CEK TOKEN PENDAFTARAN (IDOR PREVENTION)
 ========================= */
 
-if ($userId <= 0) {
+if ($token === '') {
 
-    $message = 'Link pendaftaran tidak valid.';
+    $message = 'Link pendaftaran tidak valid atau token verifikasi tidak ditemukan.';
 
 } else {
 
@@ -33,20 +33,29 @@ if ($userId <= 0) {
             password,
             role,
             status,
-            email_verified
+            email_verified,
+            verification_token,
+            verification_expires
         FROM admin
-        WHERE id_admin = ?
+        WHERE verification_token = ?
           AND role = 'USER APP PORTAL'
         LIMIT 1
     ");
 
-    $stmt->execute([$userId]);
+    $stmt->execute([$token]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
 
-        $message = 'Data user tidak ditemukan.';
+        $message = 'Link pendaftaran tidak valid atau sudah tidak berlaku.';
+
+    } elseif (
+        !empty($user['verification_expires']) &&
+        strtotime($user['verification_expires']) < time()
+    ) {
+
+        $message = 'Link pendaftaran sudah kedaluwarsa. Silakan minta administrator mengirimkan verifikasi ulang.';
 
     } elseif ((int) $user['email_verified'] !== 1) {
 
@@ -138,7 +147,7 @@ if (
 
             $stmtUsername->execute([
                 $username,
-                $userId
+                (int) $user['id_admin']
             ]);
 
             $usernameExists = $stmtUsername->fetch(PDO::FETCH_ASSOC);
@@ -150,10 +159,10 @@ if (
             } else {
 
                 /* =========================
-                   HASH PASSWORD (SHA-256)
+                   HASH PASSWORD (BCRYPT)
                 ========================= */
 
-                $hashedPassword = hash('sha256', $password);
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
                 /* =========================
                    SIMPAN DATA USER
@@ -176,7 +185,7 @@ if (
                 $stmtUpdate->execute([
                     $username,
                     $hashedPassword,
-                    $userId
+                    (int) $user['id_admin']
                 ]);
 
                 if ($stmtUpdate->rowCount() > 0) {
@@ -419,8 +428,8 @@ if (
 
                 <input
                     type="hidden"
-                    name="id_admin"
-                    value="<?= (int) $user['id_admin'] ?>"
+                    name="token"
+                    value="<?= htmlspecialchars($token, ENT_QUOTES, 'UTF-8') ?>"
                 >
 
                 <div class="form-group">

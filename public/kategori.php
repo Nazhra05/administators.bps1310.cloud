@@ -1574,13 +1574,26 @@ tr:hover td {
                                 </a>
 
 
-                                <a
-                                    href="hapus_kategori.php?id=<?= $item['id_kategori']; ?>"
-                                    class="btn-action btn-delete"
-                                    onclick="return confirm('Yakin ingin menghapus kategori ini?');"
+                                <form
+                                    method="POST"
+                                    action="hapus_kategori.php"
+                                    style="display: inline;"
+                                    onsubmit="return confirm('Yakin ingin menghapus kategori ini?');"
                                 >
-                                    🗑️ Hapus
-                                </a>
+                                    <?= csrf_input(); ?>
+                                    <input
+                                        type="hidden"
+                                        name="id"
+                                        value="<?= (int) $item['id_kategori']; ?>"
+                                    >
+                                    <button
+                                        type="submit"
+                                        class="btn-action btn-delete"
+                                        style="border: none; cursor: pointer; font-family: inherit;"
+                                    >
+                                        🗑️ Hapus
+                                    </button>
+                                </form>
 
 
                             </div>

@@ -19,7 +19,6 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 public/uploads/*
 !public/uploads/.gitkeep
-!public/uploads/logo_bps.jpg
 !public/uploads/1790220841_logo bps solsel.jpg
 
 # Database dumps (only schema, migrations, and seeds are allowed in repo)

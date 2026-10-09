@@ -50,15 +50,12 @@ if ($token === '') {
 
         /*
          * Tandai email sudah diverifikasi.
-         * Token dan waktu kedaluwarsa dihapus agar link
-         * tidak dapat digunakan kembali.
+         * Token verifikasi dipertahankan agar dapat digunakan
+         * pada tautan setup_user.php?token=... secara aman.
          */
         $stmtUpdate = $conn->prepare("
             UPDATE admin
-            SET
-                email_verified = 1,
-                verification_token = NULL,
-                verification_expires = NULL
+            SET email_verified = 1
             WHERE id_admin = ?
               AND role = 'USER APP PORTAL'
         ");
@@ -210,7 +207,7 @@ if ($token === '') {
                 </div>
 
                 <a
-                    href="setup_user.php?id=<?= (int) $user['id_admin'] ?>"
+                    href="setup_user.php?token=<?= urlencode((string) ($user['verification_token'] ?? $token)) ?>"
                     class="button"
                 >
                     Buat Username & Password

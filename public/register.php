@@ -613,7 +613,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="logo-wrapper">
 
             <img
-                src="uploads/logo_bps.jpg"
+                src="assets/logo_bps.jpg"
                 alt="Logo BPS"
             >
 

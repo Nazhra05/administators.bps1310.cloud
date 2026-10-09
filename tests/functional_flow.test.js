@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { Window } from 'happy-dom';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 function loadEnv() {
   const envPath = path.resolve(process.cwd(), '.env');
@@ -160,8 +161,41 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(found?.nama_kategori).toBe(updatedCategoryName);
     });
 
-    it('deletes the test category via current legacy GET hapus_kategori.php', async () => {
-      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php?id=${createdKategoriId}`);
+    it('BUG-001: rejects deletion of kategori via GET method (405 Method Not Allowed)', async () => {
+      const getRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php?id=${createdKategoriId}`);
+      expect(getRes.status).toBe(405);
+    });
+
+    it('BUG-001: rejects deletion of kategori via POST without valid CSRF token (403 Forbidden)', async () => {
+      const params = new URLSearchParams();
+      params.append('id', String(createdKategoriId));
+      params.append('csrf_token', 'invalid_token_123');
+
+      const postRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(postRes.status).toBe(403);
+    });
+
+    it('BUG-001: safely deletes category via POST with valid CSRF token and reflects in API', async () => {
+      // Fetch kategori.php to grab valid csrf token
+      const pageRes = await fetchWithSession(`${BASE_URL}/kategori.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+
+      const params = new URLSearchParams();
+      params.append('id', String(createdKategoriId));
+      params.append('csrf_token', csrfToken);
+
+      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_kategori.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
       expect([200, 302]).toContain(deleteRes.status);
 
       // Verify category no longer exists in API
@@ -171,10 +205,6 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       const json = await apiRes.json();
       const found = json.data.find(k => k.id_kategori === createdKategoriId);
       expect(found).toBeUndefined();
-    });
-
-    it.skip('BUG-001: Safe deletion of kategori via POST + CSRF token', async () => {
-      // In Fase 3, deletion must be POST + CSRF, not GET
     });
   });
 
@@ -255,8 +285,40 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(json.data.vpn).toBe('Yes');
     });
 
-    it('deletes the test layanan via current legacy GET hapus_layanan.php', async () => {
-      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php?id=${createdLayananId}`);
+    it('BUG-002: rejects deletion of layanan via GET method (405 Method Not Allowed)', async () => {
+      const getRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php?id=${createdLayananId}`);
+      expect(getRes.status).toBe(405);
+    });
+
+    it('BUG-002: rejects deletion of layanan via POST without valid CSRF token (403 Forbidden)', async () => {
+      const params = new URLSearchParams();
+      params.append('id', String(createdLayananId));
+      params.append('csrf_token', 'invalid_token_xyz');
+
+      const postRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(postRes.status).toBe(403);
+    });
+
+    it('BUG-002: safely deletes test layanan via POST with valid CSRF token and reflects in API', async () => {
+      const pageRes = await fetchWithSession(`${BASE_URL}/layanan.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+
+      const params = new URLSearchParams();
+      params.append('id', String(createdLayananId));
+      params.append('csrf_token', csrfToken);
+
+      const deleteRes = await fetchWithSession(`${BASE_URL}/hapus_layanan.php`, {
+        method: 'POST',
+        body: params,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
       expect([200, 302]).toContain(deleteRes.status);
 
       // Verify removal in API
@@ -264,10 +326,6 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
         headers: { 'X-API-KEY': API_KEY }
       });
       expect(apiRes.status).toBe(404);
-    });
-
-    it.skip('BUG-002: Safe deletion of layanan via POST + CSRF token', async () => {
-      // In Fase 3, deletion must require POST + CSRF, not GET
     });
   });
 
@@ -286,16 +344,143 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(doc.querySelector('input[name="email"]')).not.toBeNull();
     });
 
-    it.skip('BUG-003: Setup user page must not allow insecure direct object reference (IDOR)', async () => {
-      // In Fase 3, setup_user.php must validate secret activation token rather than raw ?id=
+    it('BUG-003: Setup user page rejects IDOR access via raw ID without token', async () => {
+      const res = await fetch(`${BASE_URL}/setup_user.php?id=4`);
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      expect(text).toContain('Link pendaftaran tidak valid');
+      const doc = parseHtml(text);
+      expect(doc.querySelector('input[name="password"]')).toBeNull();
     });
 
-    it.skip('BUG-004: Portal user passwords must be hashed using Bcrypt rather than raw SHA-256', async () => {
-      // In Fase 3, setup_user.php must use password_hash(..., PASSWORD_BCRYPT)
+    it('BUG-003: Setup user page rejects fabricated or invalid token', async () => {
+      const res = await fetch(`${BASE_URL}/setup_user.php?token=invalid_random_token_999`);
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      expect(text).toContain('Link pendaftaran tidak valid atau sudah tidak berlaku');
+      const doc = parseHtml(text);
+      expect(doc.querySelector('input[name="password"]')).toBeNull();
     });
 
-    it.skip('BUG-006: Provide profile settings and password change form in pengaturan.php', async () => {
-      // In Fase 3, pengaturan.php will be upgraded with change password form
+    it('BUG-004: Completes portal user verification, password setup with Bcrypt, and logs in via API', async () => {
+      // 0. Ensure user 4 is in fresh pending state
+      execFileSync('php', ['scripts/test-seed-portal-user.php']);
+
+      // 1. Verify email via token
+      const verifyRes = await fetch(`${BASE_URL}/verify_user.php?token=token_test_portal_aktif`);
+      expect(verifyRes.status).toBe(200);
+      const verifyText = await verifyRes.text();
+      expect(verifyText).toContain('Email Berhasil Diverifikasi');
+      expect(verifyText).toContain('setup_user.php?token=token_test_portal_aktif');
+
+      // 2. Open setup page with valid token
+      const setupPage = await fetch(`${BASE_URL}/setup_user.php?token=token_test_portal_aktif`);
+      expect(setupPage.status).toBe(200);
+      const setupCookie = setupPage.headers.get('set-cookie')?.split(';')[0] || '';
+      const doc = parseHtml(await setupPage.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+
+      // 3. Submit credentials
+      const params = new URLSearchParams();
+      params.append('token', 'token_test_portal_aktif');
+      params.append('csrf_token', csrfToken);
+      params.append('username', 'user_portal_aktif');
+      params.append('password', 'PasswordKuat123!');
+      params.append('password_confirmation', 'PasswordKuat123!');
+
+      const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      if (setupCookie) {
+        headers['Cookie'] = setupCookie;
+      }
+
+      const submitRes = await fetch(`${BASE_URL}/setup_user.php`, {
+        method: 'POST',
+        body: params,
+        headers
+      });
+      expect(submitRes.status).toBe(200);
+      const submitText = await submitRes.text();
+      expect(submitText).toContain('Pendaftaran Berhasil');
+
+      // 4. Verify login via App B portal auth API
+      const loginRes = await fetch(`${BASE_URL}/api/auth/loginPortal.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': API_KEY
+        },
+        body: JSON.stringify({
+          identity: 'user_portal_aktif',
+          password: 'PasswordKuat123!'
+        })
+      });
+      expect(loginRes.status).toBe(200);
+      const loginJson = await loginRes.json();
+      expect(loginJson.status).toBe(true);
+      expect(loginJson.data.username).toBe('user_portal_aktif');
+    });
+
+    it('BUG-006: Provides change password form in pengaturan.php and safely updates password', async () => {
+      // 1. Authenticated admin fetches pengaturan.php
+      const pageRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+      expect(doc.querySelector('input[name="current_password"]')).not.toBeNull();
+      expect(doc.querySelector('input[name="new_password"]')).not.toBeNull();
+
+      // 2. Submit wrong current password -> rejected
+      const wrongParams = new URLSearchParams();
+      wrongParams.append('action', 'change_password');
+      wrongParams.append('csrf_token', csrfToken);
+      wrongParams.append('current_password', 'wrong_current_pass');
+      wrongParams.append('new_password', 'new_secure_pass123');
+      wrongParams.append('confirm_password', 'new_secure_pass123');
+
+      const wrongRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: wrongParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(wrongRes.status).toBe(200);
+      const wrongText = await wrongRes.text();
+      expect(wrongText).toContain('Password saat ini salah');
+
+      // 3. Submit valid change: admin123 -> temporary pass
+      const validParams = new URLSearchParams();
+      validParams.append('action', 'change_password');
+      validParams.append('csrf_token', csrfToken);
+      validParams.append('current_password', 'admin123');
+      validParams.append('new_password', 'admin123_updated');
+      validParams.append('confirm_password', 'admin123_updated');
+
+      const validRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: validParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(validRes.status).toBe(200);
+      const validText = await validRes.text();
+      expect(validText).toContain('Password berhasil diperbarui');
+
+      // 4. Revert password back to admin123 so other tests remain repeatable
+      const revertParams = new URLSearchParams();
+      revertParams.append('action', 'change_password');
+      revertParams.append('csrf_token', csrfToken);
+      revertParams.append('current_password', 'admin123_updated');
+      revertParams.append('new_password', 'admin123');
+      revertParams.append('confirm_password', 'admin123');
+
+      const revertRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: revertParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(revertRes.status).toBe(200);
+      const revertText = await revertRes.text();
+      expect(revertText).toContain('Password berhasil diperbarui');
     });
   });
 
