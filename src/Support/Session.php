@@ -11,12 +11,13 @@ class Session
     private static bool $started = false;
 
     /**
-     * Start session with hardened cookie settings.
+     * Start session with hardened cookie settings and enforce timeout lifecycle.
      */
     public static function start(): void
     {
         if (self::$started || session_status() === PHP_SESSION_ACTIVE) {
             self::$started = true;
+            self::checkTimeout();
             return;
         }
 
@@ -39,6 +40,34 @@ class Session
 
         session_start();
         self::$started = true;
+        self::checkTimeout();
+    }
+
+    /**
+     * Check inactivity and absolute timeout for authenticated sessions.
+     */
+    public static function checkTimeout(): void
+    {
+        if (!isset($_SESSION['admin_id'])) {
+            return;
+        }
+
+        $lifetimeMin = (int)($_ENV['SESSION_LIFETIME_MIN'] ?? 30);
+        $inactivityLimit = max(1, $lifetimeMin) * 60;
+        $absoluteLimit = 8 * 3600; // 8 hours absolute limit
+
+        $now = time();
+        $lastActivity = $_SESSION['last_activity'] ?? $now;
+        $createdTime = $_SESSION['created_time'] ?? $now;
+
+        if (($now - $lastActivity) > $inactivityLimit || ($now - $createdTime) > $absoluteLimit) {
+            self::destroy();
+            self::start();
+            $_SESSION['_flash']['error'] = 'Sesi Anda telah kedaluwarsa. Silakan masuk kembali.';
+            return;
+        }
+
+        $_SESSION['last_activity'] = $now;
     }
 
     /**
@@ -48,6 +77,10 @@ class Session
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
+            $_SESSION['last_activity'] = time();
+            if (!isset($_SESSION['created_time'])) {
+                $_SESSION['created_time'] = time();
+            }
         }
     }
 
