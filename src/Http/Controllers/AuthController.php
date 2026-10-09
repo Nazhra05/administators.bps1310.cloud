@@ -70,18 +70,12 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        $storedPassword = (string)$admin['password'];
-        $passwordValid = false;
-
-        // 1. Modern Bcrypt / Argon2 check
-        if (password_verify($password, $storedPassword)) {
-            $passwordValid = true;
-        }
-
-        // 2. Legacy SHA-256 check
-        if (!$passwordValid && hash_equals($storedPassword, hash('sha256', $password))) {
-            $passwordValid = true;
-        }
+        $passwordValid = \App\Services\PasswordService::verify(
+            $password,
+            (string)$admin['password'],
+            (int)$admin['id_admin'],
+            $this->db()
+        );
 
         if (!$passwordValid) {
             return $this->render('auth/login', [
@@ -135,13 +129,6 @@ class AuthController extends Controller
                 'headerSubtitle' => 'Silakan masuk ke akun admin Anda',
                 'error'          => 'Akun USER APP PORTAL tidak dapat login ke Dashboard Admin.',
             ], 'layouts/auth');
-        }
-
-        // Auto-upgrade legacy hash to Bcrypt
-        if (password_needs_rehash($storedPassword, PASSWORD_DEFAULT) || !password_verify($password, $storedPassword)) {
-            $newHash = password_hash($password, PASSWORD_DEFAULT);
-            $upStmt = $this->db()->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
-            $upStmt->execute([$newHash, (int)$admin['id_admin']]);
         }
 
         Session::regenerate();
@@ -259,9 +246,19 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
+        $policyError = \App\Services\PasswordService::validatePolicy($password, $username);
+        if ($policyError !== null) {
+            return $this->render('auth/register', [
+                'title'          => 'Daftar Akun',
+                'headerTitle'    => 'Pendaftaran Akun',
+                'headerSubtitle' => 'Buat akun untuk mengakses portal internal',
+                'error'          => $policyError,
+            ], 'layouts/auth');
+        }
+
         $token = bin2hex(random_bytes(32));
         $expires = date('Y-m-d H:i:s', time() + (24 * 60 * 60));
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $hashedPassword = \App\Services\PasswordService::hash($password);
 
         // Per GATE 1: Public registration is for portal User
         $insertStmt = $this->db()->prepare("
@@ -522,14 +519,15 @@ class AuthController extends Controller
             ], 'layouts/auth');
         }
 
-        if (strlen($password) < 6) {
+        $policyError = \App\Services\PasswordService::validatePolicy($password, $username);
+        if ($policyError !== null) {
             return $this->render('auth/setup_user', [
                 'title'          => 'Buat Akun User',
                 'headerTitle'    => 'Buat Akun User',
                 'headerSubtitle' => 'Silakan tentukan username dan password untuk portal',
                 'token'          => $token,
                 'email'          => $user['email'],
-                'error'          => 'Password minimal 6 karakter.',
+                'error'          => $policyError,
             ], 'layouts/auth');
         }
 
@@ -548,7 +546,7 @@ class AuthController extends Controller
         }
 
         // Hash with Bcrypt (BUG-004 fix)
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $hashedPassword = \App\Services\PasswordService::hash($password);
 
         $upStmt = $this->db()->prepare("
             UPDATE admin

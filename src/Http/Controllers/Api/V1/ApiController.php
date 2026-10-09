@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\PasswordService;
 use App\Support\Json;
 use PDO;
 
@@ -121,6 +122,7 @@ class ApiController extends Controller
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$user) {
+                PasswordService::dummyVerify();
                 return Json::error('unauthorized', 'Kredensial login tidak valid', 401);
             }
 
@@ -128,15 +130,12 @@ class ApiController extends Controller
                 return Json::error('forbidden', 'Akun belum disetujui atau masih pending', 403);
             }
 
-            $dbPassword = (string)($user['password'] ?? '');
-            $valid = false;
-            if ($dbPassword !== '') {
-                if (password_verify($password, $dbPassword)) {
-                    $valid = true;
-                } elseif (hash_equals(strtolower($dbPassword), strtolower(hash('sha256', $password)))) {
-                    $valid = true;
-                }
-            }
+            $valid = PasswordService::verify(
+                $password,
+                (string)($user['password'] ?? ''),
+                (int)$user['id_admin'],
+                $this->db()
+            );
 
             if (!$valid) {
                 return Json::error('unauthorized', 'Kredensial login tidak valid', 401);

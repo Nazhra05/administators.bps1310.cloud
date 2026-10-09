@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\PasswordService;
 use PDO;
 
 class PengaturanController extends Controller
@@ -63,11 +64,12 @@ class PengaturanController extends Controller
             ]);
         }
 
-        if (strlen($newPassword) < 8) {
+        $policyError = PasswordService::validatePolicy($newPassword, $admin['username'] ?? null);
+        if ($policyError !== null) {
             return $this->render('pengaturan/index', [
                 'title'       => 'Pengaturan Sistem',
                 'admin'       => $admin,
-                'error_msg'   => 'Password baru minimal 8 karakter.',
+                'error_msg'   => $policyError,
                 'success_msg' => '',
             ]);
         }
@@ -90,12 +92,7 @@ class PengaturanController extends Controller
             ]);
         }
 
-        $valid = false;
-        if (password_verify($currentPassword, (string)$admin['password'])) {
-            $valid = true;
-        } elseif (hash('sha256', $currentPassword) === $admin['password']) {
-            $valid = true;
-        }
+        $valid = PasswordService::verify($currentPassword, (string)$admin['password'], $adminId, $db);
 
         if (!$valid) {
             return $this->render('pengaturan/index', [
@@ -106,7 +103,7 @@ class PengaturanController extends Controller
             ]);
         }
 
-        $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $newHash = PasswordService::hash($newPassword);
         $stmtUpdate = $db->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
         $stmtUpdate->execute([$newHash, $adminId]);
 
