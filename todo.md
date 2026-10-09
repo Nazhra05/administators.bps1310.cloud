@@ -765,7 +765,7 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [7.13] feat(forms): implement per-field validation, double-click prevention, logo preview, and initials avatar fallback | per-field server errors, input retention, live logo preview, initials badge with onerror fallback, informative confirmations | 12d0568
 [2026-10-09] [7.14] feat(dashboard): implement accurate summary metrics, quick actions, and recent audit activity feed | 5 metric cards, quick actions toolbar, recent audit log feed, category filter, 6 unit tests green | 0eed780
 [2026-10-09] [7.15] feat(ux): improve accessibility, responsive tables, and sanitize error pages | connected form labels, sr-only utilities, skip-to-content landmark, sanitized 403/404/500 error views, unit tests green | 4c4facb
-[2026-10-09] [7.16] feat(layanan): implement CSV export, template download, and row-by-row validated CSV import | UTF-8 BOM CSV export, row-by-row validation with error reporting, audit logging, unit tests green | HEAD
+[2026-10-09] [7.16] feat(layanan): implement CSV export, template download, and row-by-row validated CSV import | UTF-8 BOM CSV export, row-by-row validation with error reporting, audit logging, unit tests green | f8ac83c
 ```
 
 ---
