@@ -421,8 +421,66 @@ describe('Functional Flow & Click-Path Characterization Tests (Task 2.4)', () =>
       expect(loginJson.data.username).toBe('user_portal_aktif');
     });
 
-    it.skip('BUG-006: Provide profile settings and password change form in pengaturan.php', async () => {
-      // In Fase 3, pengaturan.php will be upgraded with change password form
+    it('BUG-006: Provides change password form in pengaturan.php and safely updates password', async () => {
+      // 1. Authenticated admin fetches pengaturan.php
+      const pageRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`);
+      expect(pageRes.status).toBe(200);
+      const doc = parseHtml(await pageRes.text());
+      const csrfToken = extractCsrfToken(doc);
+      expect(csrfToken).toBeTruthy();
+      expect(doc.querySelector('input[name="current_password"]')).not.toBeNull();
+      expect(doc.querySelector('input[name="new_password"]')).not.toBeNull();
+
+      // 2. Submit wrong current password -> rejected
+      const wrongParams = new URLSearchParams();
+      wrongParams.append('action', 'change_password');
+      wrongParams.append('csrf_token', csrfToken);
+      wrongParams.append('current_password', 'wrong_current_pass');
+      wrongParams.append('new_password', 'new_secure_pass123');
+      wrongParams.append('confirm_password', 'new_secure_pass123');
+
+      const wrongRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: wrongParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(wrongRes.status).toBe(200);
+      const wrongText = await wrongRes.text();
+      expect(wrongText).toContain('Password saat ini salah');
+
+      // 3. Submit valid change: admin123 -> temporary pass
+      const validParams = new URLSearchParams();
+      validParams.append('action', 'change_password');
+      validParams.append('csrf_token', csrfToken);
+      validParams.append('current_password', 'admin123');
+      validParams.append('new_password', 'admin123_updated');
+      validParams.append('confirm_password', 'admin123_updated');
+
+      const validRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: validParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(validRes.status).toBe(200);
+      const validText = await validRes.text();
+      expect(validText).toContain('Password berhasil diperbarui');
+
+      // 4. Revert password back to admin123 so other tests remain repeatable
+      const revertParams = new URLSearchParams();
+      revertParams.append('action', 'change_password');
+      revertParams.append('csrf_token', csrfToken);
+      revertParams.append('current_password', 'admin123_updated');
+      revertParams.append('new_password', 'admin123');
+      revertParams.append('confirm_password', 'admin123');
+
+      const revertRes = await fetchWithSession(`${BASE_URL}/pengaturan.php`, {
+        method: 'POST',
+        body: revertParams,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      expect(revertRes.status).toBe(200);
+      const revertText = await revertRes.text();
+      expect(revertText).toContain('Password berhasil diperbarui');
     });
   });
 

@@ -3,9 +3,57 @@
 require_once '../config/auth.php';
 
 /* Username admin */
+$admin_id = auth_id();
 $admin_username = auth_username();
 $admin_role = auth_role();
 
+$error_msg = '';
+$success_msg = '';
+
+/* =========================
+   HANDLER UBAH PASSWORD
+========================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'change_password') {
+    if (!csrf_verify()) {
+        $error_msg = 'Token keamanan tidak valid atau telah kedaluwarsa.';
+    } else {
+        $current_password = $_POST['current_password'] ?? '';
+        $new_password = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            $error_msg = 'Semua kolom password wajib diisi.';
+        } elseif (strlen($new_password) < 8) {
+            $error_msg = 'Password baru minimal 8 karakter.';
+        } elseif ($new_password !== $confirm_password) {
+            $error_msg = 'Konfirmasi password baru tidak cocok.';
+        } else {
+            $stmtUser = $conn->prepare("SELECT password FROM admin WHERE id_admin = ? LIMIT 1");
+            $stmtUser->execute([$admin_id]);
+            $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+            if (!$userRow) {
+                $error_msg = 'Pengguna tidak ditemukan.';
+            } else {
+                $valid = false;
+                if (password_verify($current_password, $userRow['password'])) {
+                    $valid = true;
+                } elseif (hash('sha256', $current_password) === $userRow['password']) {
+                    $valid = true;
+                }
+
+                if (!$valid) {
+                    $error_msg = 'Password saat ini salah.';
+                } else {
+                    $newHash = password_hash($new_password, PASSWORD_BCRYPT);
+                    $stmtUpdate = $conn->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
+                    $stmtUpdate->execute([$newHash, $admin_id]);
+                    $success_msg = 'Password berhasil diperbarui.';
+                }
+            }
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -684,7 +732,7 @@ $admin_role = auth_role();
 
             <div class="info-item">
                 <span class="info-label">Database</span>
-                <span class="info-value">MySQL / MariaDB (bps_solsel)</span>
+                <span class="info-value">MariaDB / MySQL</span>
             </div>
 
             <div class="info-item">
@@ -696,6 +744,63 @@ $admin_role = auth_role();
                 <span class="info-label">Lingkungan</span>
                 <span class="info-value"><?= htmlspecialchars(defined('APP_ENV') ? APP_ENV : 'development'); ?></span>
             </div>
+
+        </div>
+
+
+        <!-- =========================
+             UBAH PASSWORD
+        ========================= -->
+
+        <div class="settings-card card">
+
+            <div class="settings-title">
+
+                <div class="settings-icon">
+                    🔑
+                </div>
+
+                <h2>
+                    Ubah Password
+                </h2>
+
+            </div>
+
+            <?php if (!empty($error_msg)): ?>
+                <div style="background: #fdecec; color: #b42318; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border: 1px solid #f5c2c0;">
+                    <?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($success_msg)): ?>
+                <div style="background: #e8f7ef; color: #176b45; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border: 1px solid #b9e3cd;">
+                    <?= htmlspecialchars($success_msg, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" action="pengaturan.php" style="display: flex; flex-direction: column; gap: 14px;">
+                <?= csrf_field(); ?>
+                <input type="hidden" name="action" value="change_password">
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Password Saat Ini</label>
+                    <input type="password" name="current_password" required minlength="6" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 14px;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Password Baru (Minimal 8 karakter)</label>
+                    <input type="password" name="new_password" required minlength="8" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 14px;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px;">Konfirmasi Password Baru</label>
+                    <input type="password" name="confirm_password" required minlength="8" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 14px;">
+                </div>
+
+                <button type="submit" style="padding: 10px 18px; background: #0066b3; color: white; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; align-self: flex-start; margin-top: 4px;">
+                    Simpan Password Baru
+                </button>
+            </form>
 
         </div>
 
