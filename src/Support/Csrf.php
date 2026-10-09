@@ -46,6 +46,7 @@ class Csrf
         if ($token === null) {
             $token = $_POST['csrf_token']
                 ?? $_SERVER['HTTP_X_CSRF_TOKEN']
+                ?? $_SERVER['HTTP_X_XSRF_TOKEN']
                 ?? '';
         }
 

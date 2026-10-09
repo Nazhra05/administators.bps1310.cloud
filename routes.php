@@ -22,17 +22,17 @@ Router::get('/index.php', [\App\Http\Controllers\DashboardController::class, 'in
 // -----------------------------------------------------------------------------
 Router::get('/login', [\App\Http\Controllers\AuthController::class, 'loginForm']);
 Router::get('/login.php', [\App\Http\Controllers\AuthController::class, 'loginForm']);
-Router::post('/login', [\App\Http\Controllers\AuthController::class, 'loginSubmit']);
-Router::post('/login.php', [\App\Http\Controllers\AuthController::class, 'loginSubmit']);
+Router::post('/login', [\App\Http\Controllers\AuthController::class, 'loginSubmit'], [VerifyCsrf::class]);
+Router::post('/login.php', [\App\Http\Controllers\AuthController::class, 'loginSubmit'], [VerifyCsrf::class]);
 
 Router::get('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 Router::get('/logout.php', [\App\Http\Controllers\AuthController::class, 'logout']);
-Router::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+Router::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'], [VerifyCsrf::class]);
 
 Router::get('/register', [\App\Http\Controllers\AuthController::class, 'registerForm']);
 Router::get('/register.php', [\App\Http\Controllers\AuthController::class, 'registerForm']);
-Router::post('/register', [\App\Http\Controllers\AuthController::class, 'registerSubmit']);
-Router::post('/register.php', [\App\Http\Controllers\AuthController::class, 'registerSubmit']);
+Router::post('/register', [\App\Http\Controllers\AuthController::class, 'registerSubmit'], [VerifyCsrf::class]);
+Router::post('/register.php', [\App\Http\Controllers\AuthController::class, 'registerSubmit'], [VerifyCsrf::class]);
 
 Router::get('/verify-email', [\App\Http\Controllers\AuthController::class, 'verifyEmail']);
 Router::get('/verify_email.php', [\App\Http\Controllers\AuthController::class, 'verifyEmail']);
@@ -42,8 +42,8 @@ Router::get('/verify_user.php', [\App\Http\Controllers\AuthController::class, 'v
 
 Router::get('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserForm']);
 Router::get('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserForm']);
-Router::post('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);
-Router::post('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit']);
+Router::post('/setup-user', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit'], [VerifyCsrf::class]);
+Router::post('/setup_user.php', [\App\Http\Controllers\AuthController::class, 'setupUserSubmit'], [VerifyCsrf::class]);
 
 // -----------------------------------------------------------------------------
 // Kategori Routes (Clean URLs & Backward Compatibility Aliases)
@@ -53,16 +53,16 @@ Router::get('/kategori.php', [\App\Http\Controllers\KategoriController::class, '
 
 Router::get('/kategori/tambah', [\App\Http\Controllers\KategoriController::class, 'create'], [RequireLogin::class]);
 Router::get('/tambah_kategori.php', [\App\Http\Controllers\KategoriController::class, 'create'], [RequireLogin::class]);
-Router::post('/kategori/tambah', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class]);
-Router::post('/tambah_kategori.php', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class]);
+Router::post('/kategori/tambah', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/tambah_kategori.php', [\App\Http\Controllers\KategoriController::class, 'store'], [RequireLogin::class, VerifyCsrf::class]);
 
 Router::get('/kategori/{id:\d+}/edit', [\App\Http\Controllers\KategoriController::class, 'edit'], [RequireLogin::class]);
 Router::get('/edit_kategori.php', [\App\Http\Controllers\KategoriController::class, 'edit'], [RequireLogin::class]);
-Router::post('/kategori/{id:\d+}/edit', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class]);
-Router::post('/edit_kategori.php', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class]);
+Router::post('/kategori/{id:\d+}/edit', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/edit_kategori.php', [\App\Http\Controllers\KategoriController::class, 'update'], [RequireLogin::class, VerifyCsrf::class]);
 
-Router::post('/kategori/{id:\d+}/hapus', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class]);
-Router::post('/hapus_kategori.php', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class]);
+Router::post('/kategori/{id:\d+}/hapus', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/hapus_kategori.php', [\App\Http\Controllers\KategoriController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
 Router::get('/hapus_kategori.php', function () {
     http_response_code(405);
     header('Allow: POST');
@@ -77,16 +77,16 @@ Router::get('/layanan.php', [\App\Http\Controllers\LayananController::class, 'in
 
 Router::get('/layanan/tambah', [\App\Http\Controllers\LayananController::class, 'create'], [RequireLogin::class]);
 Router::get('/tambah_layanan.php', [\App\Http\Controllers\LayananController::class, 'create'], [RequireLogin::class]);
-Router::post('/layanan/tambah', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class]);
-Router::post('/tambah_layanan.php', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class]);
+Router::post('/layanan/tambah', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/tambah_layanan.php', [\App\Http\Controllers\LayananController::class, 'store'], [RequireLogin::class, VerifyCsrf::class]);
 
 Router::get('/layanan/{id:\d+}/edit', [\App\Http\Controllers\LayananController::class, 'edit'], [RequireLogin::class]);
 Router::get('/edit_layanan.php', [\App\Http\Controllers\LayananController::class, 'edit'], [RequireLogin::class]);
-Router::post('/layanan/{id:\d+}/edit', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class]);
-Router::post('/edit_layanan.php', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class]);
+Router::post('/layanan/{id:\d+}/edit', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/edit_layanan.php', [\App\Http\Controllers\LayananController::class, 'update'], [RequireLogin::class, VerifyCsrf::class]);
 
-Router::post('/layanan/{id:\d+}/hapus', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class]);
-Router::post('/hapus_layanan.php', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class]);
+Router::post('/layanan/{id:\d+}/hapus', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/hapus_layanan.php', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
 Router::get('/hapus_layanan.php', function () {
     http_response_code(405);
     header('Allow: POST');
@@ -98,21 +98,21 @@ Router::get('/hapus_layanan.php', function () {
 // -----------------------------------------------------------------------------
 Router::get('/admin', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
 Router::get('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'manageAdmin'], [RequireLogin::class]);
-Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class]);
-Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class]);
+Router::post('/admin/action', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/kelola_admin.php', [\App\Http\Controllers\AdminController::class, 'actionAdmin'], [RequireLogin::class, VerifyCsrf::class]);
 
 Router::get('/admin/users', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
 Router::get('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'manageUser'], [RequireLogin::class]);
-Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class]);
-Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class]);
+Router::post('/admin/users', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/kelola_user.php', [\App\Http\Controllers\AdminController::class, 'inviteUser'], [RequireLogin::class, VerifyCsrf::class]);
 
 // -----------------------------------------------------------------------------
 // Pengaturan / Settings Routes (Clean URLs & Backward Compatibility Aliases)
 // -----------------------------------------------------------------------------
 Router::get('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
 Router::get('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'index'], [RequireLogin::class]);
-Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
-Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class]);
+Router::post('/pengaturan', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class, VerifyCsrf::class]);
+Router::post('/pengaturan.php', [\App\Http\Controllers\PengaturanController::class, 'changePassword'], [RequireLogin::class, VerifyCsrf::class]);
 
 // -----------------------------------------------------------------------------
 // Legacy API Compatibility Routes (For App B)
