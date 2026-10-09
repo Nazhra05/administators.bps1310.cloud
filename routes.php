@@ -90,6 +90,9 @@ Router::post('/layanan/{id:\d+}/hapus', [\App\Http\Controllers\LayananController
 Router::post('/hapus_layanan.php', [\App\Http\Controllers\LayananController::class, 'destroy'], [RequireLogin::class, VerifyCsrf::class]);
 Router::post('/layanan/{id:\d+}/status', [\App\Http\Controllers\LayananController::class, 'updateStatus'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
 Router::post('/layanan/status', [\App\Http\Controllers\LayananController::class, 'updateStatus'], [RequireLogin::class, new RequireRole(['ADMIN IT']), VerifyCsrf::class]);
+Router::get('/layanan/export', [\App\Http\Controllers\LayananController::class, 'exportCsv'], [RequireLogin::class]);
+Router::get('/layanan/template-csv', [\App\Http\Controllers\LayananController::class, 'downloadTemplateCsv'], [RequireLogin::class]);
+Router::post('/layanan/import', [\App\Http\Controllers\LayananController::class, 'importCsv'], [RequireLogin::class, VerifyCsrf::class]);
 Router::get('/hapus_layanan.php', function () {
     http_response_code(405);
     header('Allow: POST');

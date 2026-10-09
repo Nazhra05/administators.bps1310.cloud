@@ -31,13 +31,62 @@ $sortUrl = function(string $column) use ($sort, $order): string {
         <h1 style="font-size: 1.5rem; color: #0f172a; font-weight: 700; margin: 0;">Manage Link - Kelola Layanan</h1>
         <p style="color: #64748b; font-size: 0.9rem; margin: 4px 0 0 0;">Daftar seluruh tautan layanan dan portal internal BPS Kabupaten Solok Selatan</p>
     </div>
-    <div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <a href="<?= e(url('/layanan/export')) ?>" class="btn-export"
+           style="background: #f1f5f9; color: #334155; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cbd5e1;">
+            <span>📥</span>
+            <span>Ekspor CSV</span>
+        </a>
+        <button type="button" onclick="document.getElementById('cardImportLayanan').style.display = document.getElementById('cardImportLayanan').style.display === 'none' ? 'block' : 'none';"
+                style="background: #f1f5f9; color: #334155; padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cbd5e1; cursor: pointer;">
+            <span>📤</span>
+            <span>Impor CSV</span>
+        </button>
         <a href="<?= e(url('/tambah_layanan.php')) ?>" class="btn-add"
            style="background: #2563eb; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(37,99,235,0.2);">
             <span>+</span>
             <span>Tambah Layanan</span>
         </a>
     </div>
+</div>
+
+<!-- Card Impor CSV Layanan (Task 7.16) -->
+<div id="cardImportLayanan" class="card" style="display: none; margin-bottom: 24px; border-left: 4px solid #2563eb;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <h2 style="font-size: 1.1rem; color: #1e293b; font-weight: 700; margin: 0;">Impor Data Layanan dari CSV</h2>
+            <p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0 0;">
+                Unggah berkas CSV untuk menambahkan banyak layanan sekaligus dengan validasi otomatis per baris.
+            </p>
+        </div>
+        <a href="<?= e(url('/layanan/template-csv')) ?>" style="color: #2563eb; font-size: 0.85rem; font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+            <span>📄</span> Unduh Template CSV
+        </a>
+    </div>
+
+    <form method="POST" action="<?= e(url('/layanan/import')) ?>" enctype="multipart/form-data" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="import_csv">
+
+        <div style="flex: 1; min-width: 260px;">
+            <label for="csv_file_layanan" style="display: block; font-weight: 600; font-size: 0.85rem; color: #334155; margin-bottom: 6px;">
+                Pilih Berkas CSV
+            </label>
+            <input type="file" id="csv_file_layanan" name="csv_file" accept=".csv,text/csv" required
+                   style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem; background: white;">
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+            <button type="submit" data-loading-text="Mengimpor Layanan..."
+                    style="background: #16a34a; color: white; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                Unggah & Impor
+            </button>
+            <button type="button" onclick="document.getElementById('cardImportLayanan').style.display = 'none';"
+                    style="background: #e2e8f0; color: #475569; border: none; padding: 9px 14px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                Tutup
+            </button>
+        </div>
+    </form>
 </div>
 
 <div class="card">

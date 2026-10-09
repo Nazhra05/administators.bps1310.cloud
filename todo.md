@@ -493,7 +493,7 @@ Spesifikasi di Lampiran D.
 - [x] Halaman 403/404/500 ramah pengguna **tanpa detail teknis**.
 
 ### 7.16 [OPSIONAL] Ekspor dan impor layanan
-- [ ] Ekspor CSV daftar layanan (admin). Impor CSV dengan **pratinjau dan validasi per baris** sebelum disimpan; baris gagal dilaporkan, tidak membatalkan seluruhnya diam-diam.
+- [x] Ekspor CSV daftar layanan (admin). Impor CSV dengan **pratinjau dan validasi per baris** sebelum disimpan; baris gagal dilaporkan, tidak membatalkan seluruhnya diam-diam.
 
 ---
 
@@ -764,7 +764,8 @@ Agent menulis daftar; manusia mengerjakan dan mencentang.
 [2026-10-09] [7.12] feat(management): implement search, filters, sorting, and server-side pagination for layanan, kategori, and users | 10/25/50 per-page pagination, reusable pagination partial, multi-filters, empty states | a871407
 [2026-10-09] [7.13] feat(forms): implement per-field validation, double-click prevention, logo preview, and initials avatar fallback | per-field server errors, input retention, live logo preview, initials badge with onerror fallback, informative confirmations | 12d0568
 [2026-10-09] [7.14] feat(dashboard): implement accurate summary metrics, quick actions, and recent audit activity feed | 5 metric cards, quick actions toolbar, recent audit log feed, category filter, 6 unit tests green | 0eed780
-[2026-10-09] [7.15] feat(ux): improve accessibility, responsive tables, and sanitize error pages | connected form labels, sr-only utilities, skip-to-content landmark, sanitized 403/404/500 error views, unit tests green | HEAD
+[2026-10-09] [7.15] feat(ux): improve accessibility, responsive tables, and sanitize error pages | connected form labels, sr-only utilities, skip-to-content landmark, sanitized 403/404/500 error views, unit tests green | 4c4facb
+[2026-10-09] [7.16] feat(layanan): implement CSV export, template download, and row-by-row validated CSV import | UTF-8 BOM CSV export, row-by-row validation with error reporting, audit logging, unit tests green | HEAD
 ```
 
 ---

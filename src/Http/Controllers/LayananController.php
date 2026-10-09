@@ -16,6 +16,19 @@ class LayananController extends Controller
      */
     public function index(): string
     {
+        if (($_GET['action'] ?? '') === 'export') {
+            $this->exportCsv();
+            return '';
+        }
+        if (($_GET['action'] ?? '') === 'template_csv') {
+            $this->downloadTemplateCsv();
+            return '';
+        }
+        if (($_POST['action'] ?? '') === 'import_csv') {
+            $this->importCsv();
+            return '';
+        }
+
         $db = $this->db();
 
         // 1. Parameter Filter
@@ -782,4 +795,256 @@ class LayananController extends Controller
 
         return ['filename' => $newFilename, 'error' => null];
     }
+
+    /**
+     * Ekspor CSV daftar layanan (Task 7.16)
+     */
+    public function exportCsv(): void
+    {
+        $db = $this->db();
+        $stmt = $db->query("
+            SELECT l.id_layanan, l.nama_layanan, k.nama_kategori, l.url, l.akses, l.vpn, l.status,
+                   l.deskripsi_layanan, l.search_aliases
+            FROM layanan l
+            LEFT JOIN kategori k ON l.id_kategori = k.id_kategori
+            WHERE l.status != 'archived'
+            ORDER BY l.id_layanan ASC
+        ");
+        $rows = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="layanan_bps_solsel_' . date('Y-m-d') . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        if ($output !== false) {
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['ID', 'Nama Layanan', 'Kategori', 'URL', 'Akses', 'VPN', 'Status', 'Deskripsi', 'Aliases']);
+            foreach ($rows as $r) {
+                fputcsv($output, [
+                    $r['id_layanan'],
+                    $r['nama_layanan'],
+                    $r['nama_kategori'] ?? '',
+                    $r['url'],
+                    $r['akses'],
+                    $r['vpn'],
+                    $r['status'],
+                    $r['deskripsi_layanan'],
+                    $r['search_aliases'] ?? '',
+                ]);
+            }
+            fclose($output);
+        }
+        exit;
+    }
+
+    /**
+     * Unduh template CSV untuk impor layanan (Task 7.16)
+     */
+    public function downloadTemplateCsv(): void
+    {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="template_impor_layanan.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        if ($output !== false) {
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['nama_layanan', 'kategori', 'url', 'akses', 'vpn', 'deskripsi_layanan', 'search_aliases']);
+            fputcsv($output, ['SIMPEG BPS', 'Sosial Kependudukan', 'https://simpeg.bps.go.id', 'Internal', 'Yes', 'Sistem Informasi Kepegawaian', 'kepegawaian, sdm, cuti']);
+            fputcsv($output, ['Portal Publik BPS', 'Sosial Kependudukan', 'https://solokselatankab.bps.go.id', 'Public', 'No', 'Website resmi BPS Kabupaten Solok Selatan', 'bps, data statistik']);
+            fclose($output);
+        }
+        exit;
+    }
+
+    /**
+     * Impor CSV daftar layanan dengan validasi baris per baris (Task 7.16)
+     */
+    public function importCsv(): void
+    {
+        if (!csrf_verify()) {
+            flash('error', 'Sesi keamanan tidak valid atau telah kedaluwarsa.');
+            $this->redirect('layanan.php');
+        }
+
+        if (empty($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            flash('error', 'Silakan pilih file CSV yang valid untuk diunggah.');
+            $this->redirect('layanan.php');
+        }
+
+        $file = $_FILES['csv_file'];
+        $tmpName = (string)$file['tmp_name'];
+        $fileName = (string)$file['name'];
+
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            flash('error', 'Hanya berkas berformat .csv yang diperbolehkan.');
+            $this->redirect('layanan.php');
+        }
+
+        if (($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash('error', 'Ukuran file CSV maksimal 2 MB.');
+            $this->redirect('layanan.php');
+        }
+
+        $handle = fopen($tmpName, 'r');
+        if ($handle === false) {
+            flash('error', 'Gagal membaca berkas CSV.');
+            $this->redirect('layanan.php');
+        }
+
+        $firstLine = fgets($handle);
+        if ($firstLine === false) {
+            fclose($handle);
+            flash('error', 'Berkas CSV kosong.');
+            $this->redirect('layanan.php');
+        }
+        $delimiter = str_contains($firstLine, ';') ? ';' : ',';
+        rewind($handle);
+
+        $header = fgetcsv($handle, 0, $delimiter);
+        if ($header === false || empty($header)) {
+            fclose($handle);
+            flash('error', 'Header berkas CSV tidak terbaca.');
+            $this->redirect('layanan.php');
+        }
+
+        $headerMap = [];
+        foreach ($header as $idx => $colName) {
+            $normalized = strtolower(trim((string)$colName));
+            $normalized = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $normalized) ?? $normalized;
+            $headerMap[$normalized] = $idx;
+        }
+
+        $namaIdx = $headerMap['nama_layanan'] ?? $headerMap['nama'] ?? null;
+        $kategoriIdx = $headerMap['kategori'] ?? $headerMap['id_kategori'] ?? null;
+        $urlIdx = $headerMap['url'] ?? $headerMap['link'] ?? null;
+        $aksesIdx = $headerMap['akses'] ?? null;
+        $vpnIdx = $headerMap['vpn'] ?? null;
+        $deskripsiIdx = $headerMap['deskripsi_layanan'] ?? $headerMap['deskripsi'] ?? null;
+        $aliasesIdx = $headerMap['search_aliases'] ?? $headerMap['aliases'] ?? null;
+
+        if ($namaIdx === null || $kategoriIdx === null || $urlIdx === null) {
+            fclose($handle);
+            flash('error', 'Format header CSV wajib memuat minimal kolom: nama_layanan, kategori, url.');
+            $this->redirect('layanan.php');
+        }
+
+        $db = $this->db();
+        // Preload active categories
+        $stmtCats = $db->query("SELECT id_kategori, nama_kategori FROM kategori WHERE is_active = 1");
+        $categoriesList = $stmtCats ? $stmtCats->fetchAll(PDO::FETCH_ASSOC) : [];
+        $categoryLookup = [];
+        foreach ($categoriesList as $c) {
+            $categoryLookup[strtolower(trim($c['nama_kategori']))] = (int)$c['id_kategori'];
+            $categoryLookup[(string)$c['id_kategori']] = (int)$c['id_kategori'];
+        }
+
+        $user = $this->user();
+        $userRole = (string)($user['role'] ?? '');
+        $defaultStatus = ($userRole === 'ADMIN IT') ? 'published' : 'pending';
+
+        $lineNum = 1;
+        $importedCount = 0;
+        $failedRows = [];
+
+        $stmtInsert = $db->prepare("
+            INSERT INTO layanan (id_kategori, nama_layanan, deskripsi_layanan, url, akses, vpn, status, search_aliases, unit_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ");
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $lineNum++;
+
+            if (empty(array_filter($row, fn($val) => trim((string)$val) !== ''))) {
+                continue;
+            }
+
+            $nama = trim((string)($row[$namaIdx] ?? ''));
+            $kategoriRaw = trim((string)($row[$kategoriIdx] ?? ''));
+            $url = trim((string)($row[$urlIdx] ?? ''));
+            $akses = ucfirst(strtolower(trim((string)($row[$aksesIdx] ?? 'Public'))));
+            $vpn = ucfirst(strtolower(trim((string)($row[$vpnIdx] ?? 'No'))));
+            $deskripsi = trim((string)($row[$deskripsiIdx] ?? $nama));
+            $aliasesRaw = trim((string)($row[$aliasesIdx] ?? ''));
+
+            if ($nama === '') {
+                $failedRows[] = "Baris {$lineNum}: Nama layanan kosong";
+                continue;
+            }
+
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                $failedRows[] = "Baris {$lineNum} ({$nama}): URL tidak valid ('{$url}')";
+                continue;
+            }
+
+            $catKey = strtolower($kategoriRaw);
+            if (!isset($categoryLookup[$catKey])) {
+                $failedRows[] = "Baris {$lineNum} ({$nama}): Kategori '{$kategoriRaw}' tidak ditemukan";
+                continue;
+            }
+            $kategoriId = $categoryLookup[$catKey];
+
+            if ($akses !== 'Public' && $akses !== 'Internal') {
+                $akses = 'Public';
+            }
+
+            if ($vpn !== 'Yes' && $vpn !== 'No') {
+                $vpn = 'No';
+            }
+
+            $normalizedAliases = null;
+            if ($aliasesRaw !== '') {
+                $parts = array_map('trim', explode(',', $aliasesRaw));
+                $parts = array_map('strtolower', $parts);
+                $parts = array_unique(array_filter($parts, fn($p) => $p !== ''));
+                $normalizedAliases = implode(', ', $parts);
+            }
+
+            try {
+                $stmtInsert->execute([
+                    $kategoriId,
+                    $nama,
+                    $deskripsi,
+                    $url,
+                    $akses,
+                    $vpn,
+                    $defaultStatus,
+                    $normalizedAliases,
+                    $user['unit_id'] ?? null,
+                ]);
+                $importedCount++;
+            } catch (\Throwable $e) {
+                $failedRows[] = "Baris {$lineNum} ({$nama}): " . $e->getMessage();
+            }
+        }
+
+        fclose($handle);
+
+        if ($importedCount > 0) {
+            audit_log('import_csv', 'layanan', null, [
+                'imported' => $importedCount,
+                'failed'   => count($failedRows),
+            ]);
+        }
+
+        if (empty($failedRows)) {
+            flash('success', "Berhasil mengimpor {$importedCount} data layanan dari CSV.");
+        } elseif ($importedCount > 0) {
+            $errPreview = implode('; ', array_slice($failedRows, 0, 3));
+            if (count($failedRows) > 3) {
+                $errPreview .= ' (dan ' . (count($failedRows) - 3) . ' baris lainnya)';
+            }
+            flash('warning', "Berhasil mengimpor {$importedCount} layanan. " . count($failedRows) . " baris gagal/dilewati: {$errPreview}");
+        } else {
+            $errPreview = implode('; ', array_slice($failedRows, 0, 4));
+            flash('error', "Gagal mengimpor layanan. Terjadi kesalahan pada seluruh baris: {$errPreview}");
+        }
+
+        $this->redirect('layanan.php');
+    }
 }
+
