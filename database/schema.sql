@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `admin` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `role` enum('ADMIN','USER') NOT NULL DEFAULT 'USER',
   `email_verified` tinyint(1) NOT NULL DEFAULT 0,
   `verification_token` varchar(64) DEFAULT NULL,
   `verification_expires` datetime DEFAULT NULL,
@@ -48,11 +49,17 @@ CREATE TABLE IF NOT EXISTS `kategori` (
 CREATE TABLE IF NOT EXISTS `layanan` (
   `id_layanan` int(11) NOT NULL AUTO_INCREMENT,
   `id_kategori` int(11) NOT NULL,
+  `created_by` int(11) DEFAULT 1,
+  `akses` enum('Internal','Public','Private') NOT NULL DEFAULT 'Public',
+  `vpn` enum('Yes','No') NOT NULL DEFAULT 'No',
   `nama_layanan` varchar(200) NOT NULL,
+  `deskripsi_layanan` text DEFAULT NULL,
   `url` varchar(500) DEFAULT NULL,
   `logo` varchar(255) DEFAULT NULL,
+  `keyword` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_layanan`),
   KEY `fk_layanan_kategori` (`id_kategori`),
+  KEY `idx_layanan_created_by` (`created_by`),
   CONSTRAINT `fk_layanan_kategori` FOREIGN KEY (`id_kategori`) 
     REFERENCES `kategori` (`id_kategori`) 
     ON DELETE RESTRICT ON UPDATE CASCADE
@@ -99,3 +106,56 @@ INSERT IGNORE INTO `admin` (
   1,
   NOW()
 );
+
+-- --------------------------------------------------------
+-- Table structure for table `user_favorites`
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_favorites` (
+  `id_favorite` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL,
+  `id_layanan` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_favorite`),
+  UNIQUE KEY `idx_user_layanan` (`id_user`, `id_layanan`),
+  KEY `fk_fav_user` (`id_user`),
+  KEY `fk_fav_layanan` (`id_layanan`),
+  CONSTRAINT `fk_fav_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_fav_layanan` FOREIGN KEY (`id_layanan`) REFERENCES `layanan` (`id_layanan`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `user_links`
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_links` (
+  `id_link` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL,
+  `nama_website` varchar(200) NOT NULL,
+  `url_website` varchar(500) NOT NULL,
+  `deskripsi` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_link`),
+  KEY `idx_link_user` (`id_user`),
+  CONSTRAINT `fk_link_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `user_data_links`
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `user_data_links` (
+  `id_data_link` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL,
+  `nama_dokumen` varchar(200) NOT NULL,
+  `url_dokumen` varchar(500) NOT NULL,
+  `jenis_dokumen` varchar(50) NOT NULL DEFAULT 'Lainnya',
+  `deskripsi` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_data_link`),
+  KEY `idx_data_link_user` (`id_user`),
+  CONSTRAINT `fk_data_link_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

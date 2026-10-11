@@ -9,6 +9,10 @@
   "devDependencies": {
     "@vitest/ui": "^5.0.2",
     "happy-dom": "^20.14.5",
+    "vite": "^8.3.4",
     "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "lucide": "^1.55.0"
   }
 }
