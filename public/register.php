@@ -1,8 +1,7 @@
 <?php
 
-require_once '../config/config.php';
-require_once 'send_verification_email.php';
-require_once 'send_admin_notification.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../app/services/mail_service.php';
 
 $error = '';
 $success = '';
@@ -10,238 +9,248 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!csrf_verify()) {
+
         $error = 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang halaman.';
+
     } else {
+
         $firstName = trim($_POST['first_name'] ?? '');
-    $lastName = trim($_POST['last_name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    $agreeToTerms = isset($_POST['agree_to_terms']);
+        $lastName = trim($_POST['last_name'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        $agreeToTerms = isset($_POST['agree_to_terms']);
 
-
-    /* =========================
-       VALIDASI
-    ========================= */
-
-    if (
-        $firstName === '' ||
-        $lastName === '' ||
-        $username === '' ||
-        $email === '' ||
-        $password === '' ||
-        $confirmPassword === ''
-    ) {
-
-        $error = 'Semua data wajib diisi.';
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $error = 'Format email tidak valid.';
-
-    } elseif ($password !== $confirmPassword) {
-
-        $error = 'Konfirmasi password tidak cocok.';
-
-    } elseif (strlen($password) < 6) {
-
-        $error = 'Password minimal 6 karakter.';
-
-    } elseif (!$agreeToTerms) {
-
-        $error = 'Anda harus menyetujui Terms & Conditions.';
-
-    } else {
 
         /* =========================
-           CEK USERNAME / EMAIL
+           VALIDASI
         ========================= */
 
-        $stmt = $conn->prepare("
-            SELECT id_admin
-            FROM admin
-            WHERE username = ? OR email = ?
-            LIMIT 1
-        ");
+        if (
+            $firstName === '' ||
+            $lastName === '' ||
+            $username === '' ||
+            $email === '' ||
+            $password === '' ||
+            $confirmPassword === ''
+        ) {
 
-        $stmt->execute([
-            $username,
-            $email
-        ]);
+            $error = 'Semua data wajib diisi.';
 
-        $existingAdmin = $stmt->fetch(PDO::FETCH_ASSOC);
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
+            $error = 'Format email tidak valid.';
 
-        if ($existingAdmin) {
+        } elseif ($password !== $confirmPassword) {
 
-            $error = 'Username atau email sudah terdaftar.';
+            $error = 'Konfirmasi password tidak cocok.';
+
+        } elseif (strlen($password) < 6) {
+
+            $error = 'Password minimal 6 karakter.';
+
+        } elseif (!$agreeToTerms) {
+
+            $error = 'Anda harus menyetujui Terms & Conditions.';
 
         } else {
 
             /* =========================
-               TOKEN VERIFIKASI
+               CEK USERNAME / EMAIL
             ========================= */
 
-            $verificationToken = bin2hex(
-                random_bytes(32)
-            );
+            $stmt = $conn->prepare("
+                SELECT id_admin
+                FROM admin
+                WHERE username = ? OR email = ?
+                LIMIT 1
+            ");
 
-            $verificationExpires = date(
-                'Y-m-d H:i:s',
-                time() + (24 * 60 * 60)
-            );
+            $stmt->execute([
+                $username,
+                $email
+            ]);
 
-
-            /*
-             * Sementara menggunakan SHA-256
-             * agar kompatibel dengan login.php
-             */
-
-            $hashedPassword = hash(
-                'sha256',
-                $password
-            );
+            $existingAdmin = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
-            try {
+            if ($existingAdmin) {
+
+                $error = 'Username atau email sudah terdaftar.';
+
+            } else {
 
                 /* =========================
-                   MULAI TRANSAKSI
+                   TOKEN VERIFIKASI
                 ========================= */
 
-                $conn->beginTransaction();
+                $verificationToken = bin2hex(
+                    random_bytes(32)
+                );
 
-
-                /* =========================
-                   SIMPAN DATA
-                ========================= */
-
-                $stmt = $conn->prepare("
-                    INSERT INTO admin (
-                        first_name,
-                        last_name,
-                        username,
-                        email,
-                        password,
-                        status,
-                        email_verified,
-                        verification_token,
-                        verification_expires
-                    )
-                    VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
-                ");
-
-                $stmt->execute([
-                    $firstName,
-                    $lastName,
-                    $username,
-                    $email,
-                    $hashedPassword,
-                    $verificationToken,
-                    $verificationExpires
-                ]);
-
-
-                /* =========================
-                   KIRIM EMAIL VERIFIKASI
-                ========================= */
-
-                $emailSent = sendVerificationEmail(
-                    $email,
-                    $firstName,
-                    $verificationToken
+                $verificationExpires = date(
+                    'Y-m-d H:i:s',
+                    time() + (24 * 60 * 60)
                 );
 
 
-                /* =========================
-                   CEK HASIL EMAIL VERIFIKASI
-                ========================= */
+                /*
+                 * Sementara menggunakan SHA-256
+                 * agar kompatibel dengan login.php
+                 */
 
-                if (!$emailSent) {
+                $hashedPassword = hash(
+                    'sha256',
+                    $password
+                );
 
-                    $conn->rollBack();
 
-                    $error = '
-                        Pendaftaran gagal karena email verifikasi
-                        tidak dapat dikirim. Silakan coba lagi.
-                    ';
+                try {
 
-                } else {
+                    /* =========================
+                       MULAI TRANSAKSI
+                    ========================= */
 
-                    /*
-                     * Email verifikasi berhasil dikirim.
-                     *
-                     * Data pendaftaran disimpan permanen
-                     * terlebih dahulu.
-                     */
-
-                    $conn->commit();
+                    $conn->beginTransaction();
 
 
                     /* =========================
-                       KIRIM NOTIFIKASI
-                       KE ADMIN UTAMA
+                       SIMPAN DATA
                     ========================= */
 
-                    $adminNotificationSent =
-                        sendAdminRegistrationNotification(
-                            $firstName,
-                            $lastName,
-                            $username,
-                            $email
-                        );
+                    $stmt = $conn->prepare("
+                        INSERT INTO admin (
+                            first_name,
+                            last_name,
+                            username,
+                            email,
+                            password,
+                            status,
+                            role,
+                            email_verified,
+                            verification_token,
+                            verification_expires
+                        )
+                        VALUES (
+                            ?, ?, ?, ?, ?,
+                            'pending',
+                            'USER',
+                            0,
+                            ?, ?
+                        )
+                    ");
+
+                    $stmt->execute([
+                        $firstName,
+                        $lastName,
+                        $username,
+                        $email,
+                        $hashedPassword,
+                        $verificationToken,
+                        $verificationExpires
+                    ]);
 
 
-                    /*
-                     * Jika notifikasi admin gagal,
-                     * pendaftaran TETAP berhasil.
-                     *
-                     * Kegagalan dicatat ke log
-                     * untuk pengecekan lebih lanjut.
-                     */
+                    /* =========================
+                       KIRIM EMAIL VERIFIKASI
+                    ========================= */
 
-                    if (!$adminNotificationSent) {
+                    $emailSent = sendVerificationEmail(
+                        $email,
+                        $firstName,
+                        $verificationToken
+                    );
 
-                        error_log(
-                            'Notifikasi admin gagal dikirim untuk pendaftaran: '
-                            . $username
-                        );
+
+                    /* =========================
+                       CEK HASIL EMAIL VERIFIKASI
+                    ========================= */
+
+                    if (!$emailSent) {
+
+                        $conn->rollBack();
+
+                        $error = '
+                            Pendaftaran gagal karena email verifikasi
+                            tidak dapat dikirim. Silakan coba lagi.
+                        ';
+
+                    } else {
+
+                        /*
+                         * Email verifikasi berhasil dikirim.
+                         *
+                         * Data pendaftaran disimpan permanen
+                         * terlebih dahulu.
+                         */
+
+                        $conn->commit();
+
+
+                        /* =========================
+                           KIRIM NOTIFIKASI
+                           KE ADMIN
+                        ========================= */
+
+                        $adminNotificationSent =
+                            sendAdminRegistrationNotification(
+                                $firstName,
+                                $lastName,
+                                $username,
+                                $email
+                            );
+
+
+                        /*
+                         * Jika notifikasi admin gagal,
+                         * pendaftaran TETAP berhasil.
+                         *
+                         * Kegagalan dicatat ke log
+                         * untuk pengecekan lebih lanjut.
+                         */
+
+                        if (!$adminNotificationSent) {
+
+                            error_log(
+                                'Notifikasi admin gagal dikirim untuk pendaftaran: '
+                                . $username
+                            );
+                        }
+
+
+                        /* =========================
+                           PESAN SUKSES
+                        ========================= */
+
+                        $success = '
+                            <strong>Pendaftaran berhasil!</strong><br><br>
+                            Email verifikasi sudah dikirim.<br>
+                            <strong>Silakan cek Inbox atau folder Spam/Junk.</strong>
+                        ';
                     }
 
+                } catch (Exception $e) {
 
-                    /* =========================
-                       PESAN SUKSES
-                    ========================= */
+                    if ($conn->inTransaction()) {
 
-                    $success = '
-    <strong>Pendaftaran berhasil!</strong><br><br>
-    Email verifikasi sudah dikirim.<br>
-    <strong>Silakan cek Inbox atau folder Spam/Junk.</strong>
-';
+                        $conn->rollBack();
+
+                    }
+
+                    $error = '
+                        Terjadi kesalahan saat proses pendaftaran.
+                        Silakan coba lagi.
+                    ';
+
+                    error_log(
+                        'Register error: '
+                        . $e->getMessage()
+                    );
                 }
-
-            } catch (Exception $e) {
-
-                if ($conn->inTransaction()) {
-
-                    $conn->rollBack();
-
-                }
-
-                $error = '
-                    Terjadi kesalahan saat proses pendaftaran.
-                    Silakan coba lagi.
-                ';
-
-                error_log(
-                    'Register error: '
-                    . $e->getMessage()
-                );
             }
         }
     }
-}
 }
 
 ?>
@@ -651,7 +660,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         <form method="POST">
+
             <?= csrf_field(); ?>
+
 
             <!-- NAME -->
 
@@ -805,10 +816,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 >
 
                 <label for="agree_to_terms">
+
                     I agree to the
+
                     <a href="#" onclick="return false;">
                         Terms & Conditions
                     </a>
+
                 </label>
 
             </div>

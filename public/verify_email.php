@@ -32,6 +32,9 @@ if ($token === '') {
     $stmt = $conn->prepare("
         SELECT
             id_admin,
+            username,
+            role,
+            password,
             email_verified,
             verification_expires
         FROM admin
@@ -64,6 +67,9 @@ if ($token === '') {
             'Email Anda sudah berhasil diverifikasi.';
 
         $type = 'success';
+        if (empty($admin['password'])) {
+            $needsSetup = true;
+        }
 
 
     /* =================================================
@@ -99,8 +105,16 @@ if ($token === '') {
         ]);
 
 
-        $message =
-            'Email berhasil diverifikasi! Akun Anda sekarang menunggu persetujuan administrator.';
+        if (empty($admin['password'])) {
+            $needsSetup = true;
+            $isAdminRole = (strtoupper(trim($admin['role'] ?? '')) === 'ADMIN');
+            $message = $isAdminRole
+                ? 'Email administrator berhasil diverifikasi! Silakan lanjutkan untuk membuat username dan password admin.'
+                : 'Email berhasil diverifikasi! Silakan lanjutkan untuk membuat username dan password akun Anda.';
+        } else {
+            $message =
+                'Email akun Pengguna (User) berhasil diverifikasi! Akun Anda sekarang menunggu persetujuan administrator di menu Kelola User.';
+        }
 
         $type = 'success';
     }
@@ -341,12 +355,25 @@ if ($token === '') {
 
         <!-- BUTTON -->
 
-        <a
-            href="login.php"
-            class="btn"
-        >
-            Kembali ke Login
-        </a>
+        <?php if (!empty($needsSetup) && !empty($admin['id_admin'])): ?>
+
+            <a
+                href="setup_user.php?id=<?= (int) $admin['id_admin']; ?>"
+                class="btn"
+            >
+                Buat Username & Password
+            </a>
+
+        <?php else: ?>
+
+            <a
+                href="login.php"
+                class="btn"
+            >
+                Kembali ke Login
+            </a>
+
+        <?php endif; ?>
 
 
         <!-- FOOTER -->
