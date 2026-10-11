@@ -6,29 +6,85 @@ header('Content-Type: application/json; charset=utf-8');
 
 
 /* =====================================================
+   FUNGSI RESPONSE JSON
+===================================================== */
+
+function responseJson(
+    $status,
+    $message,
+    $data = null,
+    $httpCode = 200
+) {
+
+    http_response_code($httpCode);
+
+    echo json_encode(
+        [
+            'status'  => $status,
+            'message' => $message,
+            'data'    => $data
+        ],
+        JSON_UNESCAPED_UNICODE |
+        JSON_UNESCAPED_SLASHES
+    );
+
+    exit;
+}
+
+
+/* =====================================================
    CORS
 ===================================================== */
 
-$envOrigins = array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', ''))));
-$allowedOrigins = array_unique(array_merge([
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-], $envOrigins));
+$envOrigins = array_filter(
+    array_map(
+        'trim',
+        explode(
+            ',',
+            env('CORS_ALLOWED_ORIGINS', '')
+        )
+    )
+);
+
+
+$allowedOrigins = array_unique(
+    array_merge(
+        [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ],
+        $envOrigins
+    )
+);
+
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-if (in_array($origin, $allowedOrigins, true)) {
 
-    header("Access-Control-Allow-Origin: $origin");
+if (
+    $origin !== '' &&
+    in_array(
+        $origin,
+        $allowedOrigins,
+        true
+    )
+) {
+
+    header(
+        "Access-Control-Allow-Origin: {$origin}"
+    );
+
     header('Vary: Origin');
 }
 
 
 /* =====================================================
-   ALLOW HEADER
+   HEADER YANG DIIZINKAN
 ===================================================== */
 
-header('Access-Control-Allow-Methods: GET, OPTIONS');
+header(
+    'Access-Control-Allow-Methods: GET, OPTIONS'
+);
 
 header(
     'Access-Control-Allow-Headers: Content-Type, X-API-KEY'
@@ -39,7 +95,9 @@ header(
    PREFLIGHT REQUEST
 ===================================================== */
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS'
+) {
 
     http_response_code(204);
 
@@ -51,17 +109,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
    CEK METHOD
 ===================================================== */
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET'
+) {
 
-    http_response_code(405);
-
-    echo json_encode([
-        'status' => false,
-        'message' => 'Method tidak diperbolehkan',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
+    responseJson(
+        false,
+        'Method tidak diperbolehkan',
+        null,
+        405
+    );
 }
 
 
@@ -69,23 +126,53 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
    CEK API KEY
 ===================================================== */
 
-$clientApiKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
+$clientApiKey =
+    $_SERVER['HTTP_X_API_KEY'] ?? '';
+
+
+if ($clientApiKey === '') {
+
+    responseJson(
+        false,
+        'API key wajib dikirim',
+        null,
+        401
+    );
+}
+
+
+/* =====================================================
+   CEK API KEY SERVER
+===================================================== */
+
+if (!defined('API_KEY') || API_KEY === '') {
+
+    responseJson(
+        false,
+        'API key server belum dikonfigurasi',
+        null,
+        500
+    );
+}
+
+
+/* =====================================================
+   VALIDASI API KEY
+===================================================== */
 
 if (
-    !defined('API_KEY') ||
-    $clientApiKey === '' ||
-    !hash_equals(API_KEY, $clientApiKey)
+    !hash_equals(
+        API_KEY,
+        $clientApiKey
+    )
 ) {
 
-    http_response_code(401);
-
-    echo json_encode([
-        'status' => false,
-        'message' => 'Akses API tidak diizinkan',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
+    responseJson(
+        false,
+        'API key tidak valid',
+        null,
+        401
+    );
 }
 
 
@@ -104,30 +191,59 @@ try {
         ORDER BY id_kategori ASC
     ";
 
+
     $stmt = $conn->prepare($sql);
+
     $stmt->execute();
 
-    $kategori = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $kategori =
+        $stmt->fetchAll(
+            PDO::FETCH_ASSOC
+        );
 
 
     /* =================================================
-       RESPONSE
+       FORMAT DATA
     ================================================= */
 
-    echo json_encode([
-        'status' => true,
-        'message' => 'Data kategori berhasil diambil',
-        'data' => $kategori
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    foreach ($kategori as &$item) {
+
+        $item['id_kategori'] =
+            (int) $item['id_kategori'];
+
+        $item['nama_kategori'] =
+            $item['nama_kategori'] ?? '';
+
+        $item['deskripsi'] =
+            $item['deskripsi'] ?? '';
+    }
+
+    unset($item);
+
+
+    /* =================================================
+       RESPONSE BERHASIL
+    ================================================= */
+
+    responseJson(
+        true,
+        'Data kategori berhasil diambil',
+        $kategori,
+        200
+    );
 
 
 } catch (PDOException $e) {
 
-    http_response_code(500);
+    /* =================================================
+       RESPONSE ERROR DATABASE
+    ================================================= */
 
-    echo json_encode([
-        'status' => false,
-        'message' => 'Terjadi kesalahan pada server',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
+    responseJson(
+        false,
+        'Terjadi kesalahan pada server',
+        null,
+        500
+    );
 }

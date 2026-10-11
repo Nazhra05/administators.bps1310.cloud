@@ -1,122 +1,196 @@
 <?php
 
-require_once '../../config/config.php';
+require_once __DIR__ . '/../../config/config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
 
-// =====================================================
-// CORS
-// =====================================================
+/* =====================================================
+   FUNGSI RESPONSE JSON
+===================================================== */
 
-$envOrigins = array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', ''))));
-$allowedOrigins = array_unique(array_merge([
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-], $envOrigins));
+function responseJson(
+    $status,
+    $message,
+    $data = null,
+    $httpCode = 200
+) {
+
+    http_response_code($httpCode);
+
+    echo json_encode(
+        [
+            'status'  => $status,
+            'message' => $message,
+            'data'    => $data
+        ],
+        JSON_UNESCAPED_UNICODE |
+        JSON_UNESCAPED_SLASHES
+    );
+
+    exit;
+}
+
+
+/* =====================================================
+   CORS
+===================================================== */
+
+$envOrigins = array_filter(
+    array_map(
+        'trim',
+        explode(
+            ',',
+            env('CORS_ALLOWED_ORIGINS', '')
+        )
+    )
+);
+
+
+$allowedOrigins = array_unique(
+    array_merge(
+        [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ],
+        $envOrigins
+    )
+);
+
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-if (in_array($origin, $allowedOrigins, true)) {
-    header("Access-Control-Allow-Origin: $origin");
+
+if (
+    $origin !== '' &&
+    in_array(
+        $origin,
+        $allowedOrigins,
+        true
+    )
+) {
+
+    header(
+        "Access-Control-Allow-Origin: {$origin}"
+    );
+
     header('Vary: Origin');
 }
 
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-API-KEY');
+
+header(
+    'Access-Control-Allow-Methods: GET, OPTIONS'
+);
+
+header(
+    'Access-Control-Allow-Headers: Content-Type, X-API-KEY'
+);
 
 
-// =====================================================
-// HANDLE OPTIONS / CORS PREFLIGHT
-// =====================================================
+/* =====================================================
+   PREFLIGHT
+===================================================== */
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS'
+) {
+
     http_response_code(204);
+
     exit;
 }
 
 
-// =====================================================
-// CEK API KEY
-// =====================================================
+/* =====================================================
+   CEK METHOD
+===================================================== */
 
-$clientApiKey = $_SERVER['HTTP_X_API_KEY'] ?? '';
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET'
+) {
+
+    responseJson(
+        false,
+        'Method tidak diperbolehkan',
+        null,
+        405
+    );
+}
+
+
+/* =====================================================
+   CEK API KEY
+===================================================== */
+
+$clientApiKey =
+    $_SERVER['HTTP_X_API_KEY'] ?? '';
+
 
 if ($clientApiKey === '') {
 
-    http_response_code(401);
-
-    echo json_encode([
-        'status' => false,
-        'message' => 'API key wajib dikirim',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
+    responseJson(
+        false,
+        'API key wajib dikirim',
+        null,
+        401
+    );
 }
 
 
-if (!defined('API_KEY')) {
+/* =====================================================
+   CEK API KEY SERVER
+===================================================== */
 
-    http_response_code(500);
+if (
+    !defined('API_KEY') ||
+    API_KEY === ''
+) {
 
-    echo json_encode([
-        'status' => false,
-        'message' => 'API key server belum dikonfigurasi',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
+    responseJson(
+        false,
+        'API key server belum dikonfigurasi',
+        null,
+        500
+    );
 }
 
 
-if (!hash_equals(API_KEY, $clientApiKey)) {
+/* =====================================================
+   VALIDASI API KEY
+===================================================== */
 
-    http_response_code(401);
+if (
+    !hash_equals(
+        API_KEY,
+        $clientApiKey
+    )
+) {
 
-    echo json_encode([
-        'status' => false,
-        'message' => 'API key tidak valid',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
+    responseJson(
+        false,
+        'API key tidak valid',
+        null,
+        401
+    );
 }
 
 
-// =====================================================
-// HANYA GET
-// =====================================================
+/* =====================================================
+   NORMALISASI URL
+===================================================== */
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-
-    http_response_code(405);
-
-    echo json_encode([
-        'status' => false,
-        'message' => 'Method tidak diperbolehkan',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
-}
-
-
-// =====================================================
-// FUNGSI NORMALISASI URL
-// =====================================================
-
-function normalizeUrl($url)
+function normalizeWebsiteUrl($url)
 {
     $url = trim((string) $url);
 
-    // Kalau URL kosong, tetap kosong
+
     if ($url === '') {
         return '';
     }
 
+
     /*
-     * Mengubah URL Markdown:
+     * Contoh:
      *
      * [https://contoh.com](https://contoh.com)
      *
@@ -132,16 +206,18 @@ function normalizeUrl($url)
             $matches
         )
     ) {
+
         return trim($matches[2]);
     }
+
 
     return $url;
 }
 
 
-// =====================================================
-// DESKRIPSI KATEGORI
-// =====================================================
+/* =====================================================
+   DESKRIPSI KATEGORI
+===================================================== */
 
 $deskripsiKategori = [
 
@@ -168,9 +244,9 @@ $deskripsiKategori = [
 ];
 
 
-// =====================================================
-// URUTAN 7 KATEGORI
-// =====================================================
+/* =====================================================
+   URUTAN KATEGORI
+===================================================== */
 
 $urutanKategori = [
     'Distribusi',
@@ -185,14 +261,16 @@ $urutanKategori = [
 
 try {
 
-    // =================================================
-    // AMBIL DATA LAYANAN
-    // =================================================
+    /* =================================================
+       AMBIL DATA LAYANAN
+    ================================================= */
 
     $sql = "
         SELECT
             l.id_layanan,
             l.id_kategori,
+            l.akses,
+            l.vpn,
             l.nama_layanan,
             l.url,
             l.logo,
@@ -205,89 +283,141 @@ try {
             l.id_layanan ASC
     ";
 
+
     $stmt = $conn->prepare($sql);
+
     $stmt->execute();
 
-    $layanan = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $layanan =
+        $stmt->fetchAll(
+            PDO::FETCH_ASSOC
+        );
 
 
-    // =================================================
-    // SIAPKAN 7 KATEGORI
-    // =================================================
+    /* =================================================
+       SIAPKAN 7 KATEGORI
+    ================================================= */
 
     $kategoriData = [];
 
-    foreach ($urutanKategori as $namaKategori) {
+
+    foreach (
+        $urutanKategori
+        as $namaKategori
+    ) {
 
         $kategoriData[$namaKategori] = [
-            'title' => $namaKategori,
-            'category' => $namaKategori,
-            'description' => $deskripsiKategori[$namaKategori] ?? '',
-            'links' => []
+
+            'title' =>
+                $namaKategori,
+
+            'category' =>
+                $namaKategori,
+
+            'description' =>
+                $deskripsiKategori[$namaKategori] ?? '',
+
+            'links' =>
+                []
         ];
     }
 
 
-    // =================================================
-    // MASUKKAN LAYANAN KE KATEGORI
-    // =================================================
+    /* =================================================
+       MASUKKAN LAYANAN KE KATEGORI
+    ================================================= */
 
-    foreach ($layanan as $item) {
+    foreach (
+        $layanan
+        as $item
+    ) {
 
-        $namaKategori = $item['nama_kategori'];
+        $namaKategori =
+            $item['nama_kategori'] ?? '';
 
-        // Abaikan kategori yang tidak termasuk 7 kategori utama
-        if (!isset($kategoriData[$namaKategori])) {
+
+        /*
+         * Abaikan kategori di luar
+         * 7 kategori utama.
+         */
+
+        if (
+            !isset(
+                $kategoriData[$namaKategori]
+            )
+        ) {
+
             continue;
         }
 
 
-        // ---------------------------------------------
-        // NORMALISASI URL
-        // ---------------------------------------------
+        /* =============================================
+           NORMALISASI URL
+        ============================================= */
 
-        $href = normalizeUrl($item['url'] ?? '');
+        $href =
+            normalizeWebsiteUrl(
+                $item['url'] ?? ''
+            );
 
 
-        // ---------------------------------------------
-        // MASUKKAN DATA
-        // ---------------------------------------------
+        /* =============================================
+           TAMBAHKAN LINK
+        ============================================= */
 
         $kategoriData[$namaKategori]['links'][] = [
-            'label' => $item['nama_layanan'],
-            'href' => $href,
-            'logo' => $item['logo'],
-            'id_layanan' => (int) $item['id_layanan']
+
+            'label' =>
+                $item['nama_layanan'] ?? '',
+
+            'href' =>
+                $href,
+
+            'logo' =>
+                $item['logo'] ?? '',
+
+            'id_layanan' =>
+                (int) (
+                    $item['id_layanan'] ?? 0
+                ),
+
+            'akses' =>
+                $item['akses'] ?? 'Public',
+
+            'vpn' =>
+                $item['vpn'] ?? 'No'
         ];
     }
 
 
-    // =================================================
-    // UBAH ASSOCIATIVE ARRAY MENJADI ARRAY BIASA
-    // =================================================
+    /* =================================================
+       UBAH ASSOCIATIVE ARRAY KE ARRAY BIASA
+    ================================================= */
 
-    $data = array_values($kategoriData);
+    $data =
+        array_values(
+            $kategoriData
+        );
 
 
-    // =================================================
-    // RESPONSE
-    // =================================================
+    /* =================================================
+       RESPONSE
+    ================================================= */
 
-    echo json_encode([
-        'status' => true,
-        'message' => 'Data website berhasil diambil',
-        'data' => $data
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    responseJson(
+        true,
+        'Data website berhasil diambil',
+        $data
+    );
 
 
 } catch (PDOException $e) {
 
-    http_response_code(500);
-
-    echo json_encode([
-        'status' => false,
-        'message' => 'Terjadi kesalahan pada server',
-        'data' => null
-    ], JSON_UNESCAPED_UNICODE);
-
+    responseJson(
+        false,
+        'Terjadi kesalahan pada server',
+        null,
+        500
+    );
 }
