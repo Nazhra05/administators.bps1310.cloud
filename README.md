@@ -9,46 +9,54 @@ Dashboard administrasi berbasis web untuk pengelolaan katalog layanan, kategori 
 ```text
 administators.bps1310.cloud/
 ├── app/
-│   └── models/
-│       └── Layanan.php          # Model data layanan
+│   └── services/
+│       ├── mail_service.php     # Layanan pengiriman email transaksi terpusat
+│       └── user_repo_service.php# Layanan repositori privat pegawai
 ├── config/
 │   ├── .htaccess                # Proteksi akses langsung web server
-│   ├── auth.php                 # Middleware otentikasi admin
-│   └── config.php               # Konfigurasi sistem, environment loader & PDO
+│   ├── auth.php                 # Middleware otentikasi & RBAC
+│   ├── config.php               # Konfigurasi sistem, environment loader & PDO
+│   └── user_repo.php            # Proxy kompatibilitas repositori privat
 ├── database/
 │   ├── bps_solsel.sql           # Database dump produksi (data lengkap kategori, layanan & admin)
 │   └── schema.sql               # Skema DDL struktur database & template seed awal
 ├── PHPMailer/                   # Library pengiriman email notifikasi & verifikasi
 ├── public/
 │   ├── api/
+│   │   ├── auth/loginPortal.php # REST API otentikasi login untuk App B
 │   │   ├── kategori.php         # REST API endpoint kategori (CORS & Key protected)
 │   │   ├── layanan.php          # REST API endpoint layanan CRUD
+│   │   ├── user_repo.php        # REST API repositori privat pegawai
 │   │   └── website.php          # REST API endpoint struktur website publik
+│   ├── css/
+│   │   └── style.css            # Token desain sistem dan kelas utilitas terpusat
+│   ├── partials/
+│   │   ├── account_dropdown.php # Dropdown profil & logout pengguna
+│   │   ├── navbar.php           # Sidebar navigasi bersama terpadu berbasis peran
+│   │   └── sidebar_user.php     # Proxy kompatibilitas navigasi peran pengguna
 │   ├── uploads/
 │   │   ├── .gitkeep
 │   │   ├── .htaccess            # Blokir eksekusi script PHP di folder upload
 │   │   └── logo_bps.jpg         # Logo resmi BPS
-│   ├── edit_kategori.php
-│   ├── edit_layanan.php
-│   ├── hapus_kategori.php
-│   ├── hapus_layanan.php
-│   ├── index.php                # Dashboard utama admin
-│   ├── kategori.php             # Halaman daftar kategori
-│   ├── kelola_admin.php         # Manajemen persetujuan pendaftaran admin baru
-│   ├── layanan.php              # Halaman kelola layanan
-│   ├── login.php                # Autentikasi akun admin
+│   ├── index.php                # Dashboard utama (Admin & User)
+│   ├── kategori.php             # Halaman & modal kelola kategori
+│   ├── kelola_admin.php         # Manajemen administrator (undangan admin baru, aktivasi)
+│   ├── kelola_user.php          # Manajemen pengguna (persetujuan registrasi pegawai, status user)
+│   ├── layanan.php              # Halaman & modal kelola layanan
+│   ├── login.php                # Autentikasi akun pengguna & admin
 │   ├── logout.php               # Pembersihan sesi aman
-│   ├── pengaturan.php           # Informasi sistem
-│   ├── register.php             # Pendaftaran admin baru
-│   ├── send_admin_notification.php
-│   ├── send_verification_email.php
-│   ├── test_api.php             # Alat uji endpoint API
-│   ├── trending-topics.php      # Endpoint JSON trending topics untuk landing page
-│   └── verify_email.php         # Verifikasi token email pendaftar
+│   ├── pengaturan.php           # Pengaturan profil dan keamanan akun
+│   ├── register.php             # Pendaftaran mandiri pegawai (role USER)
+│   ├── repositori_portal.php    # Repositori portal layanan
+│   ├── repositori_private.php   # Repositori koleksi privat pegawai
+│   ├── setup_user.php           # Pengaturan akun administrator baru
+│   ├── switch_role.php          # Pergantian peran dinamis administrator
+│   ├── verify_email.php         # Verifikasi token email pendaftar
+│   └── verify_user.php          # Verifikasi token email administrator baru
 ├── scripts/
 │   ├── .htaccess                # Proteksi folder cron/script dari web
-│   ├── .env.example             # Template env untuk cron script
-│   └── generate-topics.php      # Generator trending topics harian (Google Gemini AI)
+│   └── test_api.php             # Alat uji endpoint API internal
+├── tests/                       # Suite pengujian otomatis berbasis Vitest
 ├── .env.example                 # Template environment variables (aman untuk commit)
 ├── .gitignore                   # Aturan pengabaian file sensitif / rahasia Git
 ├── .htaccess                    # Pengamanan direktori root, MIME, dan HTTP headers
@@ -164,12 +172,3 @@ DB_PASS=PasswordKuatAnda123!
 API_URL=https://administators.bps1310.cloud/api/layanan.php
 ```
 
-### 4. Konfigurasi Cron Job untuk Trending Topics AI
-Jalankan generator trending topics otomatis setiap hari jam 06:00 pagi:
-```bash
-crontab -e
-```
-Tambahkan baris berikut:
-```cron
-0 6 * * * /usr/bin/php /var/www/administators.bps1310.cloud/scripts/generate-topics.php >> /var/www/administators.bps1310.cloud/scripts/generate-topics.log 2>&1
-```
