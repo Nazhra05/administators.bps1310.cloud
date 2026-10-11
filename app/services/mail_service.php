@@ -49,6 +49,7 @@ if (!function_exists('createMailClient')) {
     {
         $mail = new PHPMailer(true);
         $mail->isSMTP();
+        $mail->Timeout    = 5;
         $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USERNAME;

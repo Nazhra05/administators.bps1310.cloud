@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { execSync } from 'node:child_process';
 
 const BASE_URL = 'http://localhost/Dashboard_Admin/public';
 const API_KEY = 'Hashtag_1310SolokSelatan_PortalInternal_dan_DashboardAdmin_V1_BPSSolokSelatan_KotoTinggi';
@@ -270,6 +271,99 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
       expect(res.status).toBe(401);
       const json = await res.json();
       expect(json.success).toBe(false);
+    });
+  });
+
+  describe('6. Endpoint /api/auth/registerPortal.php Contract', () => {
+    let testRegisteredId = null;
+    const testRegUser = `reg_portal_${Date.now()}`;
+    const testRegEmail = `${testRegUser}@bps.go.id`;
+
+    afterAll(() => {
+      if (testRegisteredId) {
+        try {
+          execSync('php', {
+            input: `<?php require 'config/config.php'; \$conn->query("DELETE FROM admin WHERE id_admin = ${testRegisteredId}");`
+          });
+        } catch {}
+      }
+    });
+
+    it('menolak permintaan registrasi tanpa header X-API-KEY dengan HTTP 401', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/registerPortal.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: 'Test',
+          username: testRegUser,
+          email: testRegEmail,
+          password: 'Password123#'
+        })
+      });
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.status).toBe(false);
+    });
+
+    it('menolak payload tidak lengkap dengan HTTP 400', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/registerPortal.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': API_KEY
+        },
+        body: JSON.stringify({
+          first_name: '',
+          email: 'invalid-email'
+        })
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.status).toBe(false);
+    });
+
+    it('berhasil mendaftarkan user baru via registerPortal.php dengan role USER dan status pending (HTTP 201)', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/registerPortal.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': API_KEY
+        },
+        body: JSON.stringify({
+          first_name: 'Budi',
+          last_name: 'Santoso',
+          username: testRegUser,
+          email: testRegEmail,
+          password: 'PasswordBPS2026#'
+        })
+      });
+      expect(res.status).toBe(201);
+      const json = await res.json();
+      expect(json.status).toBe(true);
+      expect(json.data.username).toBe(testRegUser);
+      expect(json.data.role).toBe('USER');
+      expect(json.data.status).toBe('pending');
+      testRegisteredId = json.data.id_admin;
+      expect(testRegisteredId).toBeGreaterThan(0);
+    }, 30000);
+
+    it('menolak pendaftaran username/email yang sudah terdaftar dengan HTTP 409', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/registerPortal.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': API_KEY
+        },
+        body: JSON.stringify({
+          first_name: 'Budi Duplikat',
+          username: testRegUser,
+          email: testRegEmail,
+          password: 'PasswordBPS2026#'
+        })
+      });
+      expect(res.status).toBe(409);
+      const json = await res.json();
+      expect(json.status).toBe(false);
     });
   });
 });
