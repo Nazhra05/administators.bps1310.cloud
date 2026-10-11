@@ -957,6 +957,20 @@ if (!in_array($current_tab, $valid_tabs, true)) {
         </div>
     <?php endif; ?>
 
+    <!-- PEMBERITAHUAN MIGRASI KE PORTAL PEGAWAI (NEXT.JS) -->
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 22px;">💡</span>
+            <div>
+                <strong style="font-size: 13px; color: #1e3a8a;">Ruang Kerja Pegawai Terintegrasi:</strong>
+                <p style="margin: 2px 0 0; font-size: 12px; color: #1d4ed8;">Repositori pribadi pegawai kini dapat diakses dan dikelola langsung pada Portal Digital BPS Solok Selatan (landing page) tanpa perlu membuka dashboard ini.</p>
+            </div>
+        </div>
+        <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" style="background: #005AA9; color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <span>Buka Portal Pegawai</span> &rarr;
+        </a>
+    </div>
+
     <!-- OVERVIEW CATEGORY CARDS (2 KOLOM SESUAI DESAIN USER) -->
     <div class="cat-overview-grid">
         <!-- 1. Favorite -->

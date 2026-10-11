@@ -127,10 +127,10 @@ describe('USER Role Requirements & Isolation', () => {
     const categoryCards = doc.querySelectorAll('.kategori-card');
     expect(categoryCards.length).toBe(7);
 
-    // Sidebar has the 3 menus
+    // Sidebar has Kelola Repositori Portal (Repositori Private dialihkan ke Portal Pegawai)
     const menuLinks = Array.from(doc.querySelectorAll('.sidebar .menu li a')).map(a => a.textContent.trim());
     expect(menuLinks.some(t => t.includes('Kelola Repositori Portal'))).toBe(true);
-    expect(menuLinks.some(t => t.includes('Kelola Repositori Private'))).toBe(true);
+    expect(menuLinks.some(t => t.includes('Kelola Repositori Private'))).toBe(false);
   });
 
   it('5. USER can add service via Kelola Repositori Portal, stored with created_by = user_id', async () => {
@@ -388,7 +388,7 @@ describe('USER Role Requirements & Isolation', () => {
     const menuLinks = Array.from(doc.querySelectorAll('.sidebar .menu li a')).map(a => a.textContent.trim());
 
     expect(menuLinks.some(t => t.includes('Kelola Repositori Portal'))).toBe(true);
-    expect(menuLinks.some(t => t.includes('Kelola Repositori Private'))).toBe(true);
+    expect(menuLinks.some(t => t.includes('Kelola Repositori Private'))).toBe(false);
 
     // 2. Admin can access repositori_private.php and repositori_portal.php
     const privRes = await adminClient.fetch(`${BASE_URL}/repositori_private.php`);

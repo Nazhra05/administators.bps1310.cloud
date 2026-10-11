@@ -154,4 +154,12 @@ Dokumen pelacak tugas (*task tracking*) pengembangan, penyelarasan fitur, dan pe
 - [x] Menghapus dependensi usang `auth.php` dari `app/services/user_repo_service.php` agar dapat dipanggil secara modular tanpa pembatasan sesi
 - [x] Menambahkan skenario uji otomatis kontrak API repositori privat pada `tests/app_b_api_contract.test.js` (10 berkas uji, 95 skenario uji 100% lulus)
 
+## 19. Dekopling antarmuka repositori private dan pemusatan ruang kerja pegawai di App B
+
+- [x] Menghapus menu navigasi "Kelola Repositori Private" dari sidebar `public/partials/navbar.php` guna mengeliminasi redundansi visual pada back-office
+- [x] Menambahkan banner notifikasi arsitektur terintegrasi pada `public/repositori_private.php` yang mengarahkan pegawai langsung ke portal satu pintu (Next.js)
+- [x] Mempertahankan tabel basis data MySQL dan modul REST API (`user_repo_service.php` dan `public/api/user_repo.php`) sebagai mesin headless backend
+- [x] Memperbarui pengujian otomatis pada `tests/user_role.test.js` untuk memastikan sidebar admin maupun user bersih dari redundansi menu repositori private (10 berkas uji, 95 tes 100% lulus)
+
+
 

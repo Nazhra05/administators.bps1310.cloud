@@ -53,13 +53,6 @@ $active_nav = $active_nav ?? '';
         </li>
 
         <li>
-            <a href="repositori_private.php" class="<?= ($active_nav === 'repositori_private' || $active_nav === 'private') ? 'active' : ''; ?>" title="Kelola Repositori Private">
-                <?= render_icon('folder-lock', 'ui-icon', 18); ?>
-                <span class="nav-text">Kelola Repositori Private</span>
-            </a>
-        </li>
-
-        <li>
             <a href="kategori.php" class="<?= ($active_nav === 'kategori') ? 'active' : ''; ?>" title="Kategori">
                 <?= render_icon('tags', 'ui-icon', 18); ?>
                 <span class="nav-text">Kategori</span>
