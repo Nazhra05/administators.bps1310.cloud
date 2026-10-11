@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { Window } from 'happy-dom';
 
-const BASE_URL = 'http://localhost/administators.bps1310.cloud/public';
-const API_KEY = 'BPS_SOLSEL_API_2026_GANTI_DENGAN_KEY_RAHASIA';
+const BASE_URL = 'http://localhost/Dashboard_Admin/public';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
+const API_KEY = 'Hashtag_1310SolokSelatan_PortalInternal_dan_DashboardAdmin_V1_BPSSolokSelatan_KotoTinggi';
 
 function parseHtml(html) {
   const window = new Window();
@@ -21,7 +22,8 @@ async function fetchWithSession(url, options = {}) {
   const response = await fetch(url, { ...options, headers, redirect: 'manual' });
   const setCookie = response.headers.get('set-cookie');
   if (setCookie) {
-    sessionCookie = setCookie.split(';')[0];
+    const cookies = setCookie.split(/,\s*(?=[a-zA-Z0-9_]+=)/);
+    sessionCookie = cookies[cookies.length - 1].split(';')[0];
   }
   return response;
 }
@@ -116,7 +118,7 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
     const params = new URLSearchParams();
     params.append('csrf_token', csrfToken);
     params.append('username', 'admin');
-    params.append('password', 'admin123');
+    params.append('password', ADMIN_PASSWORD);
 
     const res = await fetchWithSession(`${BASE_URL}/login.php`, {
       method: 'POST',
@@ -138,7 +140,7 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
     const params = new URLSearchParams();
     params.append('csrf_token', csrfToken);
     params.append('username', 'admin@bps1310.cloud');
-    params.append('password', 'admin123');
+    params.append('password', ADMIN_PASSWORD);
 
     const res = await fetchWithSession(`${BASE_URL}/login.php`, {
       method: 'POST',
@@ -302,7 +304,7 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
     const doc = parseHtml(await res.text());
     expect(doc.querySelector('.header h1')?.textContent).toContain('Pengaturan');
 
-    const cardText = doc.querySelector('.card')?.textContent || '';
+    const cardText = (doc.querySelector('.card') || doc.querySelector('.settings-card'))?.textContent || '';
     expect(cardText).toContain('Nama Sistem');
     expect(cardText).toContain('Dashboard Admin BPS Kabupaten Solok Selatan');
     expect(cardText).toContain('Database');
@@ -373,8 +375,31 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
     expect(successData.data.length).toBeGreaterThan(0);
   });
 
-  // 20. LOGOUT FLOW
-  it('20. User logs out and is cleanly redirected to login.php', async () => {
+  // 20. MODERN COLLAPSIBLE SIDEBAR TOGGLE
+  it('20. Unified Collapsible Sidebar Header has modern toggle button, removes BPS text logo, and contains collapse/expand SVGs', async () => {
+    const res = await fetchWithSession(`${BASE_URL}/index.php`);
+    expect(res.status).toBe(200);
+    const doc = parseHtml(await res.text());
+
+    // Sidebar logo and title
+    const logoContainer = doc.querySelector('.sidebar .logo');
+    expect(logoContainer).not.toBeNull();
+    expect(doc.querySelector('.sidebar .logo .logo-full')).not.toBeNull();
+
+    // BPS text logo is completely removed
+    const logoMini = doc.querySelector('.sidebar .logo .logo-mini');
+    expect(logoMini).toBeNull();
+
+    // Modern toggle button inside sidebar header
+    const toggleBtn = doc.querySelector('.sidebar .logo #sidebarHeaderToggle');
+    expect(toggleBtn).not.toBeNull();
+    expect(toggleBtn.getAttribute('onclick')).toBe('toggleSidebar()');
+    expect(toggleBtn.querySelector('.toggle-icon-collapse')).not.toBeNull();
+    expect(toggleBtn.querySelector('.toggle-icon-expand')).not.toBeNull();
+  });
+
+  // 21. LOGOUT FLOW
+  it('21. User logs out and is cleanly redirected to login.php', async () => {
     const res = await fetchWithSession(`${BASE_URL}/logout.php`);
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('login.php');

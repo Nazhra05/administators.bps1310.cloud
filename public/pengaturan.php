@@ -2,9 +2,19 @@
 
 require_once '../config/config.php';
 require_once '../config/auth.php';
+require_once __DIR__ . '/partials/icons.php';
+
+if (empty($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$is_real_admin = is_admin_user();
+$active_role = auth_active_role();
 
 /* Username admin */
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_role = $active_role;
 
 ?>
 
@@ -17,6 +27,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Pengaturan - BPS Solok Selatan</title>
+    <link rel="stylesheet" href="css/style.css">
 
     <style>
 
@@ -27,7 +38,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Segoe UI", Arial, sans-serif;
             background: #f4f8fc;
             color: #333;
         }
@@ -47,7 +58,13 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             padding: 25px 15px;
             z-index: 9999;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+
+            transform: translateX(-100%);
             transition: transform 0.3s ease;
+        }
+
+        .sidebar.sidebar-open {
+            transform: translateX(0);
         }
 
         .logo {
@@ -72,6 +89,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             padding: 12px 15px;
             border-radius: 8px;
             transition: 0.2s ease;
+            font-size: 16px;
         }
 
         .menu a:hover {
@@ -85,26 +103,11 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             font-weight: bold;
         }
 
-        /* =========================
-           MOBILE MENU BUTTON
-        ========================= */
 
-        .menu-toggle {
-            display: none;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            width: 44px;
-            height: 44px;
-            border: none;
-            border-radius: 8px;
-            background: #0066b3;
-            color: white;
-            font-size: 23px;
-            cursor: pointer;
-            z-index: 10001;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-        }
+
+        /* =========================
+           SIDEBAR OVERLAY
+        ========================= */
 
         .sidebar-overlay {
             display: none;
@@ -123,9 +126,14 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         ========================= */
 
         .main {
-            margin-left: 240px;
+            margin-left: 0;
             padding: 30px;
             min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main.sidebar-open {
+            margin-left: 240px;
         }
 
         /* =========================
@@ -223,7 +231,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             position: absolute;
             right: 0;
             top: calc(100% + 8px);
-            width: 160px;
+            min-width: 185px;
             background: white;
             border-radius: 10px;
             box-shadow: 0 5px 18px rgba(0, 0, 0, 0.15);
@@ -236,14 +244,41 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             display: block;
         }
 
-        .logout-button {
-            display: block;
+        .switch-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             width: 100%;
-            padding: 11px 12px;
+            padding: 10px 12px;
+            color: #0066b3;
+            text-decoration: none;
+            border-radius: 7px;
+            font-size: 13.5px;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .switch-button:hover {
+            background: #e6f0fa;
+            color: #004d84;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 6px 0;
+        }
+
+        .logout-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
             color: #c62828;
             text-decoration: none;
             border-radius: 7px;
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
         }
 
@@ -252,10 +287,20 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         }
 
         /* =========================
-           CARD
+           SETTINGS GRID
         ========================= */
 
-        .card {
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        /* =========================
+           SETTINGS CARD
+        ========================= */
+
+        .settings-card {
             background: white;
             padding: 25px;
             border-radius: 10px;
@@ -263,54 +308,113 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             border-left: 4px solid #0066b3;
         }
 
-        /* =========================
-           INFORMATION
-        ========================= */
-
-        .info {
+        .settings-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 22px;
         }
 
-        .info:last-child {
-            margin-bottom: 0;
+        .settings-icon {
+            width: 38px;
+            height: 38px;
+            background: #eaf4fb;
+            color: #0066b3;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
         }
 
-        .info strong {
-            display: block;
-            margin-bottom: 7px;
+        .settings-title h2 {
+            font-size: 18px;
             color: #005a9c;
-            font-size: 15px;
-        }
-
-        .info span {
-            color: #555;
-            font-size: 14px;
-            line-height: 1.5;
         }
 
         /* =========================
-           RESPONSIVE TABLET / MOBILE
+           INFO ITEM
+        ========================= */
+
+        .info-item {
+            padding: 13px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .info-item:first-child {
+            padding-top: 0;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            display: block;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* =========================
+           SECURITY
+        ========================= */
+
+        .security-text {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .logout-main {
+            display: inline-block;
+            padding: 10px 16px;
+            background: #0066b3;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .logout-main:hover {
+            background: #00589c;
+        }
+
+        /* =========================
+           RESPONSIVE TABLET
+        ========================= */
+
+        @media (max-width: 900px) {
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        /* =========================
+           RESPONSIVE MOBILE
         ========================= */
 
         @media (max-width: 768px) {
 
-            .menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
             .main {
                 margin-left: 0;
                 padding: 80px 20px 30px;
+            }
+
+            .main.sidebar-open {
+                margin-left: 0;
             }
 
             .header {
@@ -342,7 +446,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
                 width: 100%;
             }
 
-            .card {
+            .settings-card {
                 padding: 20px;
             }
 
@@ -353,6 +457,13 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
         ========================= */
 
         @media (max-width: 480px) {
+
+            .menu-toggle {
+                top: 12px;
+                left: 12px;
+                width: 42px;
+                height: 42px;
+            }
 
             .main {
                 padding: 75px 15px 25px;
@@ -366,28 +477,16 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
                 font-size: 13px;
             }
 
-            .card {
+            .settings-card {
                 padding: 18px;
                 border-radius: 9px;
             }
 
-            .info {
-                margin-bottom: 20px;
+            .settings-title h2 {
+                font-size: 17px;
             }
 
-            .info strong {
-                font-size: 14px;
-            }
-
-            .info span {
-                font-size: 13px;
-            }
-
-            .admin-status {
-                padding: 9px 12px;
-            }
-
-            .admin-name {
+            .info-value {
                 font-size: 13px;
             }
 
@@ -400,19 +499,6 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 <body>
 
 
-<!-- =========================
-     MOBILE MENU BUTTON
-========================= -->
-
-<button
-    type="button"
-    class="menu-toggle"
-    id="menuToggle"
-    onclick="toggleSidebar()"
-    aria-label="Buka menu"
->
-    ☰
-</button>
 
 
 <!-- =========================
@@ -422,7 +508,6 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 <div
     class="sidebar-overlay"
     id="sidebarOverlay"
-    onclick="closeSidebar()"
 ></div>
 
 
@@ -430,159 +515,121 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
      SIDEBAR
 ========================= -->
 
-<aside class="sidebar" id="sidebar">
-
-    <div class="logo">
-        Dashboard Admin
-    </div>
-
-    <ul class="menu">
-
-        <li>
-            <a href="index.php">
-                Dashboard
-            </a>
-        </li>
-
-        <li>
-            <a href="layanan.php">
-                Kelola Layanan
-            </a>
-        </li>
-
-        <li>
-            <a href="kategori.php">
-                Kategori
-            </a>
-        </li>
-
-        <li>
-            <a href="kelola_admin.php">
-                Kelola Admin
-            </a>
-        </li>
-
-        <li>
-            <a href="pengaturan.php" class="active">
-                Pengaturan
-            </a>
-        </li>
-
-    </ul>
-
-</aside>
+<?php
+$active_nav = 'pengaturan';
+include __DIR__ . '/partials/navbar.php';
+?>
 
 
 <!-- =========================
      MAIN
 ========================= -->
 
-<main class="main">
+<main class="main" id="mainContent">
 
-    <div class="header">
+    <?php
+    $page_title = 'Pengaturan';
+    $page_subtitle = 'Kelola informasi ' . (($active_role === 'ADMIN') ? 'admin' : 'user') . ' dan keamanan akun.';
+    include __DIR__ . '/partials/topbar.php';
+    ?>
 
-        <div>
 
-            <h1>Pengaturan</h1>
+    <!-- =========================
+         SETTINGS
+    ========================= -->
 
-            <p>
-                Informasi sistem Dashboard Admin BPS Kabupaten Solok Selatan.
-            </p>
-
-        </div>
+    <div class="settings-grid">
 
 
         <!-- =========================
-             ADMIN DROPDOWN
+             PROFIL ADMIN
         ========================= -->
 
-        <div class="admin-dropdown">
+        <div class="settings-card card">
 
-            <button
-                type="button"
-                class="admin-status"
-                onclick="toggleAdminMenu()"
-            >
+            <div class="settings-title">
 
-                <div class="admin-icon">
+                <div class="settings-icon">
                     👤
                 </div>
 
-                <div class="admin-info">
+                <h2>
+                    Profil <?= ($active_role === 'ADMIN') ? 'Admin' : 'User'; ?>
+                </h2>
 
-                    <span class="admin-label">
-                        Login sebagai
-                    </span>
+            </div>
 
-                    <span class="admin-name">
-                        <?= htmlspecialchars($admin_username); ?>
-                    </span>
 
-                </div>
+            <div class="info-item">
 
-                <span class="dropdown-arrow">
-                    ▾
+                <span class="info-label">
+                    Username
                 </span>
 
-            </button>
+                <span class="info-value">
+                    <?= htmlspecialchars($admin_username); ?>
+                </span>
+
+            </div>
 
 
-            <!-- DROPDOWN LOGOUT -->
+            <div class="info-item">
 
-            <div
-                class="admin-menu"
-                id="adminMenu"
-            >
+                <span class="info-label">
+                    Nama Sistem
+                </span>
 
-                <a
-                    href="logout.php"
-                    class="logout-button"
-                >
-                    🚪 Logout
-                </a>
+                <span class="info-value">
+                    <?= ($active_role === 'ADMIN') ? 'Dashboard Admin' : 'Dashboard User'; ?> BPS Kabupaten Solok Selatan
+                </span>
+
+            </div>
+
+            <div class="info-item">
+
+                <span class="info-label">
+                    Database
+                </span>
+
+                <span class="info-value">
+                    MySQL
+                </span>
 
             </div>
 
         </div>
 
-    </div>
+
+        <!-- =========================
+             KEAMANAN
+        ========================= -->
+
+        <div class="settings-card">
+
+            <div class="settings-title">
+
+                <div class="settings-icon">
+                    🔐
+                </div>
+
+                <h2>
+                    Keamanan
+                </h2>
+
+            </div>
 
 
-    <!-- =========================
-         INFORMATION CARD
-    ========================= -->
+            <p class="security-text">
+                Pastikan Anda selalu keluar dari akun setelah selesai menggunakan dashboard, terutama jika menggunakan perangkat bersama.
+            </p>
 
-    <div class="card">
-
-        <div class="info">
-
-            <strong>Nama Sistem</strong>
-
-            <span>
-                Dashboard Admin BPS Kabupaten Solok Selatan
-            </span>
-
-        </div>
-
-
-        <div class="info">
-
-            <strong>Database</strong>
-
-            <span>
-                bps_solsel
-            </span>
-
-        </div>
-
-
-        <div class="info">
-
-            <strong>Teknologi</strong>
-
-            <span>
-                PHP, MySQL, XAMPP
-            </span>
+            <a
+                href="logout.php"
+                class="logout-main"
+                style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
+            >
+                <?= render_icon('log-out', 'btn-icon', 18); ?> Keluar dari Akun
+            </a>
 
         </div>
 
@@ -592,45 +639,6 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 
 
 <script>
-
-/* =========================
-   SIDEBAR MOBILE
-========================= */
-
-function toggleSidebar() {
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    sidebar.classList.toggle('show');
-    overlay.classList.toggle('show');
-
-}
-
-
-function closeSidebar() {
-
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    sidebar.classList.remove('show');
-    overlay.classList.remove('show');
-
-}
-
-
-/* Tutup sidebar setelah klik menu */
-
-document.querySelectorAll('.menu a').forEach(function(link) {
-
-    link.addEventListener('click', function() {
-
-        closeSidebar();
-
-    });
-
-});
-
 
 /* =========================
    ADMIN DROPDOWN
@@ -645,7 +653,10 @@ function toggleAdminMenu() {
 }
 
 
-/* Tutup dropdown jika klik di luar */
+/* =========================
+   TUTUP DROPDOWN JIKA
+   KLIK DI LUAR
+========================= */
 
 document.addEventListener('click', function(event) {
 
