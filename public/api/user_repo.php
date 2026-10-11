@@ -7,21 +7,9 @@
 header('Content-Type: application/json; charset=UTF-8');
 
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/auth.php';
 require_once __DIR__ . '/../../config/user_repo.php';
 
-// Cek autentikasi
-$userId = (int) ($_SESSION['admin_id'] ?? 0);
-if ($userId <= 0) {
-    http_response_code(401);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Sesi login tidak valid atau telah berakhir. Silakan login kembali.'
-    ]);
-    exit;
-}
-
-$method = $_SERVER['REQUEST_METHOD'];
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // Handle JSON input or form POST
 $input = [];
@@ -36,10 +24,82 @@ if ($method === 'POST') {
     $input = $_GET;
 }
 
+$allHeaders = function_exists('getallheaders') ? getallheaders() : [];
+$normalizedHeaders = [];
+foreach ($allHeaders as $k => $v) {
+    $normalizedHeaders[strtolower($k)] = $v;
+}
+
+// Cek autentikasi:
+// Jalur 1: Server-to-server call dari App B (Next.js server-side proxy) dengan X-API-KEY
+$apiKey = $normalizedHeaders['x-api-key'] ?? $_SERVER['HTTP_X_API_KEY'] ?? '';
+$isServerCall = false;
+$userId = 0;
+
+if (defined('API_KEY') && API_KEY !== '' && $apiKey !== '' && hash_equals(API_KEY, $apiKey)) {
+    $isServerCall = true;
+    $targetUserId = (int) ($normalizedHeaders['x-user-id'] ?? $_SERVER['HTTP_X_USER_ID'] ?? $input['user_id'] ?? 0);
+    if ($targetUserId > 0) {
+        $chkUser = $conn->prepare("SELECT id_admin FROM admin WHERE id_admin = ? AND status IN ('active', 'aktif', 'approved', 'verified') LIMIT 1");
+        $chkUser->execute([$targetUserId]);
+        if ($chkUser->fetchColumn()) {
+            $userId = $targetUserId;
+        }
+    }
+}
+
+// Jalur 2: Direct browser call dari halaman PHP (menggunakan sesi PHP aktif)
+if (!$isServerCall) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $userId = (int) ($_SESSION['admin_id'] ?? 0);
+}
+
+if ($userId <= 0) {
+    http_response_code(401);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Sesi login tidak valid atau telah berakhir. Silakan login kembali.'
+    ]);
+    exit;
+}
+
 $action = trim($input['action'] ?? '');
 
 try {
     switch ($action) {
+        /* =====================================================
+           GET ALL REPOSITORY DATA
+        ===================================================== */
+        case 'get_all':
+        case 'get_repository':
+            $favorites = user_get_all_favorites($userId);
+            $favoriteIds = user_get_favorite_ids($userId);
+            $links = user_get_links($userId);
+            $dataLinks = user_get_data_links($userId);
+            $mobileApps = user_get_mobile_apps($userId);
+            $driveLinks = user_get_drive_links($userId);
+            $photoLinks = user_get_photo_links($userId);
+            $otherLinks = user_get_other_links($userId);
+            $counts = user_get_all_private_counts($userId);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'counts' => $counts,
+                    'favorites' => $favorites,
+                    'favorite_ids' => $favoriteIds,
+                    'links' => $links,
+                    'data_links' => $dataLinks,
+                    'mobile_apps' => $mobileApps,
+                    'drive_links' => $driveLinks,
+                    'photo_links' => $photoLinks,
+                    'other_links' => $otherLinks
+                ]
+            ]);
+            exit;
+
         /* =====================================================
            FAVORITE TOGGLE / REMOVE
         ===================================================== */

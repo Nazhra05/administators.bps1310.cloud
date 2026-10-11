@@ -238,6 +238,40 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
       const json = await res.json();
       expect(json.success).toBe(false);
     });
+
+    it('api/user_repo.php menerima request server-to-server App B dengan X-API-KEY dan X-User-Id', async () => {
+      // User id 1 adalah admin default aktif
+      const res = await fetch(`${BASE_URL}/api/user_repo.php?action=get_all`, {
+        headers: {
+          'X-API-KEY': API_KEY,
+          'X-User-Id': '1'
+        }
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data).toHaveProperty('counts');
+      expect(json.data).toHaveProperty('favorites');
+      expect(json.data).toHaveProperty('links');
+      expect(json.data).toHaveProperty('data_links');
+      expect(json.data).toHaveProperty('mobile_apps');
+      expect(json.data).toHaveProperty('drive_links');
+      expect(json.data).toHaveProperty('photo_links');
+      expect(json.data).toHaveProperty('other_links');
+    });
+
+    it('api/user_repo.php menolak request dengan X-API-KEY palsu dengan status 401', async () => {
+      const res = await fetch(`${BASE_URL}/api/user_repo.php?action=get_all`, {
+        headers: {
+          'X-API-KEY': 'WRONG_API_KEY_123',
+          'X-User-Id': '1'
+        }
+      });
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+    });
   });
 });
+
 

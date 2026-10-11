@@ -147,4 +147,11 @@ Dokumen pelacak tugas (*task tracking*) pengembangan, penyelarasan fitur, dan pe
 - [x] Menambahkan import `icons.php` pada `tambah_layanan.php` dan `edit_layanan.php` guna mencegah galat fatal pemanggilan fungsi ikon
 - [x] Menambahkan skenario pengujian baru pada `tests/private_repository_categories.test.js` dan memastikan seluruh suite pengujian berjalan sempurna (10 file pengujian, 93 dari 93 tes 100% lulus hijau)
 
+## 18. Dukungan API repositori pegawai untuk portal Next.js (Integrasi App B)
+
+- [x] Menambahkan dukungan autentikasi ganda pada `public/api/user_repo.php` (mendukung `X-API-KEY` server-to-server dari App B dan sesi PHP browser)
+- [x] Menambahkan aksi `get_all` pada `public/api/user_repo.php` untuk mengembalikan seluruh 7 kategori repositori privat dalam satu pemanggilan
+- [x] Menghapus dependensi usang `auth.php` dari `app/services/user_repo_service.php` agar dapat dipanggil secara modular tanpa pembatasan sesi
+- [x] Menambahkan skenario uji otomatis kontrak API repositori privat pada `tests/app_b_api_contract.test.js` (10 berkas uji, 95 skenario uji 100% lulus)
+
 

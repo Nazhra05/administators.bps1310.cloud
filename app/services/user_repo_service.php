@@ -5,7 +5,6 @@
  */
 
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/auth.php';
 
 /**
  * Mendapatkan ringkasan layanan portal yang dibuat oleh user
