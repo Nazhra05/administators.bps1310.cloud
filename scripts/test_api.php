@@ -1,9 +1,13 @@
 <?php
+/**
+ * Skrip CLI / Pengujian Internal Endpoint API Layanan
+ * BPS Kabupaten Solok Selatan
+ */
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/auth.php';
 
-$url = defined('API_URL') ? API_URL : 'http://localhost/administators.bps1310.cloud/public/api/layanan.php';
+$url = defined('API_URL') ? API_URL : 'http://localhost/Dashboard_Admin/public/api/layanan.php';
 $apiKey = defined('API_KEY') ? API_KEY : '';
 
 $options = [
@@ -17,6 +21,12 @@ $options = [
 
 $context = stream_context_create($options);
 $response = @file_get_contents($url, false, $context);
+
+if (php_sapi_name() === 'cli') {
+    echo "Endpoint: {$url}\n";
+    echo "Response:\n{$response}\n";
+    exit(0);
+}
 
 header('Content-Type: text/html; charset=utf-8');
 ?>

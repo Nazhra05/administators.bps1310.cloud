@@ -16,12 +16,6 @@ Options -Indexes
     </IfModule>
 </FilesMatch>
 
-# Allow public trending-topics.json via public/
-<Files "trending-topics.json">
-    <IfModule mod_authz_core.c>
-        Require all granted
-    </IfModule>
-</Files>
 
 # Protect Internal Directories from Direct Access
 <IfModule mod_rewrite.c>
