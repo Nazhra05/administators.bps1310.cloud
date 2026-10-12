@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: BPS Kabupaten Solok Selatan - REST API Architecture
+  description: >
+    Spesifikasi OpenAPI 3.0 terpadu untuk backend Dashboard Admin (App A) 
+    dan Portal Layanan & Repositori Satu Pintu (App B).
+    Mendukung komunikasi antarmuka headless, server-to-server middleware, 
+    dan sinkronisasi data katalog statistik serta repositori privat pegawai.
+  version: 1.0.0
+  contact:
+    name: Tim Pengembang BPS Solok Selatan
+    email: bps1310@bps.go.id
+
+servers:
+  - url: http://localhost/Dashboard_Admin/public
+    description: Lingkungan Pengembangan Lokal (XAMPP Apache)
+  - url: https://administrators.bps1310.cloud/public
+    description: Lingkungan Produksi VPS Cloud
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: API Key bersama untuk komunikasi Server-to-Server antara Next.js dan backend PHP.
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Sesi browser PHP aktif untuk akses back-office terautentikasi.
+
+  schemas:
+    StandardSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operasi berhasil dilakukan.
+        data:
+          type: object
+          nullable: true
+
+    StandardErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Parameter atau otentikasi tidak valid.
+        data:
+          nullable: true
+          example: null
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 45
+        total_pages:
+          type: integer
+          example: 3
+
+    Layanan:
+      type: object
+      properties:
+        id_layanan:
+          type: integer
+          example: 10
+        id_kategori:
+          type: integer
+          example: 2
+        nama_kategori:
+          type: string
+          example: Layanan Statistik
+        nama_layanan:
+          type: string
+          example: Rekomendasi Statistik (ROMANTIK)
+        deskripsi_layanan:
+          type: string
+          example: Layanan rekomendasi kegiatan statistik sektoral terintegrasi.
+        url:
+          type: string
+          example: https://romantik.bps.go.id
+        logo:
+          type: string
+          example: uploads/romantik_logo.png
+        akses:
+          type: string
+          enum: [Public, Internal]
+          example: Public
+        vpn:
+          type: string
+          enum: [Yes, No]
+          example: No
+
+    Kategori:
+      type: object
+      properties:
+        id_kategori:
+          type: integer
+          example: 1
+        nama_kategori:
+          type: string
+          example: Publikasi dan Laporan
+        deskripsi:
+          type: string
+          example: Kategori layanan penyedia dokumen publikasi statistik daerah.
+
+paths:
+  /api/layanan.php:
+    get:
+      summary: Mendapatkan katalog layanan publik dan internal
+      description: Mengembalikan daftar seluruh layanan digital statistik. Mendukung filter kategori serta paginasi data.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: ID spesifik layanan jika ingin mengambil satu entitas
+          schema:
+            type: integer
+        - name: id_kategori
+          in: query
+          required: false
+          description: Filter layanan berdasarkan ID kategori taksonomi
+          schema:
+            type: integer
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman untuk paginasi data
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          description: Jumlah item per halaman (maksimal 100)
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Daftar layanan berhasil diambil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Layanan'
+                      meta:
+                        $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Header X-API-KEY tidak disertakan atau tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardErrorResponse'
+
+    post:
+      summary: Menambahkan entitas layanan baru
+      security:
+        - ApiKeyAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_kategori
+                - nama_layanan
+                - url
+                - akses
+              properties:
+                id_kategori:
+                  type: integer
+                nama_layanan:
+                  type: string
+                deskripsi_layanan:
+                  type: string
+                url:
+                  type: string
+                akses:
+                  type: string
+                  enum: [Public, Internal]
+                vpn:
+                  type: string
+                  enum: [Yes, No]
+                logo:
+                  type: string
+      responses:
+        '201':
+          description: Layanan baru berhasil disimpan
+        '400':
+          description: Validasi form gagal
+
+    put:
+      summary: Memperbarui data entitas layanan yang ada
+      security:
+        - ApiKeyAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_layanan
+                - id_kategori
+                - nama_layanan
+              properties:
+                id_layanan:
+                  type: integer
+                id_kategori:
+                  type: integer
+                nama_layanan:
+                  type: string
+                deskripsi_layanan:
+                  type: string
+                url:
+                  type: string
+                akses:
+                  type: string
+                vpn:
+                  type: string
+      responses:
+        '200':
+          description: Data layanan berhasil diperbarui
+
+    delete:
+      summary: Menghapus data layanan
+      security:
+        - ApiKeyAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id_layanan
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Layanan berhasil dihapus
+
+  /api/kategori.php:
+    get:
+      summary: Mengambil daftar taksonomi kategori layanan
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Data kategori berhasil diambil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Kategori'
+
+  /api/user_repo.php:
+    get:
+      summary: Mengambil data repositori privat pegawai
+      description: >
+        Dapat mengambil salah satu kategori atau seluruh 7 kategori repositori 
+        sekaligus menggunakan parameter action=get_all.
+      security:
+        - ApiKeyAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [get_all, list]
+        - name: kategori
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [link_pribadi, sk_tim, panduan, berkas_pribadi, catatan, jadwal, kontak_penting]
+      responses:
+        '200':
+          description: Data repositori berhasil dimuat
+
+    post:
+      summary: Menambahkan entri repositori privat pegawai
+      security:
+        - ApiKeyAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+                - kategori
+              properties:
+                action:
+                  type: string
+                  enum: [create]
+                kategori:
+                  type: string
+                judul:
+                  type: string
+                deskripsi:
+                  type: string
+                url:
+                  type: string
+      responses:
+        '201':
+          description: Entri repositori berhasil disimpan
+
+  /api/auth/loginPortal.php:
+    post:
+      summary: Autentikasi kredensial pengguna portal Next.js
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Autentikasi berhasil, mengembalikan profil pegawai
+        '401':
+          description: Username atau password tidak cocok
+        '403':
+          description: Akun belum diverifikasi atau belum disetujui admin
+
+  /api/auth/registerPortal.php:
+    post:
+      summary: Pendaftaran mandiri akun pegawai melalui portal
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - email
+                - username
+                - password
+                - konfirmasi_password
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                konfirmasi_password:
+                  type: string
+      responses:
+        '201':
+          description: Akun berhasil didaftarkan dan email verifikasi telah dikirim
+
+  /api/auth/check_session.php:
+    get:
+      summary: Validasi status aktif dan pencabutan sesi pengguna (Session Revocation Check)
+      description: >
+        Endpoint ringan untuk App B memeriksa apakah token sesi pegawai masih 
+        sah dan aktif di basis data atau telah dinonaktifkan/dihapus oleh administrator.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id_user
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sesi akun pengguna valid dan berstatus approved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardSuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                            example: true
+                          revoked:
+                            type: boolean
+                            example: false
+                          id_user:
+                            type: integer
+                            example: 5
+                          username:
+                            type: string
+                            example: budi.santoso
+                          status:
+                            type: string
+                            example: approved
+        '403':
+          description: Akun dinonaktifkan (inactive), ditolak, atau berstatus pending
+        '404':
+          description: Akun pengguna tidak ditemukan atau telah dihapus

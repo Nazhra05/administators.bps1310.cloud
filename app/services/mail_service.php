@@ -313,3 +313,71 @@ if (!function_exists('sendAdminRegistrationNotification')) {
         }
     }
 }
+
+/**
+ * 5. Mengirimkan email notifikasi ke pegawai bahwa akun telah disetujui oleh admin
+ */
+if (!function_exists('sendAccountApprovedNotification')) {
+    function sendAccountApprovedNotification(
+        string $email,
+        string $name,
+        string $username
+    ): bool {
+        try {
+            $mail = createMailClient();
+            $mail->addAddress($email, $name);
+
+            $portalLoginUrl = getMailBaseUrl() . '/login.php';
+
+            $mail->isHTML(true);
+            $mail->Subject = 'Akun Anda Telah Disetujui - BPS Kabupaten Solok Selatan';
+            $mail->Body = '
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin:0; padding:0; background:#f4f8fc; font-family:Arial, sans-serif;">
+            <div style="max-width:600px; margin:30px auto; background:white; border-radius:12px; overflow:hidden; box-shadow:0 3px 15px rgba(0,0,0,0.08);">
+                <div style="background:#0066b3; padding:25px; text-align:center; color:white;">
+                    <h2 style="margin:0;">BPS Kabupaten Solok Selatan</h2>
+                    <p style="margin:8px 0 0; font-size:14px;">Portal Satu Pintu & Dashboard Pegawai</p>
+                </div>
+                <div style="padding:30px; color:#333;">
+                    <h3 style="color:#005a9c; margin-top:0;">Selamat! Akun Anda Telah Aktif</h3>
+                    <p>Halo <strong>' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '</strong>,</p>
+                    <p>Pendaftaran akun Anda pada Portal Layanan BPS Kabupaten Solok Selatan telah <strong>disetujui</strong> oleh Administrator.</p>
+                    <div style="background:#f0fdf4; border-left:4px solid #16a34a; padding:18px; margin:20px 0; border-radius:4px;">
+                        <p style="margin:0 0 8px; color:#166534;"><strong>Status Akun:</strong> AKTIF / DISETUJUI</p>
+                        <p style="margin:0; color:#166534;"><strong>Username:</strong> ' . htmlspecialchars($username, ENT_QUOTES, 'UTF-8') . '</p>
+                    </div>
+                    <p>Anda sekarang dapat masuk ke portal untuk mengakses katalog layanan statistik dan ruang repositori kerja pribadi Anda.</p>
+                    <div style="text-align:center; margin:30px 0 10px;">
+                        <a href="' . htmlspecialchars($portalLoginUrl, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block; background:#0066b3; color:white; text-decoration:none; padding:12px 24px; border-radius:7px; font-weight:bold;">
+                            Masuk ke Portal
+                        </a>
+                    </div>
+                </div>
+                <div style="background:#f4f8fc; padding:15px; text-align:center; color:#777; font-size:12px;">
+                    Email resmi dari Badan Pusat Statistik Kabupaten Solok Selatan.
+                </div>
+            </div>
+        </body>
+        </html>';
+
+            $mail->AltBody = "Halo " . $name . ",\n\n" .
+                "Pendaftaran akun Anda pada Portal Layanan BPS Kabupaten Solok Selatan telah DISETUJUI oleh Administrator.\n" .
+                "Username: " . $username . "\n" .
+                "Status: Aktif\n\n" .
+                "Silakan login melalui tautan: " . $portalLoginUrl;
+
+            $mail->send();
+            return true;
+        } catch (Exception $e) {
+            error_log('Gagal mengirim notifikasi persetujuan akun: ' . ($mail->ErrorInfo ?? $e->getMessage()));
+            return false;
+        }
+    }
+}
+

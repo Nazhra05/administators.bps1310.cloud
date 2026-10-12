@@ -82,17 +82,26 @@ function responseJson(
     $status,
     $message,
     $data = null,
-    $httpCode = 200
+    $httpCode = 200,
+    $meta = null
 ) {
 
     http_response_code($httpCode);
 
+    $isSuccess = ($status === true || $status === 'success');
+    $payload = [
+        'status'  => $status,
+        'success' => $isSuccess,
+        'message' => $message,
+        'data'    => $data
+    ];
+
+    if ($meta !== null) {
+        $payload['meta'] = $meta;
+    }
+
     echo json_encode(
-        [
-            'status'  => $status,
-            'message' => $message,
-            'data'    => $data
-        ],
+        $payload,
         JSON_UNESCAPED_UNICODE |
         JSON_UNESCAPED_SLASHES
     );
@@ -349,45 +358,119 @@ if ($method === 'GET') {
         ============================================= */
 
         $filterKategori = isset($_GET['id_kategori']) ? (int) $_GET['id_kategori'] : 0;
+        $pageParam = isset($_GET['page']) ? (int) $_GET['page'] : null;
+        $limitParam = isset($_GET['limit']) ? (int) $_GET['limit'] : null;
+        $meta = null;
 
-        if ($filterKategori > 0) {
-            $stmt = $conn->prepare("
-                SELECT
-                    l.id_layanan,
-                    l.id_kategori,
-                    l.akses,
-                    l.vpn,
-                    l.nama_layanan,
-                    l.deskripsi_layanan,
-                    l.url,
-                    l.logo,
-                    k.nama_kategori
-                FROM layanan l
-                LEFT JOIN kategori k
-                    ON l.id_kategori = k.id_kategori
-                WHERE l.akses IN ('Public', 'Internal')
-                  AND l.id_kategori = ?
-                ORDER BY l.id_layanan DESC
-            ");
-            $stmt->execute([$filterKategori]);
+        if ($pageParam !== null && $pageParam > 0) {
+            $page = $pageParam;
+            $limit = ($limitParam !== null && $limitParam > 0) ? min(100, $limitParam) : 20;
+            $offset = ($page - 1) * $limit;
+
+            if ($filterKategori > 0) {
+                $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan WHERE akses IN ('Public', 'Internal') AND id_kategori = ?");
+                $countStmt->execute([$filterKategori]);
+            } else {
+                $countStmt = $conn->query("SELECT COUNT(*) FROM layanan WHERE akses IN ('Public', 'Internal')");
+            }
+
+            $total = (int) $countStmt->fetchColumn();
+            $totalPages = $total > 0 ? (int) ceil($total / $limit) : 0;
+
+            $meta = [
+                'page'        => $page,
+                'limit'       => $limit,
+                'total'       => $total,
+                'total_pages' => $totalPages
+            ];
+
+            if ($filterKategori > 0) {
+                $stmt = $conn->prepare("
+                    SELECT
+                        l.id_layanan,
+                        l.id_kategori,
+                        l.akses,
+                        l.vpn,
+                        l.nama_layanan,
+                        l.deskripsi_layanan,
+                        l.url,
+                        l.logo,
+                        k.nama_kategori
+                    FROM layanan l
+                    LEFT JOIN kategori k
+                        ON l.id_kategori = k.id_kategori
+                    WHERE l.akses IN ('Public', 'Internal')
+                      AND l.id_kategori = ?
+                    ORDER BY l.id_layanan DESC
+                    LIMIT ? OFFSET ?
+                ");
+                $stmt->bindValue(1, $filterKategori, PDO::PARAM_INT);
+                $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+                $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+                $stmt->execute();
+            } else {
+                $stmt = $conn->prepare("
+                    SELECT
+                        l.id_layanan,
+                        l.id_kategori,
+                        l.akses,
+                        l.vpn,
+                        l.nama_layanan,
+                        l.deskripsi_layanan,
+                        l.url,
+                        l.logo,
+                        k.nama_kategori
+                    FROM layanan l
+                    LEFT JOIN kategori k
+                        ON l.id_kategori = k.id_kategori
+                    WHERE l.akses IN ('Public', 'Internal')
+                    ORDER BY l.id_layanan DESC
+                    LIMIT ? OFFSET ?
+                ");
+                $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+                $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+                $stmt->execute();
+            }
         } else {
-            $stmt = $conn->query("
-                SELECT
-                    l.id_layanan,
-                    l.id_kategori,
-                    l.akses,
-                    l.vpn,
-                    l.nama_layanan,
-                    l.deskripsi_layanan,
-                    l.url,
-                    l.logo,
-                    k.nama_kategori
-                FROM layanan l
-                LEFT JOIN kategori k
-                    ON l.id_kategori = k.id_kategori
-                WHERE l.akses IN ('Public', 'Internal')
-                ORDER BY l.id_layanan DESC
-            ");
+            if ($filterKategori > 0) {
+                $stmt = $conn->prepare("
+                    SELECT
+                        l.id_layanan,
+                        l.id_kategori,
+                        l.akses,
+                        l.vpn,
+                        l.nama_layanan,
+                        l.deskripsi_layanan,
+                        l.url,
+                        l.logo,
+                        k.nama_kategori
+                    FROM layanan l
+                    LEFT JOIN kategori k
+                        ON l.id_kategori = k.id_kategori
+                    WHERE l.akses IN ('Public', 'Internal')
+                      AND l.id_kategori = ?
+                    ORDER BY l.id_layanan DESC
+                ");
+                $stmt->execute([$filterKategori]);
+            } else {
+                $stmt = $conn->query("
+                    SELECT
+                        l.id_layanan,
+                        l.id_kategori,
+                        l.akses,
+                        l.vpn,
+                        l.nama_layanan,
+                        l.deskripsi_layanan,
+                        l.url,
+                        l.logo,
+                        k.nama_kategori
+                    FROM layanan l
+                    LEFT JOIN kategori k
+                        ON l.id_kategori = k.id_kategori
+                    WHERE l.akses IN ('Public', 'Internal')
+                    ORDER BY l.id_layanan DESC
+                ");
+            }
         }
 
         $data =
@@ -437,7 +520,9 @@ if ($method === 'GET') {
         responseJson(
             true,
             'Data layanan berhasil diambil',
-            $data
+            $data,
+            200,
+            $meta
         );
 
 

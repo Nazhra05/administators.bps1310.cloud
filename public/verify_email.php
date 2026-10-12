@@ -82,7 +82,9 @@ if ($token === '') {
     ) {
 
         $message =
-            'Link verifikasi sudah kedaluwarsa. Silakan lakukan pendaftaran kembali atau hubungi administrator.';
+            'Link verifikasi sudah kedaluwarsa. Silakan lakukan pengiriman ulang tautan verifikasi baru.';
+        $isExpired = true;
+        $userEmail = $admin['email'] ?? '';
 
 
     /* =================================================
@@ -362,6 +364,15 @@ if ($token === '') {
                 class="btn"
             >
                 Buat Username & Password
+            </a>
+
+        <?php elseif (!empty($isExpired)): ?>
+
+            <a
+                href="resend_verification.php<?= !empty($userEmail) ? '?email=' . urlencode($userEmail) : ''; ?>"
+                class="btn"
+            >
+                Kirim Ulang Link Verifikasi
             </a>
 
         <?php else: ?>

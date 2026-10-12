@@ -161,5 +161,46 @@ Dokumen pelacak tugas (*task tracking*) pengembangan, penyelarasan fitur, dan pe
 - [x] Mempertahankan tabel basis data MySQL dan modul REST API (`user_repo_service.php` dan `public/api/user_repo.php`) sebagai mesin headless backend
 - [x] Memperbarui pengujian otomatis pada `tests/user_role.test.js` untuk memastikan sidebar admin maupun user bersih dari redundansi menu repositori private (10 berkas uji, 95 tes 100% lulus)
 
+## 20. Rencana peningkatan dan pengerasan sistem (Berdasarkan audit dokumentasi root)
 
+Bagian ini mencatat seluruh item perbaikan, refaktorisasi, dan peningkatan yang diidentifikasi dari evaluasi 6 dokumen arsitektur di root (`API_and_Interface_Design.md`, `Business_Logic.md`, `Code_Quality_and_Architecture.md`, `Project_Context.md`, `Security.md`, dan `UI_UX.md`). Seluruh tugas diurutkan dari hal yang dapat diselesaikan terlebih dahulu secara mandiri tanpa risiko memutus kontrak atau mengganggu alur sistem yang sedang berjalan.
 
+### Prioritas 1: Perbaikan mandiri dan non-breaking (Keamanan berkas, konfigurasi web server, dan refaktorisasi UI)
+*Dapat dikerjakan langsung secara lokal di App A tanpa ketergantungan pada App B dan tanpa risiko memutus kontrak API.*
+
+- [x] **Pengerasan keamanan folder upload (`public/uploads/.htaccess`)**:
+  - Telah dibuat berkas `public/uploads/.htaccess` dengan konfigurasi penonaktifan handler eksekusi skrip dinamis (`Options -Indexes -ExecCGI`, `FilesMatch` penolakan file PHP/CGI/skrip, dan `php_flag engine off`) guna mencegah eksekusi payload berbahaya via upload logo.
+- [x] **Penambahan header HTTP Strict Transport Security (HSTS)**:
+  - Telah ditambahkan arahan `Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"` pada `Dashboard_Admin/.htaccess` guna menjamin proteksi enkripsi SSL/HTTPS di server VPS produksi.
+- [x] **Fungsi pembantu standar respons JSON di backend (`config/config.php`)**:
+  - Telah diterapkan fungsi global `json_response(bool $success, string $message, $data = null, int $statusCode = 200, array $extra = [])` di `config/config.php` untuk standardisasi payload JSON terpadu.
+- [x] **Modernisasi notifikasi antarmuka (Penggantian `alert()` browser dengan Toast UI)**:
+  - Telah dibuat utilitas Toast UI modern non-blocking pada `public/js/toast.js` dan diintegrasikan pada `public/partials/topbar.php` serta dilengkapi gaya CSS `.toast-container`, `.toast-item` di `public/css/style.css`.
+- [x] **Modularisasi modal form layanan (`public/partials/modal_layanan.php`)**:
+  - Telah diekstrak modal form tambah dan edit layanan dari `public/layanan.php` ke berkas parsial terpisah `public/partials/modal_layanan.php`, mempertahankan seluruh ID dan struktur form (100% lulus 5/5 uji `admin_layanan_forms.test.js`).
+- [x] **Sentralisasi sisa blok `<style>` inline ke lembar gaya terpadu (`public/css/style.css`)**:
+  - Telah disatukan kelas-kelas komponen modal, badge akses, carousel preview, dan card ke dalam `public/css/style.css` untuk efisiensi transfer aset dan pemeliharaan gaya terpadu.
+
+### Prioritas 2: Perluasan internal backend dan logika bisnis (Audit trail, alur email, dan spesifikasi kontrak)
+*Menambahkan kapabilitas fungsional baru di backend tanpa mengubah kontrak API publik yang dikonsumsi oleh App B.*
+
+- [x] **Penerapan tabel riwayat aktivitas administratif (`audit_logs`)**:
+  - Telah dibuat tabel `audit_logs` di database `bps_solsel` via migrasi `scripts/setup_audit_logs.php` dan dihubungkan fungsi pembantu `log_audit()` di `config/config.php`. Telah aktif mencatat aksi persetujuan user, penolakan, perubahan role, penonaktifan/penghapusan admin di `kelola_user.php`, `kelola_admin.php`, dan `hapus_layanan.php`.
+- [x] **Notifikasi email otomatis pasca-persetujuan akun pegawai (`kelola_user.php`)**:
+  - Telah diimplementasikan fungsi `sendAccountApprovedNotification()` di `app/services/mail_service.php` dan dihubungkan pada aksi `approve` di `public/kelola_user.php` dengan penanganan fallback asinkron/aman.
+- [x] **Mekanisme kirim ulang token verifikasi email (*Resend Verification Email*)**:
+  - Telah dibuat rute publik dan halaman `public/resend_verification.php` dengan proteksi CSRF, validasi email, regenerasi token 24 jam baru, serta integrasi tautan langsung dari `public/verify_email.php` saat token kedaluwarsa.
+- [x] **Penyusunan spesifikasi kontrak formal OpenAPI 3.0 (`openapi.yaml`)**:
+  - Telah disusun berkas spesifikasi standar OpenAPI 3.0 lengkap pada `Dashboard_Admin/openapi.yaml` mencakup seluruh endpoint katalog (`api/layanan.php`), taksonomi (`api/kategori.php`), repositori privat (`api/user_repo.php`), autentikasi portal (`loginPortal.php`, `registerPortal.php`), dan validasi sesi (`check_session.php`).
+
+### Prioritas 3: Harmonisasi kontrak terkoordinasi dan skalabilitas lintas-aplikasi (Sinkronisasi dengan App B)
+*Tugas bertingkat tinggi yang memerlukan sinkronisasi langsung dengan App B agar transisi berjalan mulus tanpa breaking changes.*
+
+- [x] **Unifikasi skema envelope JSON endpoint katalog dan taksonomi**:
+  - Telah distandarisasi fungsi `responseJson()` pada `public/api/layanan.php` dan `public/api/kategori.php` agar selalu menyertakan atribut `success` boolean terpadu sekaligus mempertahankan properti legacy `status` (100% backward compatibility terverifikasi).
+- [x] **Implementasi paginasi terstandar pada endpoint katalog (`public/api/layanan.php`)**:
+  - Telah ditambahkan dukungan query paginasi fleksibel `?page=X&limit=Y` pada `public/api/layanan.php` lengkap dengan metadata `meta: { page, limit, total, total_pages }` tanpa merusak pemanggilan tanpa parameter dari App B.
+- [x] **Penyediaan endpoint validasi status sesi seketika (*Session Revocation Check*)**:
+  - Telah dibuat endpoint terproteksi server-to-server `public/api/auth/check_session.php` untuk memvalidasi apakah akun pemegang token Next.js masih berstatus sah di database (`approved`) atau telah dinonaktifkan/dihapus oleh administrator.
+- [x] **Verifikasi pengujian menyeluruh (11 berkas uji Vitest, 105 skenario uji 100% lulus)**:
+  - Seluruh rangkaian pengujian regresi back-office dan API headless dinyatakan 100% lulus tanpa kegagalan (termasuk suite baru `tests/system_hardening_and_session.test.js`).

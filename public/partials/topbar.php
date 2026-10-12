@@ -39,3 +39,5 @@ $page_subtitle = $page_subtitle ?? '';
         <?php include __DIR__ . '/account_dropdown.php'; ?>
     </div>
 </header>
+<script src="js/toast.js" defer></script>
+

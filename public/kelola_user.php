@@ -84,6 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($action === 'approve') {
 
+                $stmtUser = $conn->prepare("
+                    SELECT id_admin, username, email, first_name, last_name
+                    FROM admin
+                    WHERE id_admin = ?
+                      AND status = 'pending'
+                    LIMIT 1
+                ");
+                $stmtUser->execute([$id_admin]);
+                $pendingUser = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
                 $stmt = $conn->prepare("
                     UPDATE admin
                     SET
@@ -99,6 +109,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $message = 'Akun berhasil disetujui sebagai USER.';
                     $messageType = 'success';
+
+                    log_audit('APPROVE_USER', 'admin', $id_admin, 'Administrator menyetujui akun ' . ($pendingUser['username'] ?? '') . ' sebagai USER.');
+
+                    if (!empty($pendingUser['email'])) {
+                        try {
+                            require_once __DIR__ . '/../app/services/mail_service.php';
+                            $fullName = trim(($pendingUser['first_name'] ?? '') . ' ' . ($pendingUser['last_name'] ?? ''));
+                            if (empty($fullName)) {
+                                $fullName = $pendingUser['username'] ?? 'Pegawai';
+                            }
+                            sendAccountApprovedNotification($pendingUser['email'], $fullName, $pendingUser['username'] ?? '');
+                        } catch (Throwable $e) {
+                            error_log('Gagal mengirim email notifikasi persetujuan: ' . $e->getMessage());
+                        }
+                    }
 
                 } else {
 
@@ -126,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $message = 'Akun berhasil ditolak.';
                     $messageType = 'success';
+                    log_audit('REJECT_USER', 'admin', $id_admin, 'Administrator menolak pendaftaran akun.');
 
                 } else {
 
@@ -209,6 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 $message = 'Akun berhasil dijadikan ADMIN.';
                                 $messageType = 'success';
+                                log_audit('PROMOTE_ADMIN', 'admin', $id_admin, 'Administrator mempromosikan user menjadi role ADMIN.');
 
                             } else {
 
@@ -247,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $message = 'Akun berhasil dijadikan USER.';
                         $messageType = 'success';
+                        log_audit('DEMOTE_USER', 'admin', $id_admin, 'Administrator mengubah role akun menjadi USER.');
 
                     } else {
 
@@ -271,6 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$id_admin]);
                     $message = 'Akun berhasil dinonaktifkan.';
                     $messageType = 'success';
+                    log_audit('DEACTIVATE_USER', 'admin', $id_admin, 'Administrator menonaktifkan akun pengguna.');
                 }
             }
 
@@ -282,6 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$id_admin]);
                 $message = 'Akun berhasil diaktifkan kembali.';
                 $messageType = 'success';
+                log_audit('ACTIVATE_USER', 'admin', $id_admin, 'Administrator mengaktifkan kembali akun pengguna.');
             }
 
             /* =========================
@@ -345,6 +375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             $message = 'Admin berhasil dihapus.';
                             $messageType = 'success';
+                            log_audit('DELETE_USER', 'admin', $id_admin, 'Administrator menghapus akun pengguna (' . ($adminToDelete['username'] ?? '') . ').');
 
                         } else {
 

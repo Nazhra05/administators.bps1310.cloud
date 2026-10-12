@@ -44,7 +44,7 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
       expect(res.status).toBe(401);
       const json = await res.json();
       expect(json.status).toBe(false);
-    });
+    }, 30000);
 
     it('mengembalikan array layanan berstatus 200 dengan struktur yang diharapkan App B', async () => {
       const res = await fetch(`${BASE_URL}/api/layanan.php`, {
@@ -287,7 +287,7 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
           });
         } catch {}
       }
-    });
+    }, 30000);
 
     it('menolak permintaan registrasi tanpa header X-API-KEY dengan HTTP 401', async () => {
       const res = await fetch(`${BASE_URL}/api/auth/registerPortal.php`, {

@@ -102,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmtUpdate->execute([$targetId]);
                         $displayName = $target['username'] ?: $target['email'];
                         $success = "Akun admin \"$displayName\" berhasil dinonaktifkan. Admin ini tidak akan dapat login ke dashboard sampai diaktifkan kembali.";
+                        log_audit('DEACTIVATE_ADMIN', 'admin', $targetId, "Administrator menonaktifkan admin \"$displayName\".");
                     }
                 }
             }
@@ -126,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmtUpdate->execute([$targetId]);
                     $displayName = $target['username'] ?: $target['email'];
                     $success = "Akun admin \"$displayName\" berhasil diaktifkan kembali. Admin dapat login ke dashboard kembali.";
+                    log_audit('ACTIVATE_ADMIN', 'admin', $targetId, "Administrator mengaktifkan kembali admin \"$displayName\".");
                 }
             }
         }
@@ -181,6 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $displayName = $target['username'] ?: $target['email'];
                         $noteLayanan = ($layananCount > 0) ? " ($layananCount data layanan terkait telah dialihkan ke Admin Utama)" : "";
                         $success = "Akun admin \"$displayName\" berhasil dihapus dari sistem$noteLayanan.";
+                        log_audit('DELETE_ADMIN', 'admin', $targetId, "Administrator menghapus akun admin \"$displayName\"$noteLayanan.");
                     }
                 }
             }

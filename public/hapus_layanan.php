@@ -139,7 +139,7 @@ try {
 
     if ($active_role === 'USER') {
         $stmtLogo = $conn->prepare("
-            SELECT logo
+            SELECT logo, nama_layanan
             FROM layanan
             WHERE id_layanan = ? AND created_by = ?
             LIMIT 1
@@ -165,7 +165,7 @@ try {
         $stmt->execute([$id, $current_user_id]);
     } else {
         $stmtLogo = $conn->prepare("
-            SELECT logo
+            SELECT logo, nama_layanan
             FROM layanan
             WHERE id_layanan = ?
             LIMIT 1
@@ -180,13 +180,17 @@ try {
         $stmt->execute([$id]);
     }
 
-    if ($stmt->rowCount() > 0 && !empty($layanan['logo'])) {
-        $logoName = basename($layanan['logo']);
-        // Hindari menghapus logo default
-        if ($logoName !== 'logo_bps.jpg') {
-            $filePath = __DIR__ . '/uploads/' . $logoName;
-            if (is_file($filePath)) {
-                @unlink($filePath);
+    if ($stmt->rowCount() > 0) {
+        log_audit('DELETE_LAYANAN', 'layanan', $id, 'Menghapus layanan #' . $id . ' (' . ($layanan['nama_layanan'] ?? '') . ').');
+
+        if (!empty($layanan['logo'])) {
+            $logoName = basename($layanan['logo']);
+            // Hindari menghapus logo default
+            if ($logoName !== 'logo_bps.jpg') {
+                $filePath = __DIR__ . '/uploads/' . $logoName;
+                if (is_file($filePath)) {
+                    @unlink($filePath);
+                }
             }
         }
     }

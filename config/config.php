@@ -175,3 +175,84 @@ function e(?string $value): string
 {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
+
+
+/* =====================================================
+   STANDARDIZED JSON RESPONSE HELPER
+===================================================== */
+
+if (!function_exists('json_response')) {
+    /**
+     * Mengirimkan respons JSON terstandarisasi dengan kode status HTTP yang tepat.
+     *
+     * @param bool $success Status keberhasilan operasi
+     * @param string $message Pesan deskriptif ramah pengguna
+     * @param mixed $data Data payload hasil operasi (opsional)
+     * @param int $statusCode Kode status HTTP (default 200)
+     * @param array $extra Properti tambahan jika dibutuhkan (misal: meta, pagination)
+     * @return void
+     */
+    function json_response(bool $success, string $message, $data = null, int $statusCode = 200, array $extra = []): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $payload = array_merge([
+            'success' => $success,
+            'message' => $message,
+            'data'    => $data,
+        ], $extra);
+
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+}
+
+
+/* =====================================================
+   CENTRALIZED AUDIT LOGGING HELPER
+===================================================== */
+
+if (!function_exists('log_audit')) {
+    /**
+     * Mencatat riwayat aktivitas administratif ke tabel audit_logs.
+     *
+     * @param string $aksi Jenis aksi (misal: 'APPROVE_USER', 'DELETE_LAYANAN', 'DEACTIVATE_ADMIN')
+     * @param string $tabelTarget Tabel yang terpengaruh (misal: 'admin', 'layanan')
+     * @param int|null $idTarget ID record yang dimanipulasi
+     * @param string|null $deskripsi Deskripsi detail atau perubahan data
+     * @return bool
+     */
+    function log_audit(string $aksi, string $tabelTarget, ?int $idTarget = null, ?string $deskripsi = null): bool
+    {
+        global $conn;
+        if (!isset($conn)) {
+            return false;
+        }
+
+        try {
+            $idAdmin = isset($_SESSION['admin_id']) ? (int) $_SESSION['admin_id'] : null;
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+            $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
+
+            $stmt = $conn->prepare("
+                INSERT INTO audit_logs (id_admin, aksi, tabel_target, id_target, deskripsi, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            return $stmt->execute([
+                $idAdmin,
+                $aksi,
+                $tabelTarget,
+                $idTarget,
+                $deskripsi,
+                $ipAddress,
+                $userAgent
+            ]);
+        } catch (Throwable $e) {
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('[AUDIT_LOG_ERROR] ' . $e->getMessage());
+            }
+            return false;
+        }
+    }
+}

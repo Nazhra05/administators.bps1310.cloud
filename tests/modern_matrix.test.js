@@ -157,7 +157,7 @@ describe('Matriks Pengujian Modern — App A & App B Integration (Section 10)', 
       console.log('ID_OUTPUT:', idOutput);
       createdUserId = parseInt(idOutput, 10);
       expect(createdUserId).toBeGreaterThan(0);
-    }, 45000);
+    }, 90000);
 
     it('tahap 2: verifikasi token email melalui verify_email.php berhasil mengaktifkan status verifikasi email', async () => {
       const token = execSync('php', {

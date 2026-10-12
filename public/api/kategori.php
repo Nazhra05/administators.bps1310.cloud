@@ -18,9 +18,12 @@ function responseJson(
 
     http_response_code($httpCode);
 
+    $isSuccess = ($status === true || $status === 'success');
+
     echo json_encode(
         [
             'status'  => $status,
+            'success' => $isSuccess,
             'message' => $message,
             'data'    => $data
         ],
