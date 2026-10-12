@@ -204,3 +204,19 @@ Bagian ini mencatat seluruh item perbaikan, refaktorisasi, dan peningkatan yang 
   - Telah dibuat endpoint terproteksi server-to-server `public/api/auth/check_session.php` untuk memvalidasi apakah akun pemegang token Next.js masih berstatus sah di database (`approved`) atau telah dinonaktifkan/dihapus oleh administrator.
 - [x] **Verifikasi pengujian menyeluruh (11 berkas uji Vitest, 105 skenario uji 100% lulus)**:
   - Seluruh rangkaian pengujian regresi back-office dan API headless dinyatakan 100% lulus tanpa kegagalan (termasuk suite baru `tests/system_hardening_and_session.test.js`).
+
+## 21. Integrasi Single Sign-On (SSO) dan Sinkronisasi Sesi Portal Next.js (App B)
+
+Memfasilitasi transisi sesi mulus dan bebas hambatan antara portal publik Next.js (App B) dan Dashboard Admin PHP (App A) dengan kontrol hak akses yang terisolasi aman.
+
+- [x] **Penerima dan Validator SSO (`public/sso.php`)**:
+  - [x] Implementasi modul penangkap token SSO dengan verifikasi tanda tangan digital kriptografis HMAC-SHA256 berbasis `API_KEY`.
+  - [x] Validasi masa berlaku token ketat (kedaluwarsa 120 detik untuk mencegah serangan replay).
+  - [x] Inisialisasi sesi PHP sesuai identitas akun portal terverifikasi (`id_admin`, `role`, `status`) dan penghapusan sesi PHP lama agar hak akses admin tidak menempel pada user biasa.
+  - [x] Pengalihan aman ke target modul yang diizinkan (`layanan.php`, `kategori.php`, `index.php`, `repositori_private.php`, `pengaturan.php`) dengan proteksi path traversal.
+- [x] **Auto-Sync Sesi dari Cookie Portal (`config/auth.php`)**:
+  - [x] Implementasi fungsi `verify_portal_session_cookie()` untuk memvalidasi cookie `bps_solsel_session` secara independen di setiap request dashboard.
+  - [x] Implementasi fungsi `sync_session_from_portal_user()` yang otomatis mere-sinkronisasi sesi PHP jika akun aktif portal berbeda dengan sesi PHP yang ada, menjamin konsistensi lintas tab browser.
+- [x] **Suite Pengujian Integrasi SSO (`tests/sso_and_role_sync.test.js`)**:
+  - [x] Pengujian otomatis menyeluruh untuk memvalidasi penolakan tanpa token, token kedaluwarsa, tanda tangan palsu, inisialisasi sesi peran USER vs ADMIN, serta isolasi target pengalihan yang tidak sah.
+
