@@ -220,3 +220,15 @@ Memfasilitasi transisi sesi mulus dan bebas hambatan antara portal publik Next.j
 - [x] **Suite Pengujian Integrasi SSO (`tests/sso_and_role_sync.test.js`)**:
   - [x] Pengujian otomatis menyeluruh untuk memvalidasi penolakan tanpa token, token kedaluwarsa, tanda tangan palsu, inisialisasi sesi peran USER vs ADMIN, serta isolasi target pengalihan yang tidak sah.
 
+## 22. Spesialisasi Penuh Dashboard Admin & Penyelarasan API Layanan Pengguna
+
+Menegaskan `Dashboard_Admin` sebagai ruang kerja terisolasi penuh khusus untuk administrator, sementara pengelolaan repositori portal dan pengaturan user biasa didelegasikan sepenuhnya ke aplikasi Next.js (`landingpageintra`).
+
+- [x] **Penyelarasan API Layanan (`public/api/layanan.php`)**:
+  - [x] Dukungan proyeksi dan seleksi kolom `created_by` pada query data tunggal dan jamak.
+  - [x] Dukungan filter parameter `?created_by={id}` untuk memfasilitasi pengambilan daftar layanan milik pengguna tertentu secara headless.
+  - [x] Ekstraksi dan penyimpanan `created_by` pada method `POST` saat layanan baru ditambahkan dari Next.js.
+  - [x] Validasi kepemilikan data (*ownership check*) pada method `PUT` dan `DELETE` berbasis parameter `user_id` guna mencegah manipulasi data antar pengguna, dengan izin bypass untuk panggilan administrator.
+- [x] **SSO Dua Arah Tetap Utuh**:
+  - [x] Akun administrator tetap dapat beralih mulus antara portal Next.js dan `Dashboard_Admin` via SSO tanpa perlu melakukan pendaftaran atau login ulang.
+  - [x] Pengguna biasa mengelola layanan portal dan preferensi akun langsung dari antarmuka modern Next.js.

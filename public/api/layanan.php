@@ -294,6 +294,7 @@ if ($method === 'GET') {
                 SELECT
                     l.id_layanan,
                     l.id_kategori,
+                    l.created_by,
                     l.akses,
                     l.vpn,
                     l.nama_layanan,
@@ -338,6 +339,9 @@ if ($method === 'GET') {
             $data['id_kategori'] =
                 (int) $data['id_kategori'];
 
+            $data['created_by'] =
+                (int) ($data['created_by'] ?? 1);
+
 
             $data['url'] =
                 normalizeUrl(
@@ -358,21 +362,35 @@ if ($method === 'GET') {
         ============================================= */
 
         $filterKategori = isset($_GET['id_kategori']) ? (int) $_GET['id_kategori'] : 0;
+        $createdByParam = isset($_GET['created_by']) ? (int) $_GET['created_by'] : 0;
         $pageParam = isset($_GET['page']) ? (int) $_GET['page'] : null;
         $limitParam = isset($_GET['limit']) ? (int) $_GET['limit'] : null;
         $meta = null;
+
+        $whereClauses = [];
+        $whereParams = [];
+
+        if ($createdByParam > 0) {
+            $whereClauses[] = "l.created_by = ?";
+            $whereParams[] = $createdByParam;
+        } else {
+            $whereClauses[] = "l.akses IN ('Public', 'Internal')";
+        }
+
+        if ($filterKategori > 0) {
+            $whereClauses[] = "l.id_kategori = ?";
+            $whereParams[] = $filterKategori;
+        }
+
+        $whereSql = "WHERE " . implode(" AND ", $whereClauses);
 
         if ($pageParam !== null && $pageParam > 0) {
             $page = $pageParam;
             $limit = ($limitParam !== null && $limitParam > 0) ? min(100, $limitParam) : 20;
             $offset = ($page - 1) * $limit;
 
-            if ($filterKategori > 0) {
-                $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan WHERE akses IN ('Public', 'Internal') AND id_kategori = ?");
-                $countStmt->execute([$filterKategori]);
-            } else {
-                $countStmt = $conn->query("SELECT COUNT(*) FROM layanan WHERE akses IN ('Public', 'Internal')");
-            }
+            $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan l {$whereSql}");
+            $countStmt->execute($whereParams);
 
             $total = (int) $countStmt->fetchColumn();
             $totalPages = $total > 0 ? (int) ceil($total / $limit) : 0;
@@ -384,93 +402,54 @@ if ($method === 'GET') {
                 'total_pages' => $totalPages
             ];
 
-            if ($filterKategori > 0) {
-                $stmt = $conn->prepare("
-                    SELECT
-                        l.id_layanan,
-                        l.id_kategori,
-                        l.akses,
-                        l.vpn,
-                        l.nama_layanan,
-                        l.deskripsi_layanan,
-                        l.url,
-                        l.logo,
-                        k.nama_kategori
-                    FROM layanan l
-                    LEFT JOIN kategori k
-                        ON l.id_kategori = k.id_kategori
-                    WHERE l.akses IN ('Public', 'Internal')
-                      AND l.id_kategori = ?
-                    ORDER BY l.id_layanan DESC
-                    LIMIT ? OFFSET ?
-                ");
-                $stmt->bindValue(1, $filterKategori, PDO::PARAM_INT);
-                $stmt->bindValue(2, $limit, PDO::PARAM_INT);
-                $stmt->bindValue(3, $offset, PDO::PARAM_INT);
-                $stmt->execute();
-            } else {
-                $stmt = $conn->prepare("
-                    SELECT
-                        l.id_layanan,
-                        l.id_kategori,
-                        l.akses,
-                        l.vpn,
-                        l.nama_layanan,
-                        l.deskripsi_layanan,
-                        l.url,
-                        l.logo,
-                        k.nama_kategori
-                    FROM layanan l
-                    LEFT JOIN kategori k
-                        ON l.id_kategori = k.id_kategori
-                    WHERE l.akses IN ('Public', 'Internal')
-                    ORDER BY l.id_layanan DESC
-                    LIMIT ? OFFSET ?
-                ");
-                $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-                $stmt->bindValue(2, $offset, PDO::PARAM_INT);
-                $stmt->execute();
+            $sql = "
+                SELECT
+                    l.id_layanan,
+                    l.id_kategori,
+                    l.created_by,
+                    l.akses,
+                    l.vpn,
+                    l.nama_layanan,
+                    l.deskripsi_layanan,
+                    l.url,
+                    l.logo,
+                    k.nama_kategori
+                FROM layanan l
+                LEFT JOIN kategori k
+                    ON l.id_kategori = k.id_kategori
+                {$whereSql}
+                ORDER BY l.id_layanan DESC
+                LIMIT ? OFFSET ?
+            ";
+            $stmt = $conn->prepare($sql);
+            $bindIdx = 1;
+            foreach ($whereParams as $paramVal) {
+                $stmt->bindValue($bindIdx++, $paramVal, PDO::PARAM_INT);
             }
+            $stmt->bindValue($bindIdx++, $limit, PDO::PARAM_INT);
+            $stmt->bindValue($bindIdx++, $offset, PDO::PARAM_INT);
+            $stmt->execute();
         } else {
-            if ($filterKategori > 0) {
-                $stmt = $conn->prepare("
-                    SELECT
-                        l.id_layanan,
-                        l.id_kategori,
-                        l.akses,
-                        l.vpn,
-                        l.nama_layanan,
-                        l.deskripsi_layanan,
-                        l.url,
-                        l.logo,
-                        k.nama_kategori
-                    FROM layanan l
-                    LEFT JOIN kategori k
-                        ON l.id_kategori = k.id_kategori
-                    WHERE l.akses IN ('Public', 'Internal')
-                      AND l.id_kategori = ?
-                    ORDER BY l.id_layanan DESC
-                ");
-                $stmt->execute([$filterKategori]);
-            } else {
-                $stmt = $conn->query("
-                    SELECT
-                        l.id_layanan,
-                        l.id_kategori,
-                        l.akses,
-                        l.vpn,
-                        l.nama_layanan,
-                        l.deskripsi_layanan,
-                        l.url,
-                        l.logo,
-                        k.nama_kategori
-                    FROM layanan l
-                    LEFT JOIN kategori k
-                        ON l.id_kategori = k.id_kategori
-                    WHERE l.akses IN ('Public', 'Internal')
-                    ORDER BY l.id_layanan DESC
-                ");
-            }
+            $sql = "
+                SELECT
+                    l.id_layanan,
+                    l.id_kategori,
+                    l.created_by,
+                    l.akses,
+                    l.vpn,
+                    l.nama_layanan,
+                    l.deskripsi_layanan,
+                    l.url,
+                    l.logo,
+                    k.nama_kategori
+                FROM layanan l
+                LEFT JOIN kategori k
+                    ON l.id_kategori = k.id_kategori
+                {$whereSql}
+                ORDER BY l.id_layanan DESC
+            ";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($whereParams);
         }
 
         $data =
@@ -486,6 +465,9 @@ if ($method === 'GET') {
 
             $item['id_kategori'] =
                 (int) $item['id_kategori'];
+
+            $item['created_by'] =
+                (int) ($item['created_by'] ?? 1);
 
 
             $item['url'] =
@@ -703,6 +685,14 @@ if ($method === 'POST') {
         }
 
 
+        $created_by =
+            isset($input['created_by']) ? (int) $input['created_by'] : 1;
+
+        if ($created_by <= 0) {
+            $created_by = 1;
+        }
+
+
         /* =============================================
            INSERT
         ============================================= */
@@ -711,6 +701,7 @@ if ($method === 'POST') {
             INSERT INTO layanan
             (
                 id_kategori,
+                created_by,
                 akses,
                 vpn,
                 nama_layanan,
@@ -726,6 +717,7 @@ if ($method === 'POST') {
                 ?,
                 ?,
                 ?,
+                ?,
                 ?
             )
         ");
@@ -733,6 +725,7 @@ if ($method === 'POST') {
 
         $stmt->execute([
             $id_kategori,
+            $created_by,
             $akses,
             $vpn,
             $nama_layanan,
@@ -951,12 +944,14 @@ if ($method === 'PUT') {
         }
 
 
+        $callerUserId = isset($input['user_id']) ? (int) $input['user_id'] : (isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0);
+
         /* =============================================
            CEK LAYANAN
         ============================================= */
 
         $cek = $conn->prepare("
-            SELECT id_layanan
+            SELECT id_layanan, created_by
             FROM layanan
             WHERE id_layanan = ?
             LIMIT 1
@@ -967,18 +962,26 @@ if ($method === 'PUT') {
             $id
         ]);
 
+        $existing = $cek->fetch(
+            PDO::FETCH_ASSOC
+        );
 
-        if (
-            !$cek->fetch(
-                PDO::FETCH_ASSOC
-            )
-        ) {
+        if (!$existing) {
 
             responseJson(
                 false,
                 'Data layanan tidak ditemukan',
                 null,
                 404
+            );
+        }
+
+        if ($callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
+            responseJson(
+                false,
+                'Anda tidak memiliki izin untuk mengubah layanan ini',
+                null,
+                403
             );
         }
 
@@ -1056,12 +1059,14 @@ if ($method === 'DELETE') {
 
     try {
 
+        $callerUserId = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+
         /* =============================================
            CEK DATA
         ============================================= */
 
         $cek = $conn->prepare("
-            SELECT id_layanan
+            SELECT id_layanan, created_by
             FROM layanan
             WHERE id_layanan = ?
             LIMIT 1
@@ -1072,18 +1077,26 @@ if ($method === 'DELETE') {
             $id
         ]);
 
+        $existing = $cek->fetch(
+            PDO::FETCH_ASSOC
+        );
 
-        if (
-            !$cek->fetch(
-                PDO::FETCH_ASSOC
-            )
-        ) {
+        if (!$existing) {
 
             responseJson(
                 false,
                 'Data layanan tidak ditemukan',
                 null,
                 404
+            );
+        }
+
+        if ($callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
+            responseJson(
+                false,
+                'Anda tidak memiliki izin untuk menghapus layanan ini',
+                null,
+                403
             );
         }
 
