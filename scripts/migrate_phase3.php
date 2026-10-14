@@ -76,9 +76,17 @@ try {
         echo "[SUDAH ADA]\n";
     }
 
-    // 5. Sanitasi & Pemasangan Foreign Key fk_layanan_created_by pada layanan
-    echo "5. Memeriksa constraint `fk_layanan_created_by` pada `layanan`... ";
-    
+    // 5. Memeriksa kolom created_by dan constraint fk_layanan_created_by pada layanan
+    echo "5. Memeriksa kolom `created_by` pada `layanan`... ";
+    $colStmt = $conn->query("SHOW COLUMNS FROM `layanan` LIKE 'created_by'");
+    if (!$colStmt->fetch()) {
+        $conn->exec("ALTER TABLE `layanan` ADD COLUMN `created_by` INT(11) DEFAULT 1 AFTER `id_kategori`");
+        echo "[DITAMBAHKAN kolom created_by]\n";
+    } else {
+        echo "[SUDAH ADA]\n";
+    }
+
+    echo "   Memeriksa constraint `fk_layanan_created_by` pada `layanan`... ";
     // Pastikan nilai invalid/0/empty menjadi NULL
     $conn->exec("UPDATE `layanan` SET `created_by` = NULL WHERE `created_by` IS NOT NULL AND `created_by` NOT IN (SELECT `id_admin` FROM `admin`)");
     
@@ -123,6 +131,98 @@ try {
     } else {
         echo "[SUDAH ADA]\n";
     }
+
+    // 7. Memeriksa tabel-tabel repositori pribadi
+    echo "7. Memeriksa tabel repositori pribadi... ";
+    $conn->exec("
+        CREATE TABLE IF NOT EXISTS `user_favorites` (
+          `id_favorite` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `id_layanan` int(11) NOT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_favorite`),
+          UNIQUE KEY `idx_user_layanan` (`id_user`, `id_layanan`),
+          KEY `fk_fav_user` (`id_user`),
+          KEY `fk_fav_layanan` (`id_layanan`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_links` (
+          `id_link` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `nama_website` varchar(200) NOT NULL,
+          `url_website` varchar(500) NOT NULL,
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_link`),
+          KEY `idx_link_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_data_links` (
+          `id_data_link` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `nama_dokumen` varchar(200) NOT NULL,
+          `url_dokumen` varchar(500) NOT NULL,
+          `jenis_dokumen` varchar(50) NOT NULL DEFAULT 'Lainnya',
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_data_link`),
+          KEY `idx_data_link_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_mobile_apps` (
+          `id_app` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `nama_aplikasi` varchar(200) NOT NULL,
+          `url_aplikasi` varchar(500) NOT NULL,
+          `platform` varchar(50) NOT NULL DEFAULT 'Android',
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_app`),
+          KEY `idx_app_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_drive_links` (
+          `id_drive` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `nama_folder` varchar(200) NOT NULL,
+          `url_folder` varchar(500) NOT NULL,
+          `jenis_drive` varchar(50) NOT NULL DEFAULT 'Google Drive',
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_drive`),
+          KEY `idx_drive_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_photo_links` (
+          `id_photo` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `judul_foto` varchar(200) NOT NULL,
+          `url_foto` varchar(500) NOT NULL,
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_photo`),
+          KEY `idx_photo_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `user_other_links` (
+          `id_other` int(11) NOT NULL AUTO_INCREMENT,
+          `id_user` int(11) NOT NULL,
+          `nama_link` varchar(200) NOT NULL,
+          `url_link` varchar(500) NOT NULL,
+          `label` varchar(100) DEFAULT 'Referensi',
+          `deskripsi` text DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id_other`),
+          KEY `idx_other_user` (`id_user`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+    echo "[OK]\n";
 
     echo "\n=== MIGRASI FASE 3 SELESAI DENGAN SUKSES! ===\n";
 
