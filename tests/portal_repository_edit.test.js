@@ -10,26 +10,43 @@ function parseHtml(html) {
 }
 
 function createSession() {
-  let cookie = '';
+  const cookieJar = new Map();
   return {
     async fetch(url, options = {}) {
       const headers = { ...(options.headers || {}) };
-      if (cookie) {
-        headers['Cookie'] = cookie;
+      if (cookieJar.size > 0) {
+        headers['Cookie'] = Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
       }
       const response = await fetch(url, { ...options, headers, redirect: 'manual' });
       const setCookies = typeof response.headers.getSetCookie === 'function'
         ? response.headers.getSetCookie()
         : [response.headers.get('set-cookie')].filter(Boolean);
-      if (setCookies.length > 0) {
-        cookie = setCookies[setCookies.length - 1].split(';')[0];
+      for (const raw of setCookies) {
+        if (!raw) continue;
+        const first = raw.split(';')[0];
+        const eqIdx = first.indexOf('=');
+        if (eqIdx !== -1) {
+          cookieJar.set(first.substring(0, eqIdx).trim(), first.substring(eqIdx + 1).trim());
+        }
       }
       return response;
     },
     getCookie() {
-      return cookie;
+      return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
     }
   };
+}
+
+async function loginAs(client, username, password) {
+  const pageRes = await client.fetch(`${BASE_URL}/login.php`);
+  const match = (await pageRes.text()).match(/name="csrf_token"\s+value="([^"]+)"/);
+  const csrfToken = match ? match[1] : '';
+
+  return client.fetch(`${BASE_URL}/login.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&csrf_token=${encodeURIComponent(csrfToken)}`
+  });
 }
 
 describe('Portal Repository Edit Feature & Security Isolation', () => {
@@ -41,17 +58,11 @@ describe('Portal Repository Edit Feature & Security Isolation', () => {
     luceClient = createSession();
     andrefanniClient = createSession();
 
-    await luceClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'username=Luce&password=user123'
-    });
+    const luceLogin = await loginAs(luceClient, 'Luce', 'user123');
+    expect(luceLogin.status).toBe(302);
 
-    await andrefanniClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'username=andrefanni&password=user123'
-    });
+    const andrefanniLogin = await loginAs(andrefanniClient, 'andrefanni', 'user123');
+    expect(andrefanniLogin.status).toBe(302);
   });
 
   afterAll(async () => {

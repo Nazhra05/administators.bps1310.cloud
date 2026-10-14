@@ -11,26 +11,43 @@ function parseHtml(html) {
 }
 
 function createSession() {
-  let cookie = '';
+  const cookieJar = new Map();
   return {
     async fetch(url, options = {}) {
       const headers = { ...(options.headers || {}) };
-      if (cookie) {
-        headers['Cookie'] = cookie;
+      if (cookieJar.size > 0) {
+        headers['Cookie'] = Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
       }
       const response = await fetch(url, { ...options, headers, redirect: 'manual' });
       const setCookies = typeof response.headers.getSetCookie === 'function'
         ? response.headers.getSetCookie()
         : [response.headers.get('set-cookie')].filter(Boolean);
-      if (setCookies.length > 0) {
-        cookie = setCookies[setCookies.length - 1].split(';')[0];
+      for (const raw of setCookies) {
+        if (!raw) continue;
+        const first = raw.split(';')[0];
+        const eqIdx = first.indexOf('=');
+        if (eqIdx !== -1) {
+          cookieJar.set(first.substring(0, eqIdx).trim(), first.substring(eqIdx + 1).trim());
+        }
       }
       return response;
     },
     getCookie() {
-      return cookie;
+      return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
     }
   };
+}
+
+async function loginAs(client, username, password) {
+  const pageRes = await client.fetch(`${BASE_URL}/login.php`);
+  const match = (await pageRes.text()).match(/name="csrf_token"\s+value="([^"]+)"/);
+  const csrfToken = match ? match[1] : '';
+
+  return client.fetch(`${BASE_URL}/login.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&csrf_token=${encodeURIComponent(csrfToken)}`
+  });
 }
 
 function extractCsrfToken(doc) {
@@ -48,11 +65,7 @@ describe('Verifikasi Email Admin — Alur Pendaftaran & Verifikasi Admin Baru', 
     adminClient = createSession();
 
     // Login as Admin Utama
-    const loginRes = await adminClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=admin&password=${encodeURIComponent(ADMIN_PASS)}`
-    });
+    const loginRes = await loginAs(adminClient, 'admin', ADMIN_PASS);
     expect(loginRes.status).toBe(302);
   });
 
@@ -163,11 +176,7 @@ describe('Verifikasi Email Admin — Alur Pendaftaran & Verifikasi Admin Baru', 
 
     // Cek bahwa admin baru bisa login dan role tetap ADMIN
     const newAdminSession = createSession();
-    const newLoginRes = await newAdminSession.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=${encodeURIComponent(newUsername)}&password=${encodeURIComponent(newPassword)}`
-    });
+    const newLoginRes = await loginAs(newAdminSession, newUsername, newPassword);
     expect(newLoginRes.status).toBe(302);
     expect(newLoginRes.headers.get('location')).toContain('index.php');
   });

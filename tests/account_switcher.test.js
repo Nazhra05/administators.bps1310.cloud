@@ -9,36 +9,52 @@ function parseHtml(html) {
   return window.document;
 }
 
-let sessionCookie = '';
+const sessionCookies = new Map();
+
+function clearSession() {
+  sessionCookies.clear();
+}
 
 async function fetchWithSession(url, options = {}) {
   const headers = { ...(options.headers || {}) };
-  if (sessionCookie) {
-    headers['Cookie'] = sessionCookie;
+  if (sessionCookies.size > 0) {
+    headers['Cookie'] = Array.from(sessionCookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
   }
   const response = await fetch(url, { ...options, headers, redirect: 'manual' });
   const setCookies = typeof response.headers.getSetCookie === 'function'
     ? response.headers.getSetCookie()
     : [response.headers.get('set-cookie')].filter(Boolean);
-  if (setCookies.length > 0) {
-    const last = setCookies[setCookies.length - 1];
-    sessionCookie = last.split(';')[0];
+  for (const raw of setCookies) {
+    if (!raw) continue;
+    const first = raw.split(';')[0];
+    const eqIdx = first.indexOf('=');
+    if (eqIdx !== -1) {
+      sessionCookies.set(first.substring(0, eqIdx).trim(), first.substring(eqIdx + 1).trim());
+    }
   }
   return response;
+}
+
+async function login(username, password) {
+  const pageRes = await fetchWithSession(`${BASE_URL}/login.php`);
+  const match = (await pageRes.text()).match(/name="csrf_token"\s+value="([^"]+)"/);
+  const csrfToken = match ? match[1] : '';
+
+  return fetchWithSession(`${BASE_URL}/login.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&csrf_token=${encodeURIComponent(csrfToken)}`
+  });
 }
 
 describe('Admin-Only Role Switch (Switch ke User ↔ Switch ke Admin) & Privacy Protection', () => {
 
   it('1. Admin logs in: does NOT see Switch ke User in sidebar or dropdown, and does NOT see other user accounts', async () => {
     // Clear session cookie
-    sessionCookie = '';
+    clearSession();
 
     const adminPass = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
-    const loginRes = await fetchWithSession(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=admin&password=${encodeURIComponent(adminPass)}`
-    });
+    const loginRes = await login('admin', adminPass);
 
     expect(loginRes.status).toBe(302);
     expect(loginRes.headers.get('location')).toBe('index.php');
@@ -133,13 +149,9 @@ describe('Admin-Only Role Switch (Switch ke User ↔ Switch ke Admin) & Privacy 
 
   it('4. Self-registered User logs in: has NO switch buttons in sidebar or dropdown, cannot switch to Admin', async () => {
     // Clear session and login as Luce (User)
-    sessionCookie = '';
+    clearSession();
 
-    const loginRes = await fetchWithSession(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'username=Luce&password=user123'
-    });
+    const loginRes = await login('Luce', 'user123');
 
     expect(loginRes.status).toBe(302);
     expect(loginRes.headers.get('location')).toBe('index.php');
@@ -175,12 +187,9 @@ describe('Admin-Only Role Switch (Switch ke User ↔ Switch ke Admin) & Privacy 
 
   it('5. Kelola User page has no + Daftarkan Admin Baru button and Daftar Pengguna only lists USER accounts', async () => {
     // Login as Admin
+    clearSession();
     const adminPass = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
-    await fetchWithSession(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=admin&password=${encodeURIComponent(adminPass)}`
-    });
+    await login('admin', adminPass);
 
     const kelolaRes = await fetchWithSession(`${BASE_URL}/kelola_user.php`);
     expect(kelolaRes.status).toBe(200);

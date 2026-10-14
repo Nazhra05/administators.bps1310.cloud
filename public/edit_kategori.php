@@ -11,6 +11,11 @@ if (empty($_SESSION['admin_id'])) {
     exit;
 }
 
+if ($active_role !== 'ADMIN') {
+    header('Location: kategori.php');
+    exit;
+}
+
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 $admin_role = $active_role;
 $active_nav = 'kategori';

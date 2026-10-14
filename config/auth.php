@@ -6,120 +6,33 @@ require_once __DIR__ . '/config.php';
    PORTAL SESSION AUTO-SYNC (SSO SYNCHRONIZATION)
 ===================================================== */
 
-/**
- * Verifikasi token sesi portal dari cookie bps_solsel_session
- */
-function verify_portal_session_cookie(): ?array
-{
-    $rawCookie = $_COOKIE['bps_solsel_session'] ?? '';
-    if (!$rawCookie || !is_string($rawCookie)) {
-        return null;
-    }
-
-    $parts = explode('.', trim($rawCookie));
-    if (count($parts) !== 2) {
-        return null;
-    }
-
-    [$encodedPayload, $signature] = $parts;
-    if (!$encodedPayload || !$signature) {
-        return null;
-    }
-
-    $secret = defined('API_KEY') ? API_KEY : env('API_KEY', '');
-    if (!$secret) {
-        return null;
-    }
-
-    $expectedRaw = hash_hmac('sha256', $encodedPayload, $secret, true);
-    $expectedSignature = rtrim(strtr(base64_encode($expectedRaw), '+/', '-_'), '=');
-
-    if (!hash_equals($expectedSignature, $signature)) {
-        return null;
-    }
-
-    $json = base64_decode(strtr($encodedPayload, '-_', '+/'));
-    if (!$json) {
-        return null;
-    }
-
-    $payload = json_decode($json, true);
-    if (!is_array($payload) || empty($payload['userId']) || empty($payload['exp'])) {
-        return null;
-    }
-
-    if ((int)$payload['exp'] <= time()) {
-        return null;
-    }
-
-    return $payload;
-}
-
-/**
- * Sinkronisasi sesi PHP ke user ID portal yang terverifikasi
- */
-function sync_session_from_portal_user(int $userId): bool
-{
-    global $conn;
-
-    try {
-        $stmt = $conn->prepare("
-            SELECT id_admin, username, first_name, last_name, email, role, status
-            FROM admin
-            WHERE id_admin = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user) {
-            return false;
-        }
-
-        $status = strtolower(trim((string)($user['status'] ?? '')));
-        if ($status !== 'approved') {
-            return false;
-        }
-
-        $accId = (int)$user['id_admin'];
-        $isAdmin = (strtoupper(trim($user['role'] ?? '')) === 'ADMIN');
-        $roleType = $isAdmin ? 'ADMIN' : 'USER';
-        $displayName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: ($user['username'] ?? 'User');
-
-        $_SESSION['accounts'] = [
-            $accId => [
-                'id' => $accId,
-                'username' => $user['username'] ?? '',
-                'name' => $displayName,
-                'email' => $user['email'] ?? '',
-                'role' => $roleType,
-                'raw_role' => $roleType
-            ]
-        ];
-        $_SESSION['active_account_id'] = $accId;
-        $_SESSION['admin_id'] = $accId;
-        $_SESSION['admin_username'] = $user['username'] ?? '';
-        $_SESSION['admin_name'] = $displayName;
-        $_SESSION['admin_role'] = $roleType;
-        $_SESSION['admin_real_role'] = $roleType;
-        $_SESSION['admin_status'] = $user['status'] ?? '';
-        $_SESSION['admin_email'] = $user['email'] ?? '';
-        $_SESSION['active_role'] = $roleType;
-
-        return true;
-    } catch (Exception $e) {
-        return false;
-    }
-}
+// Fungsi portal session didefinisikan dalam config/portal_session.php
 
 // Sinkronisasi otomatis dari portal Next.js jika cookie bps_solsel_session tersedia
 $portalSession = verify_portal_session_cookie();
 if ($portalSession && !empty($portalSession['userId'])) {
     $portalUserId = (int)$portalSession['userId'];
-    // Jika sesi PHP kosong ATAU sesi aktif berbeda dengan akun portal yang sedang aktif,
-    // segera re-sinkronisasi ke akun portal aktif (mencegah akun admin lama menempel)
-    if (empty($_SESSION['admin_id']) || (int)$_SESSION['admin_id'] !== $portalUserId) {
+    if (empty($_SESSION['admin_id'])) {
+        // Jika sesi PHP belum ada, inisialisasi dari portal
         sync_session_from_portal_user($portalUserId);
+    } elseif ((int)$_SESSION['admin_id'] !== $portalUserId) {
+        // Sesi PHP sudah ada, tetapi berbeda dengan cookie portal.
+        // Jika sesi PHP berasal dari login manual di dashboard,
+        // prioritaskan akun dashboard dan perbarui cookie portal agar selaras.
+        if (($_SESSION['auth_source'] ?? '') === 'dashboard_login') {
+            issue_portal_session_cookies([
+                'id_admin' => (int)$_SESSION['admin_id'],
+                'username' => $_SESSION['admin_username'] ?? '',
+                'name'     => $_SESSION['admin_name'] ?? '',
+                'email'    => $_SESSION['admin_email'] ?? '',
+                'role'     => $_SESSION['admin_role'] ?? 'ADMIN',
+                'status'   => $_SESSION['admin_status'] ?? 'approved',
+            ]);
+        } else {
+            // Jika sesi PHP bukan berasal dari login dashboard manual (misal sisa SSO lama),
+            // sinkronkan ke user portal aktif yang baru
+            sync_session_from_portal_user($portalUserId);
+        }
     }
 }
 

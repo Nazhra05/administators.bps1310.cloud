@@ -89,6 +89,7 @@ try {
         json_response(false, 'Akun pengguna tidak ditemukan atau telah dihapus oleh administrator.', [
             'valid'   => false,
             'revoked' => true,
+            'active'  => false,
             'reason'  => 'user_not_found'
         ], 404);
     }
@@ -99,6 +100,7 @@ try {
         json_response(false, 'Status akun tidak aktif atau telah dinonaktifkan (' . $status . ').', [
             'valid'   => false,
             'revoked' => true,
+            'active'  => false,
             'status'  => $status,
             'reason'  => 'account_' . $status
         ], 403);
@@ -108,6 +110,7 @@ try {
     json_response(true, 'Sesi akun valid dan aktif.', [
         'valid'          => true,
         'revoked'        => false,
+        'active'         => true,
         'id_user'        => (int) $user['id_admin'],
         'username'       => $user['username'],
         'role'           => $user['role'],

@@ -279,7 +279,7 @@ if ($method === 'GET') {
     $id =
         isset($_GET['id'])
             ? (int) $_GET['id']
-            : 0;
+            : (isset($_GET['id_layanan']) ? (int) $_GET['id_layanan'] : 0);
 
 
     try {
@@ -692,6 +692,30 @@ if ($method === 'POST') {
             $created_by = 1;
         }
 
+        /* =============================================
+           CEK KUOTA LAYANAN (MAKSIMAL 3 UNTUK USER BIASA)
+        ============================================= */
+        if ($created_by > 1) {
+            $userRoleStmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+            $userRoleStmt->execute([$created_by]);
+            $userRole = strtoupper(trim((string) $userRoleStmt->fetchColumn()));
+
+            if ($userRole !== 'ADMIN') {
+                $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan WHERE created_by = ?");
+                $countStmt->execute([$created_by]);
+                $userLayananCount = (int) $countStmt->fetchColumn();
+
+                if ($userLayananCount >= 3) {
+                    responseJson(
+                        false,
+                        'Batas maksimal penambahan layanan portal telah tercapai (maksimal 3 layanan). Silakan hapus salah satu layanan untuk menambahkan yang baru.',
+                        null,
+                        400
+                    );
+                }
+            }
+        }
+
 
         /* =============================================
            INSERT
@@ -771,7 +795,7 @@ if ($method === 'PUT') {
     $id =
         isset($_GET['id'])
             ? (int) $_GET['id']
-            : 0;
+            : (isset($_GET['id_layanan']) ? (int) $_GET['id_layanan'] : 0);
 
 
     if ($id <= 0) {
@@ -1043,7 +1067,7 @@ if ($method === 'DELETE') {
     $id =
         isset($_GET['id'])
             ? (int) $_GET['id']
-            : 0;
+            : (isset($_GET['id_layanan']) ? (int) $_GET['id_layanan'] : 0);
 
 
     if ($id <= 0) {

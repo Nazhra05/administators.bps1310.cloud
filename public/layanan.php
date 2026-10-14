@@ -31,41 +31,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $logo = 'logo_bps.jpg';
             if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = __DIR__ . '/uploads/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-                if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                    $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                    if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
-                        $logo = $logoName;
+                $max_size = 2 * 1024 * 1024; // 2MB
+                if ($_FILES['logo']['size'] > $max_size) {
+                    $pesan_error = 'Ukuran berkas logo maksimal 2 MB.';
+                } else {
+                    $uploadDir = __DIR__ . '/uploads/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+                    $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                        $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                        if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
+                            $logo = $logoName;
+                        }
+                    } else {
+                        $pesan_error = 'Format berkas logo harus berupa JPG, JPEG, PNG, atau WebP.';
                     }
                 }
+            } elseif (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_INI_SIZE) {
+                $pesan_error = 'Ukuran berkas logo melebihi batas upload server (maksimal 2 MB).';
             }
 
-            if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-                $url = 'https://' . $url;
+            if ($pesan_error === '' && $active_role === 'USER') {
+                $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan WHERE created_by = ?");
+                $countStmt->execute([$user_id]);
+                if ((int) $countStmt->fetchColumn() >= 3) {
+                    $pesan_error = 'Batas maksimal penambahan layanan portal telah tercapai (maksimal 3 layanan). Silakan hapus salah satu layanan untuk menambahkan yang baru.';
+                }
             }
 
-            try {
-                $stmt = $conn->prepare("
-                    INSERT INTO layanan (id_kategori, created_by, akses, vpn, nama_layanan, deskripsi_layanan, url, logo)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([
-                    $id_kategori,
-                    $user_id,
-                    $akses,
-                    $vpn,
-                    $nama_layanan,
-                    $deskripsi_layanan,
-                    $url,
-                    $logo
-                ]);
-                $pesan_sukses = 'Layanan baru berhasil ditambahkan!';
-            } catch (PDOException $e) {
-                $pesan_error = 'Gagal menyimpan layanan: ' . $e->getMessage();
+            if ($pesan_error === '') {
+                if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                    $url = 'https://' . $url;
+                }
+
+                try {
+                    $stmt = $conn->prepare("
+                        INSERT INTO layanan (id_kategori, created_by, akses, vpn, nama_layanan, deskripsi_layanan, url, logo)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $id_kategori,
+                        $user_id,
+                        $akses,
+                        $vpn,
+                        $nama_layanan,
+                        $deskripsi_layanan,
+                        $url,
+                        $logo
+                    ]);
+                    $pesan_sukses = 'Layanan baru berhasil ditambahkan!';
+                } catch (PDOException $e) {
+                    $pesan_error = 'Gagal menyimpan layanan: ' . $e->getMessage();
+                }
             }
         }
     } elseif ($action === 'edit_layanan') {
@@ -87,45 +106,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($row && ($is_real_admin || (int) $row['created_by'] === $user_id)) {
                 $logo = $row['logo'];
                 if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-                    $uploadDir = __DIR__ . '/uploads/';
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-                    $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                        $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                        if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
-                            if (!empty($logo) && $logo !== 'logo_bps.jpg' && file_exists($uploadDir . $logo)) {
-                                @unlink($uploadDir . $logo);
+                    $max_size = 2 * 1024 * 1024; // 2MB
+                    if ($_FILES['logo']['size'] > $max_size) {
+                        $pesan_error = 'Ukuran berkas logo maksimal 2 MB.';
+                    } else {
+                        $uploadDir = __DIR__ . '/uploads/';
+                        if (!is_dir($uploadDir)) {
+                            mkdir($uploadDir, 0777, true);
+                        }
+                        $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                            $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                            if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
+                                if (!empty($logo) && $logo !== 'logo_bps.jpg' && file_exists($uploadDir . $logo)) {
+                                    @unlink($uploadDir . $logo);
+                                }
+                                $logo = $logoName;
                             }
-                            $logo = $logoName;
+                        } else {
+                            $pesan_error = 'Format berkas logo harus berupa JPG, JPEG, PNG, atau WebP.';
                         }
                     }
+                } elseif (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_INI_SIZE) {
+                    $pesan_error = 'Ukuran berkas logo melebihi batas upload server (maksimal 2 MB).';
                 }
 
-                if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-                    $url = 'https://' . $url;
-                }
+                if ($pesan_error === '') {
+                    if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                        $url = 'https://' . $url;
+                    }
 
-                try {
-                    $stmt = $conn->prepare("
-                        UPDATE layanan 
-                        SET id_kategori = ?, akses = ?, vpn = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?
-                        WHERE id_layanan = ?
-                    ");
-                    $stmt->execute([
-                        $id_kategori,
-                        $akses,
-                        $vpn,
-                        $nama_layanan,
-                        $deskripsi_layanan,
-                        $url,
-                        $logo,
-                        $id_layanan
-                    ]);
-                    $pesan_sukses = 'Layanan berhasil diperbarui!';
-                } catch (PDOException $e) {
-                    $pesan_error = 'Gagal memperbarui layanan: ' . $e->getMessage();
+                    try {
+                        $stmt = $conn->prepare("
+                            UPDATE layanan 
+                            SET id_kategori = ?, akses = ?, vpn = ?, nama_layanan = ?, deskripsi_layanan = ?, url = ?, logo = ?
+                            WHERE id_layanan = ?
+                        ");
+                        $stmt->execute([
+                            $id_kategori,
+                            $akses,
+                            $vpn,
+                            $nama_layanan,
+                            $deskripsi_layanan,
+                            $url,
+                            $logo,
+                            $id_layanan
+                        ]);
+                        $pesan_sukses = 'Layanan berhasil diperbarui!';
+                    } catch (PDOException $e) {
+                        $pesan_error = 'Gagal memperbarui layanan: ' . $e->getMessage();
+                    }
                 }
             } else {
                 $pesan_error = 'Anda tidak memiliki hak untuk mengedit layanan ini.';

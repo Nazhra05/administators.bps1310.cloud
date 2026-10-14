@@ -18,6 +18,17 @@ $is_post = ($_SERVER['REQUEST_METHOD'] === 'POST');
 $is_json = (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) ||
            (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
 
+if ($active_role !== 'ADMIN') {
+    if ($is_json) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['success' => false, 'message' => 'Akses ditolak. Hanya Administrator yang dapat menghapus kategori.']);
+        exit;
+    }
+    header('Location: kategori.php');
+    exit;
+}
+
 $id = $is_post
     ? (filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT) ?: filter_input(INPUT_POST, 'id_kategori', FILTER_VALIDATE_INT))
     : filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);

@@ -10,24 +10,33 @@ function parseHtml(html) {
 }
 
 function createSession() {
-  let cookie = '';
+  const cookieJar = new Map();
   return {
     async fetch(url, options = {}) {
       const headers = { ...(options.headers || {}) };
-      if (cookie) {
-        headers['Cookie'] = cookie;
+      if (cookieJar.size > 0) {
+        headers['Cookie'] = Array.from(cookieJar.entries())
+          .map(([k, v]) => `${k}=${v}`)
+          .join('; ');
       }
       const response = await fetch(url, { ...options, headers, redirect: 'manual' });
       const setCookies = typeof response.headers.getSetCookie === 'function'
         ? response.headers.getSetCookie()
-        : [response.headers.get('set-cookie')].filter(Boolean);
-      if (setCookies.length > 0) {
-        cookie = setCookies[setCookies.length - 1].split(';')[0];
+        : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+      for (const sc of setCookies) {
+        if (!sc) continue;
+        const [pair] = sc.split(';');
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = pair.slice(0, eqIdx).trim();
+          const val = pair.slice(eqIdx + 1).trim();
+          cookieJar.set(key, val);
+        }
       }
       return response;
     },
     getCookie() {
-      return cookie;
+      return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
     }
   };
 }
@@ -39,11 +48,16 @@ describe('Admin Kelola Layanan — Tambah & Edit Layanan Form Consistency', () =
   beforeAll(async () => {
     adminClient = createSession();
 
+    // 1. Ambil halaman login untuk inisialisasi sesi & CSRF token
+    const getLogin = await adminClient.fetch(`${BASE_URL}/login.php`);
+    const docLogin = parseHtml(await getLogin.text());
+    const csrfToken = docLogin.querySelector('input[name="csrf_token"]')?.value || '';
+
     const adminPass = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
     const loginRes = await adminClient.fetch(`${BASE_URL}/login.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=admin&password=${encodeURIComponent(adminPass)}`
+      body: `username=admin&password=${encodeURIComponent(adminPass)}&csrf_token=${encodeURIComponent(csrfToken)}`
     });
     expect(loginRes.status).toBe(302);
   });
@@ -163,10 +177,15 @@ describe('Admin Kelola Layanan — Tambah & Edit Layanan Form Consistency', () =
   });
 
   it('3. Admin dapat menambah layanan baru via tambah_layanan.php', async () => {
+    const pageRes = await adminClient.fetch(`${BASE_URL}/tambah_layanan.php`);
+    const doc = parseHtml(await pageRes.text());
+    const csrf = doc.querySelector('input[name="csrf_token"]')?.value || '';
+
     const postRes = await adminClient.fetch(`${BASE_URL}/tambah_layanan.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
+        csrf_token: csrf,
         nama_layanan: 'Layanan Uji Admin Form',
         deskripsi_layanan: 'Deskripsi uji layanan admin form',
         url: 'https://admin-uji.bps.go.id',
@@ -239,11 +258,16 @@ describe('Admin Kelola Layanan — Tambah & Edit Layanan Form Consistency', () =
     const countBefore = (beforeHtml.match(/Layanan Uji Admin Form/g) || []).length;
     expect(countBefore).toBeGreaterThan(0);
 
+    const pageRes = await adminClient.fetch(`${BASE_URL}/edit_layanan.php?id=${createdLayananId}`);
+    const doc = parseHtml(await pageRes.text());
+    const csrf = doc.querySelector('input[name="csrf_token"]')?.value || '';
+
     // Kirim edit data
     const editRes = await adminClient.fetch(`${BASE_URL}/edit_layanan.php?id=${createdLayananId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
+        csrf_token: csrf,
         nama_layanan: 'Layanan Uji Admin Form (Telah Diedit)',
         deskripsi_layanan: 'Deskripsi berhasil diperbarui oleh admin',
         url: 'https://admin-uji-updated.bps.go.id',

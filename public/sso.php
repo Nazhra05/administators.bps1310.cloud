@@ -35,8 +35,10 @@ if (count($parts) !== 2) {
     exit;
 }
 
+require_once __DIR__ . '/../config/portal_session.php';
+
 [$encodedPayload, $signature] = $parts;
-$secret = defined('API_KEY') ? API_KEY : env('API_KEY', '');
+$secret = get_portal_session_secret();
 
 if (!$secret) {
     header('Location: login.php?error=' . urlencode('Kunci keamanan server belum terkonfigurasi.'));
@@ -127,6 +129,7 @@ try {
     $_SESSION['admin_status'] = $user['status'] ?? '';
     $_SESSION['admin_email'] = $user['email'] ?? '';
     $_SESSION['active_role'] = $roleType;
+    $_SESSION['auth_source'] = 'sso';
 
     // Pastikan sesi tersimpan sebelum redirect ke halaman tujuan
     session_write_close();

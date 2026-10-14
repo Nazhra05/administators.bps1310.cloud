@@ -38,8 +38,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 ===================================================== */
 function responseJson($status, $message, $data = null, $httpCode = 200) {
     http_response_code($httpCode);
+    $isSuccess = ($status === true || $status === 'success');
     echo json_encode([
         'status'  => $status,
+        'success' => $isSuccess,
         'message' => $message,
         'data'    => $data
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -86,6 +88,15 @@ if ($identity === '' || $password === '') {
     responseJson(false, 'Identity (email/username) dan password wajib diisi', null, 400);
 }
 
+// Cek Rate Limiting (SEC-09)
+$rateLimit = check_login_rate_limit($identity);
+if (!$rateLimit['allowed']) {
+    $minutes = ceil($rateLimit['retry_after'] / 60);
+    responseJson(false, "Terlalu banyak percobaan login gagal. Akun/IP Anda ditangguhkan sementara selama {$minutes} menit.", [
+        'retry_after' => $rateLimit['retry_after']
+    ], 429);
+}
+
 try {
     $stmt = $conn->prepare("
         SELECT id_admin, username, email, password, status, role, email_verified
@@ -97,6 +108,7 @@ try {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
+        record_login_attempt($identity, false);
         responseJson(false, 'Akun tidak ditemukan', null, 404);
     }
 
@@ -113,11 +125,15 @@ try {
     ===================================================== */
     $dbPassword = (string)($user['password'] ?? '');
     $passwordValid = false;
+    $needsRehash = false;
 
     if ($dbPassword !== '') {
         // 1. Cek Bcrypt untuk akun USER ($2y$12$...)
         if (password_verify($password, $dbPassword)) {
             $passwordValid = true;
+            if (password_needs_rehash($dbPassword, PASSWORD_BCRYPT)) {
+                $needsRehash = true;
+            }
         }
 
         // 2. Fallback cek SHA-256 untuk akun Admin register.php
@@ -125,12 +141,28 @@ try {
             $hashedInput = hash('sha256', $password);
             if (hash_equals(strtolower($dbPassword), strtolower($hashedInput))) {
                 $passwordValid = true;
+                $needsRehash = true;
             }
         }
     }
 
     if (!$passwordValid) {
+        record_login_attempt($identity, false);
         responseJson(false, 'Password salah', null, 401);
+    }
+
+    // Login Berhasil
+    record_login_attempt($identity, true);
+
+    // Transparent password upgrade: migrasikan hash lama atau rehash ke Bcrypt modern
+    if ($needsRehash) {
+        try {
+            $newHash = password_hash($password, PASSWORD_BCRYPT);
+            $updStmt = $conn->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
+            $updStmt->execute([$newHash, (int)$user['id_admin']]);
+        } catch (Exception $e) {
+            error_log('[PASSWORD_REHASH_ERROR] Gagal mengupgrade hash password id_admin ' . $user['id_admin'] . ': ' . $e->getMessage());
+        }
     }
 
     responseJson(true, 'Login berhasil', [

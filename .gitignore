@@ -42,3 +42,10 @@ package-lock.json
 # Scratch & temporary workspace tools
 scratch/
 graphify-out/
+.agents/
+
+# Database dumps & exports (preserve DDL schema template only)
+database/*.sql
+!database/schema.sql
+*.sql
+!database/schema.sql

@@ -49,62 +49,85 @@ $vpn = 'No';
 ========================= */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_layanan = trim($_POST['nama_layanan'] ?? '');
-    $deskripsi_layanan = trim($_POST['deskripsi_layanan'] ?? '');
-    $url = trim($_POST['url'] ?? '');
-    $id_kategori = (int) ($_POST['id_kategori'] ?? 0);
-    $akses = trim($_POST['akses'] ?? 'Public');
-    $vpn = trim($_POST['vpn'] ?? 'No');
-
-    if ($nama_layanan === '' || $deskripsi_layanan === '' || $url === '' || $id_kategori <= 0) {
-        $pesan_error = 'Nama layanan, deskripsi, URL, dan kategori wajib diisi.';
+    if (!csrf_verify()) {
+        $pesan_error = 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang halaman.';
     } else {
-        $logo = 'logo_bps.jpg';
-        if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-            $folder_upload = __DIR__ . '/uploads/';
-            if (!is_dir($folder_upload)) {
-                mkdir($folder_upload, 0777, true);
-            }
-            $nama_asli = basename($_FILES['logo']['name']);
-            $ekstensi = strtolower(pathinfo($nama_asli, PATHINFO_EXTENSION));
-            $format_diizinkan = ['jpg', 'jpeg', 'png', 'webp'];
+        $nama_layanan = trim($_POST['nama_layanan'] ?? '');
+        $deskripsi_layanan = trim($_POST['deskripsi_layanan'] ?? '');
+        $url = trim($_POST['url'] ?? '');
+        $id_kategori = (int) ($_POST['id_kategori'] ?? 0);
+        $akses = trim($_POST['akses'] ?? 'Public');
+        $vpn = trim($_POST['vpn'] ?? 'No');
 
-            if (in_array($ekstensi, $format_diizinkan, true)) {
-                $nama_file = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ekstensi;
-                if (move_uploaded_file($_FILES['logo']['tmp_name'], $folder_upload . $nama_file)) {
-                    $logo = $nama_file;
+        if ($nama_layanan === '' || $deskripsi_layanan === '' || $url === '' || $id_kategori <= 0) {
+            $pesan_error = 'Nama layanan, deskripsi, URL, dan kategori wajib diisi.';
+        } else {
+            $logo = 'logo_bps.jpg';
+            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+                $max_size = 2 * 1024 * 1024; // 2MB
+                if ($_FILES['logo']['size'] > $max_size) {
+                    $pesan_error = 'Ukuran berkas logo maksimal 2 MB.';
+                } else {
+                    $folder_upload = __DIR__ . '/uploads/';
+                    if (!is_dir($folder_upload)) {
+                        mkdir($folder_upload, 0777, true);
+                    }
+                    $nama_asli = basename($_FILES['logo']['name']);
+                    $ekstensi = strtolower(pathinfo($nama_asli, PATHINFO_EXTENSION));
+                    $format_diizinkan = ['jpg', 'jpeg', 'png', 'webp'];
+
+                    if (in_array($ekstensi, $format_diizinkan, true)) {
+                        $nama_file = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ekstensi;
+                        if (move_uploaded_file($_FILES['logo']['tmp_name'], $folder_upload . $nama_file)) {
+                            $logo = $nama_file;
+                        }
+                    } else {
+                        $pesan_error = 'Format berkas logo harus berupa JPG, JPEG, PNG, atau WebP.';
+                    }
+                }
+            } elseif (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_INI_SIZE) {
+                $pesan_error = 'Ukuran berkas logo melebihi batas upload server (maksimal 2 MB).';
+            }
+
+            if ($pesan_error === '' && $active_role === 'USER') {
+                $countStmt = $conn->prepare("SELECT COUNT(*) FROM layanan WHERE created_by = ?");
+                $countStmt->execute([$user_id]);
+                if ((int) $countStmt->fetchColumn() >= 3) {
+                    $pesan_error = 'Batas maksimal penambahan layanan portal telah tercapai (maksimal 3 layanan). Silakan hapus salah satu layanan untuk menambahkan yang baru.';
                 }
             }
-        }
 
-        if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-            $url = 'https://' . $url;
-        }
+            if ($pesan_error === '') {
+                if (!filter_var($url, FILTER_VALIDATE_URL) && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                    $url = 'https://' . $url;
+                }
 
-        try {
-            $stmt_insert = $conn->prepare("
-                INSERT INTO layanan
-                (id_kategori, created_by, akses, vpn, nama_layanan, deskripsi_layanan, url, logo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ");
+                try {
+                $stmt_insert = $conn->prepare("
+                    INSERT INTO layanan
+                    (id_kategori, created_by, akses, vpn, nama_layanan, deskripsi_layanan, url, logo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
 
-            $stmt_insert->execute([
-                $id_kategori,
-                $user_id,
-                $akses,
-                $vpn,
-                $nama_layanan,
-                $deskripsi_layanan,
-                $url,
-                $logo
-            ]);
+                $stmt_insert->execute([
+                    $id_kategori,
+                    $user_id,
+                    $akses,
+                    $vpn,
+                    $nama_layanan,
+                    $deskripsi_layanan,
+                    $url,
+                    $logo
+                ]);
 
-            header('Location: layanan.php');
-            exit;
-        } catch (PDOException $e) {
-            $pesan_error = 'Gagal menyimpan data layanan ke database: ' . $e->getMessage();
+                header('Location: layanan.php');
+                exit;
+            } catch (PDOException $e) {
+                $pesan_error = 'Gagal menyimpan data layanan ke database: ' . $e->getMessage();
+            }
         }
     }
+}
 }
 
 ?>
@@ -463,6 +486,7 @@ include __DIR__ . '/partials/navbar.php';
             <h3>Tambah Layanan Baru</h3>
         </div>
         <form id="formTambahLayanan" method="POST" action="tambah_layanan.php" enctype="multipart/form-data" novalidate>
+            <?= csrf_field(); ?>
             <div class="form-card-body">
                 <div class="modal-form-alert" id="formAlertBox"></div>
 

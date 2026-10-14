@@ -261,9 +261,16 @@ paths:
         - ApiKeyAuth: []
         - SessionCookie: []
       parameters:
+        - name: id
+          in: query
+          required: false
+          description: ID layanan yang akan dihapus
+          schema:
+            type: integer
         - name: id_layanan
           in: query
-          required: true
+          required: false
+          description: Alias alternatif untuk ID layanan
           schema:
             type: integer
       responses:
@@ -364,13 +371,17 @@ paths:
             schema:
               type: object
               required:
-                - username
+                - identity
                 - password
               properties:
-                username:
+                identity:
                   type: string
+                  description: Username atau alamat email akun pegawai
+                  example: budi.santoso@bps.go.id
                 password:
                   type: string
+                  format: password
+                  example: Rahasia123!
       responses:
         '200':
           description: Autentikasi berhasil, mengembalikan profil pegawai
@@ -395,7 +406,6 @@ paths:
                 - email
                 - username
                 - password
-                - konfirmasi_password
               properties:
                 first_name:
                   type: string
@@ -408,8 +418,10 @@ paths:
                   type: string
                 password:
                   type: string
-                konfirmasi_password:
+                  format: password
+                confirm_password:
                   type: string
+                  format: password
       responses:
         '201':
           description: Akun berhasil didaftarkan dan email verifikasi telah dikirim

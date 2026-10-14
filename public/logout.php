@@ -38,6 +38,9 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
+// Bersihkan cookie portal SSO
+clear_portal_session_cookies();
+
 session_destroy();
 
 header("Location: login.php");

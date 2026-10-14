@@ -12,18 +12,26 @@ function parseHtml(html) {
 }
 
 // Session cookie storage to simulate a browser session
-let sessionCookie = '';
+const cookieJar = new Map();
 
 async function fetchWithSession(url, options = {}) {
   const headers = { ...(options.headers || {}) };
-  if (sessionCookie) {
-    headers['Cookie'] = sessionCookie;
+  if (cookieJar.size > 0) {
+    headers['Cookie'] = Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
   }
   const response = await fetch(url, { ...options, headers, redirect: 'manual' });
-  const setCookie = response.headers.get('set-cookie');
-  if (setCookie) {
-    const cookies = setCookie.split(/,\s*(?=[a-zA-Z0-9_]+=)/);
-    sessionCookie = cookies[cookies.length - 1].split(';')[0];
+  const setCookies = typeof response.headers.getSetCookie === 'function'
+    ? response.headers.getSetCookie()
+    : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+  for (const sc of setCookies) {
+    if (!sc) continue;
+    const [pair] = sc.split(';');
+    const eqIdx = pair.indexOf('=');
+    if (eqIdx !== -1) {
+      const key = pair.slice(0, eqIdx).trim();
+      const val = pair.slice(eqIdx + 1).trim();
+      cookieJar.set(key, val);
+    }
   }
   return response;
 }
@@ -133,6 +141,7 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
 
   // 5. LOGIN SUCCESS - WITH EMAIL
   it('5. User logs in successfully using registered email address', async () => {
+    cookieJar.clear();
     const pageRes = await fetchWithSession(`${BASE_URL}/login.php`);
     const doc = parseHtml(await pageRes.text());
     const csrfToken = extractCsrfToken(doc);
@@ -404,6 +413,7 @@ describe('Dashboard BPS Solok Selatan - User-Facing Features', () => {
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('login.php');
 
+    cookieJar.clear();
     // Subsequent dashboard request must be redirected to login
     const protectedRes = await fetchWithSession(`${BASE_URL}/index.php`);
     expect(protectedRes.status).toBe(302);

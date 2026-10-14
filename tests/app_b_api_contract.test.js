@@ -5,26 +5,50 @@ const BASE_URL = 'http://localhost/Dashboard_Admin/public';
 const API_KEY = 'Hashtag_1310SolokSelatan_PortalInternal_dan_DashboardAdmin_V1_BPSSolokSelatan_KotoTinggi';
 
 function createSession() {
-  let cookie = '';
+  const cookieJar = new Map();
   return {
     async fetch(url, options = {}) {
       const headers = { ...(options.headers || {}) };
-      if (cookie) {
-        headers['Cookie'] = cookie;
+      if (cookieJar.size > 0) {
+        headers['Cookie'] = Array.from(cookieJar.entries())
+          .map(([k, v]) => `${k}=${v}`)
+          .join('; ');
       }
       const response = await fetch(url, { ...options, headers, redirect: 'manual' });
       const setCookies = typeof response.headers.getSetCookie === 'function'
         ? response.headers.getSetCookie()
-        : [response.headers.get('set-cookie')].filter(Boolean);
-      if (setCookies.length > 0) {
-        cookie = setCookies[setCookies.length - 1].split(';')[0];
+        : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+      for (const sc of setCookies) {
+        if (!sc) continue;
+        const [pair] = sc.split(';');
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = pair.slice(0, eqIdx).trim();
+          const val = pair.slice(eqIdx + 1).trim();
+          cookieJar.set(key, val);
+        }
       }
       return response;
     },
     getCookie() {
-      return cookie;
+      return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
     }
   };
+}
+
+function extractCsrf(html) {
+  const match = html.match(/name=["']csrf_token["']\s+value=["']([^"']+)["']/i);
+  return match ? match[1] : '';
+}
+
+async function loginSession(client, username, password) {
+  const page = await client.fetch(`${BASE_URL}/login.php`);
+  const csrf = extractCsrf(await page.text());
+  return client.fetch(`${BASE_URL}/login.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&csrf_token=${encodeURIComponent(csrf)}`
+  });
 }
 
 describe('App B API Contract & RBAC Architecture Tests', () => {
@@ -155,11 +179,7 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
     it('role USER diblokir keras saat mengakses kelola_user.php dan dialihkan ke index.php', async () => {
       const userClient = createSession();
       // Login sebagai user Luce
-      const loginRes = await userClient.fetch(`${BASE_URL}/login.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'username=Luce&password=user123'
-      });
+      const loginRes = await loginSession(userClient, 'Luce', 'user123');
       expect(loginRes.status).toBe(302);
 
       const res = await userClient.fetch(`${BASE_URL}/kelola_user.php`);
@@ -169,11 +189,7 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
 
     it('role USER diblokir keras saat mengakses kelola_admin.php dan dialihkan ke index.php', async () => {
       const userClient = createSession();
-      const loginRes = await userClient.fetch(`${BASE_URL}/login.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'username=Luce&password=user123'
-      });
+      const loginRes = await loginSession(userClient, 'Luce', 'user123');
       expect(loginRes.status).toBe(302);
 
       const res = await userClient.fetch(`${BASE_URL}/kelola_admin.php`);
@@ -188,11 +204,7 @@ describe('App B API Contract & RBAC Architecture Tests', () => {
     beforeAll(async () => {
       adminClient = createSession();
       const adminPass = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
-      const loginRes = await adminClient.fetch(`${BASE_URL}/login.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `username=admin&password=${encodeURIComponent(adminPass)}`
-      });
+      const loginRes = await loginSession(adminClient, 'admin', adminPass);
       expect(loginRes.status).toBe(302);
     });
 

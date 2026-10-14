@@ -23,7 +23,9 @@ $pesan_sukses = '';
 $pesan_error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_verify()) {
+    if (!is_admin_user() || $active_role !== 'ADMIN') {
+        $pesan_error = 'Akses ditolak. Hanya Administrator yang berhak mengelola kategori statistik.';
+    } elseif (!csrf_verify()) {
         $pesan_error = 'Sesi keamanan tidak valid atau telah kedaluwarsa.';
     } else {
         $aksi = trim($_POST['aksi'] ?? '');
@@ -1094,11 +1096,13 @@ include __DIR__ . '/partials/navbar.php';
         </div>
     <?php endif; ?>
 
+    <?php if ($active_role === 'ADMIN'): ?>
     <div class="action-bar">
         <a href="tambah_kategori.php" class="btn-tambah" onclick="openModal('modalTambahKategori'); return false;" style="display: inline-flex; align-items: center; gap: 8px;">
             <?= render_icon('plus', 'btn-icon', 16); ?> Tambah Kategori
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- =================================================
          TABLE
@@ -1135,9 +1139,11 @@ include __DIR__ . '/partials/navbar.php';
                     </th>
 
 
+                    <?php if ($active_role === 'ADMIN'): ?>
                     <th>
                         Aksi
                     </th>
+                    <?php endif; ?>
 
 
                 </tr>
@@ -1404,6 +1410,7 @@ include __DIR__ . '/partials/navbar.php';
                              AKSI
                         ================================== -->
 
+                        <?php if ($active_role === 'ADMIN'): ?>
                         <td>
 
 
@@ -1433,6 +1440,7 @@ include __DIR__ . '/partials/navbar.php';
 
 
                         </td>
+                        <?php endif; ?>
 
 
                     </tr>
@@ -1586,6 +1594,7 @@ document.addEventListener(
 
 </script>
 
+<?php if ($active_role === 'ADMIN'): ?>
 <!-- =====================================================
      MODAL TAMBAH KATEGORI
 ===================================================== -->
@@ -1634,6 +1643,7 @@ document.addEventListener(
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
 function openModal(id) {

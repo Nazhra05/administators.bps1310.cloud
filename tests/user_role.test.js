@@ -10,26 +10,47 @@ function parseHtml(html) {
 }
 
 function createSession() {
-  let cookie = '';
+  const cookieJar = new Map();
   return {
     async fetch(url, options = {}) {
       const headers = { ...(options.headers || {}) };
-      if (cookie) {
-        headers['Cookie'] = cookie;
+      if (cookieJar.size > 0) {
+        headers['Cookie'] = Array.from(cookieJar.entries())
+          .map(([k, v]) => `${k}=${v}`)
+          .join('; ');
       }
       const response = await fetch(url, { ...options, headers, redirect: 'manual' });
       const setCookies = typeof response.headers.getSetCookie === 'function'
         ? response.headers.getSetCookie()
-        : [response.headers.get('set-cookie')].filter(Boolean);
-      if (setCookies.length > 0) {
-        cookie = setCookies[setCookies.length - 1].split(';')[0];
+        : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+      for (const sc of setCookies) {
+        if (!sc) continue;
+        const [pair] = sc.split(';');
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = pair.slice(0, eqIdx).trim();
+          const val = pair.slice(eqIdx + 1).trim();
+          cookieJar.set(key, val);
+        }
       }
       return response;
     },
     getCookie() {
-      return cookie;
+      return Array.from(cookieJar.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
     }
   };
+}
+
+async function loginClient(client, username, password) {
+  const getLogin = await client.fetch(`${BASE_URL}/login.php`);
+  const docLogin = parseHtml(await getLogin.text());
+  const csrfToken = docLogin.querySelector('input[name="csrf_token"]')?.value || '';
+
+  return client.fetch(`${BASE_URL}/login.php`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&csrf_token=${encodeURIComponent(csrfToken)}`
+  });
 }
 
 describe('USER Role Requirements & Isolation', () => {
@@ -41,21 +62,13 @@ describe('USER Role Requirements & Isolation', () => {
     adminClient = createSession();
 
     // Login as Luce (USER)
-    const userLogin = await userClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'username=Luce&password=user123'
-    });
+    const userLogin = await loginClient(userClient, 'Luce', 'user123');
     expect(userLogin.status).toBe(302);
     expect(userLogin.headers.get('location')).toBe('index.php');
 
     // Login as Admin
     const adminPass = process.env.ADMIN_PASSWORD || '#1310SolokSelatan';
-    const adminLogin = await adminClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `username=admin&password=${encodeURIComponent(adminPass)}`
-    });
+    const adminLogin = await loginClient(adminClient, 'admin', adminPass);
     expect(adminLogin.status).toBe(302);
   });
 
@@ -291,11 +304,7 @@ describe('USER Role Requirements & Isolation', () => {
 
     // 2. User B (andrefanni) logs in
     const userBClient = createSession();
-    const userBLogin = await userBClient.fetch(`${BASE_URL}/login.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'username=andrefanni&password=user123'
-    });
+    const userBLogin = await loginClient(userBClient, 'andrefanni', 'user123');
     expect(userBLogin.status).toBe(302);
 
     // 3. User B views their private repository website tab -> MUST NOT see User A's links
@@ -430,6 +439,32 @@ describe('USER Role Requirements & Isolation', () => {
       body: `action=delete_link&id_link=${linkId}`
     });
     expect(cleanRes.status).toBe(200);
+  });
+
+  it('13. USER is strictly forbidden from modifying categories via tambah_kategori, edit_kategori, and hapus_kategori (RBAC protection)', async () => {
+    // 1. Direct GET to tambah_kategori.php as USER -> redirects to kategori.php
+    const tambahRes = await userClient.fetch(`${BASE_URL}/tambah_kategori.php`);
+    expect(tambahRes.status).toBe(302);
+    expect(tambahRes.headers.get('location')).toBe('kategori.php');
+
+    // 2. Direct GET to edit_kategori.php as USER -> redirects to kategori.php
+    const editRes = await userClient.fetch(`${BASE_URL}/edit_kategori.php?id=1`);
+    expect(editRes.status).toBe(302);
+    expect(editRes.headers.get('location')).toBe('kategori.php');
+
+    // 3. Direct POST to hapus_kategori.php as USER with JSON header -> HTTP 403 Forbidden
+    const hapusRes = await userClient.fetch(`${BASE_URL}/hapus_kategori.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: 'id=1'
+    });
+    expect(hapusRes.status).toBe(403);
+    const hapusJson = await hapusRes.json();
+    expect(hapusJson.success).toBe(false);
+    expect(hapusJson.message).toContain('Hanya Administrator');
   });
 });
 

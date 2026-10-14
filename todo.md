@@ -232,3 +232,17 @@ Menegaskan `Dashboard_Admin` sebagai ruang kerja terisolasi penuh khusus untuk a
 - [x] **SSO Dua Arah Tetap Utuh**:
   - [x] Akun administrator tetap dapat beralih mulus antara portal Next.js dan `Dashboard_Admin` via SSO tanpa perlu melakukan pendaftaran atau login ulang.
   - [x] Pengguna biasa mengelola layanan portal dan preferensi akun langsung dari antarmuka modern Next.js.
+
+## 23. Endpoint Penggantian Kata Sandi Terautentikasi (`public/api/auth/change_password.php`)
+
+Menyediakan antarmuka REST API aman bagi App B untuk memperbarui kata sandi akun pengguna:
+
+- [x] **Verifikasi Kata Sandi Lama Mandiri**:
+  - [x] Memvalidasi kecocokan kata sandi lama menggunakan `password_verify()` dengan fallback transparan ke SHA-256 untuk akun-akun legacy.
+- [x] **Pembaruan Kata Sandi Baru dengan Bcrypt**:
+  - [x] Mengenkripsi kata sandi baru menggunakan algoritma standar industri `password_hash(..., PASSWORD_BCRYPT)`.
+- [x] **Otentikasi Server-to-Server**:
+  - [x] Memvalidasi header keamanan `X-API-KEY` untuk mencegah panggilan liar di luar server Next.js.
+- [x] **Pencatatan Audit Trail**:
+  - [x] Mencatat aktivitas penggantian kata sandi ke dalam tabel `log_aktivitas` via `log_audit()` untuk keperluan akuntabilitas.
+

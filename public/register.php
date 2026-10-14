@@ -96,13 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                 /*
-                 * Sementara menggunakan SHA-256
-                 * agar kompatibel dengan login.php
+                 * Gunakan algoritma standar password_hash (BCRYPT)
+                 * agar aman terhadap serangan rainbow table & brute force,
+                 * kompatibel penuh dengan password_verify() pada login.php
                  */
 
-                $hashedPassword = hash(
-                    'sha256',
-                    $password
+                $hashedPassword = password_hash(
+                    $password,
+                    PASSWORD_BCRYPT
                 );
 
 

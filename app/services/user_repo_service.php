@@ -304,75 +304,15 @@ if (!function_exists('user_delete_data_link')) {
 ===================================================== */
 
 if (!function_exists('user_repo_init_tables')) {
+    /**
+     * Inisialisasi tabel repositori pribadi.
+     * Skema tabel kini dikelola secara statis melalui schema.sql dan migrasi database resmi (DB-02).
+     */
     function user_repo_init_tables(): void
     {
-        global $conn;
-        static $initialized = false;
-        if ($initialized) return;
-
-        try {
-            $conn->exec("CREATE TABLE IF NOT EXISTS `user_mobile_apps` (
-              `id_app` int NOT NULL AUTO_INCREMENT,
-              `id_user` int NOT NULL,
-              `nama_aplikasi` varchar(200) NOT NULL,
-              `url_aplikasi` varchar(500) NOT NULL,
-              `platform` varchar(50) NOT NULL DEFAULT 'Android',
-              `deskripsi` text DEFAULT NULL,
-              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              PRIMARY KEY (`id_app`),
-              KEY `idx_app_user` (`id_user`),
-              CONSTRAINT `fk_app_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-            $conn->exec("CREATE TABLE IF NOT EXISTS `user_drive_links` (
-              `id_drive` int NOT NULL AUTO_INCREMENT,
-              `id_user` int NOT NULL,
-              `nama_folder` varchar(200) NOT NULL,
-              `url_folder` varchar(500) NOT NULL,
-              `jenis_drive` varchar(50) NOT NULL DEFAULT 'Google Drive',
-              `deskripsi` text DEFAULT NULL,
-              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              PRIMARY KEY (`id_drive`),
-              KEY `idx_drive_user` (`id_user`),
-              CONSTRAINT `fk_drive_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-            $conn->exec("CREATE TABLE IF NOT EXISTS `user_photo_links` (
-              `id_photo` int NOT NULL AUTO_INCREMENT,
-              `id_user` int NOT NULL,
-              `judul_foto` varchar(200) NOT NULL,
-              `url_foto` varchar(500) NOT NULL,
-              `deskripsi` text DEFAULT NULL,
-              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              PRIMARY KEY (`id_photo`),
-              KEY `idx_photo_user` (`id_user`),
-              CONSTRAINT `fk_photo_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-            $conn->exec("CREATE TABLE IF NOT EXISTS `user_other_links` (
-              `id_other` int NOT NULL AUTO_INCREMENT,
-              `id_user` int NOT NULL,
-              `nama_link` varchar(200) NOT NULL,
-              `url_link` varchar(500) NOT NULL,
-              `label` varchar(100) DEFAULT 'Referensi',
-              `deskripsi` text DEFAULT NULL,
-              `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-              PRIMARY KEY (`id_other`),
-              KEY `idx_other_user` (`id_user`),
-              CONSTRAINT `fk_other_user` FOREIGN KEY (`id_user`) REFERENCES `admin` (`id_admin`) ON DELETE CASCADE ON UPDATE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-            $initialized = true;
-        } catch (Exception $e) {
-            error_log("user_repo_init_tables error: " . $e->getMessage());
-        }
+        // No-op: Eksekusi DDL runtime dihapus demi efisiensi query dan kepatuhan prinsip least privilege.
     }
 }
-
-user_repo_init_tables();
 
 /* =====================================================
    KUMPULAN APLIKASI MOBILE

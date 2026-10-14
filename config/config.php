@@ -78,7 +78,11 @@ defined('DB_NAME') or define('DB_NAME', env('DB_NAME', 'bps_solsel'));
    API CONFIGURATION
 ===================================================== */
 
-defined('API_KEY') or define('API_KEY', env('API_KEY', 'BPS_SOLSEL_API_2026_KEY_RAHASIA'));
+$rawApiKey = env('API_KEY');
+if (defined('APP_ENV') && APP_ENV === 'production' && (!$rawApiKey || $rawApiKey === 'BPS_SOLSEL_API_2026_KEY_RAHASIA')) {
+    throw new RuntimeException('FATAL CONFIGURATION ERROR: API_KEY must be securely defined in .env for production environment.');
+}
+defined('API_KEY') or define('API_KEY', $rawApiKey ?: 'BPS_SOLSEL_API_2026_KEY_RAHASIA');
 defined('API_URL') or define('API_URL', env('API_URL', APP_URL . '/api/layanan.php'));
 
 
@@ -135,6 +139,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
     session_start();
 }
+
+require_once __DIR__ . '/portal_session.php';
 
 
 /* =====================================================
@@ -253,6 +259,118 @@ if (!function_exists('log_audit')) {
                 error_log('[AUDIT_LOG_ERROR] ' . $e->getMessage());
             }
             return false;
+        }
+    }
+}
+
+
+/* =====================================================
+   CENTRALIZED LOGIN RATE LIMITING HELPER (SEC-09)
+===================================================== */
+
+if (!function_exists('check_login_rate_limit')) {
+    /**
+     * Memeriksa apakah percobaan login diizinkan atau terkena rate limit.
+     *
+     * @param string $identifier Username atau email
+     * @param string|null $ipAddress IP klien
+     * @param int $maxAttempts Batas maksimal kegagalan (default: 5)
+     * @param int $decaySeconds Rentang waktu lockout dalam detik (default: 300 / 5 menit)
+     * @return array ['allowed' => bool, 'retry_after' => int, 'remaining' => int, 'failed_count' => int]
+     */
+    function check_login_rate_limit(string $identifier, ?string $ipAddress = null, int $maxAttempts = 5, int $decaySeconds = 300): array
+    {
+        global $conn;
+        if (!isset($conn)) {
+            return ['allowed' => true, 'retry_after' => 0, 'remaining' => $maxAttempts, 'failed_count' => 0];
+        }
+
+        $ip = $ipAddress ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $cleanIdent = strtolower(trim($identifier));
+
+        try {
+            // Pruning berkala catatan login lama (> 1 hari)
+            if (mt_rand(1, 100) <= 5) {
+                $conn->exec("DELETE FROM login_attempts WHERE attempt_time < (NOW() - INTERVAL 1 DAY)");
+            }
+
+            // Hitung kegagalan berdasarkan IP atau identifier dalam jendela waktu
+            $stmt = $conn->prepare("
+                SELECT COUNT(*) as failed_count, MAX(attempt_time) as last_attempt
+                FROM login_attempts
+                WHERE (ip_address = ? OR (identifier != '' AND identifier = ?))
+                  AND is_success = 0
+                  AND attempt_time >= (NOW() - INTERVAL ? SECOND)
+            ");
+            $stmt->execute([$ip, $cleanIdent, $decaySeconds]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $failedCount = (int) ($row['failed_count'] ?? 0);
+            if ($failedCount >= $maxAttempts) {
+                $lastTime = strtotime($row['last_attempt'] ?? 'now');
+                $retryAfter = max(1, ($lastTime + $decaySeconds) - time());
+                return [
+                    'allowed' => false,
+                    'retry_after' => $retryAfter,
+                    'remaining' => 0,
+                    'failed_count' => $failedCount
+                ];
+            }
+
+            return [
+                'allowed' => true,
+                'retry_after' => 0,
+                'remaining' => max(0, $maxAttempts - $failedCount),
+                'failed_count' => $failedCount
+            ];
+        } catch (Throwable $e) {
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('[RATE_LIMIT_CHECK_ERROR] ' . $e->getMessage());
+            }
+            return ['allowed' => true, 'retry_after' => 0, 'remaining' => $maxAttempts, 'failed_count' => 0];
+        }
+    }
+}
+
+if (!function_exists('record_login_attempt')) {
+    /**
+     * Mencatat percobaan login (sukses atau gagal).
+     *
+     * @param string $identifier Username atau email
+     * @param bool $isSuccess Status login
+     * @param string|null $ipAddress IP klien
+     * @return void
+     */
+    function record_login_attempt(string $identifier, bool $isSuccess, ?string $ipAddress = null): void
+    {
+        global $conn;
+        if (!isset($conn)) {
+            return;
+        }
+
+        $ip = $ipAddress ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $cleanIdent = strtolower(trim($identifier));
+
+        try {
+            $stmt = $conn->prepare("
+                INSERT INTO login_attempts (ip_address, identifier, is_success)
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$ip, $cleanIdent, $isSuccess ? 1 : 0]);
+
+            // Jika berhasil login, bersihkan percobaan gagal sebelumnya
+            if ($isSuccess) {
+                $delStmt = $conn->prepare("
+                    DELETE FROM login_attempts
+                    WHERE (ip_address = ? OR identifier = ?)
+                      AND is_success = 0
+                ");
+                $delStmt->execute([$ip, $cleanIdent]);
+            }
+        } catch (Throwable $e) {
+            if (defined('APP_DEBUG') && APP_DEBUG) {
+                error_log('[RECORD_LOGIN_ATTEMPT_ERROR] ' . $e->getMessage());
+            }
         }
     }
 }

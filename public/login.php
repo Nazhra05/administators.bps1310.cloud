@@ -21,176 +21,187 @@ if (!empty($_SESSION['admin_id']) && !$is_add_account && $_SERVER['REQUEST_METHO
 ===================================================== */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    if ($username === '' || $password === '') {
-
-        $error = 'Username dan password wajib diisi.';
-
+    if (!csrf_verify()) {
+        $error = 'Sesi keamanan tidak valid atau telah kedaluwarsa. Silakan muat ulang halaman.';
     } else {
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-        /* =================================================
-           AMBIL DATA ADMIN
-        ================================================= */
-
-        $stmt = $conn->prepare("
-            SELECT
-                id_admin,
-                first_name,
-                last_name,
-                username,
-                email,
-                password,
-                status,
-                role,
-                email_verified
-            FROM admin
-            WHERE username = ? OR email = ?
-            LIMIT 1
-        ");
-
-        $stmt->execute([
-            $username,
-            $username
-        ]);
-
-        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-
-
-        if (!$admin) {
-
-            $error = 'Username atau password salah.';
-
+        if ($username === '' || $password === '') {
+            $error = 'Username dan password wajib diisi.';
         } else {
-
             /* =================================================
-               CEK PASSWORD
-               
-               Mendukung:
-               1. password_hash() / password_verify()
-               2. SHA-256 untuk akun lama
+               CEK RATE LIMITING (SEC-09)
             ================================================= */
+            $rateLimit = check_login_rate_limit($username);
 
-            $passwordValid = false;
-
-
-            /* PASSWORD HASH BARU */
-
-            if (
-                !empty($admin['password']) &&
-                password_verify(
-                    $password,
-                    $admin['password']
-                )
-            ) {
-
-                $passwordValid = true;
-
-            }
-
-
-            /* SHA-256 AKUN LAMA */
-
-            if (
-                !$passwordValid &&
-                !empty($admin['password']) &&
-                hash_equals(
-                    $admin['password'],
-                    hash('sha256', $password)
-                )
-            ) {
-
-                $passwordValid = true;
-
-            }
-
-
-            if (!$passwordValid) {
-
-                $error =
-                    'Username atau password salah.';
-
-            } elseif (
-                (int) $admin['email_verified'] !== 1
-            ) {
-
-                $error =
-                    'Email Anda belum diverifikasi. Silakan cek email untuk melakukan verifikasi.';
-
-            } elseif (
-                $admin['status'] === 'pending'
-            ) {
-
-                $error =
-                    'Email sudah diverifikasi. Akun Anda masih menunggu persetujuan administrator.';
-
-            } elseif (
-                $admin['status'] === 'rejected'
-            ) {
-
-                $error =
-                    'Pendaftaran akun Anda ditolak oleh administrator.';
-
-            } elseif (
-                $admin['status'] === 'inactive' ||
-                $admin['status'] === 'nonaktif'
-            ) {
-
-                $error =
-                    'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi administrator utama.';
-
-            } elseif (
-                $admin['status'] !== 'approved'
-            ) {
-
-                $error =
-                    'Status akun tidak valid. Silakan hubungi administrator.';
-
+            if (!$rateLimit['allowed']) {
+                $minutes = ceil($rateLimit['retry_after'] / 60);
+                $error = "Terlalu banyak percobaan login gagal. Akun/IP Anda ditangguhkan sementara selama {$minutes} menit.";
             } else {
 
                 /* =================================================
-                   LOGIN BERHASIL
+                   AMBIL DATA ADMIN
                 ================================================= */
 
-                session_regenerate_id(true);
+                $stmt = $conn->prepare("
+                    SELECT
+                        id_admin,
+                        first_name,
+                        last_name,
+                        username,
+                        email,
+                        password,
+                        status,
+                        role,
+                        email_verified
+                    FROM admin
+                    WHERE username = ? OR email = ?
+                    LIMIT 1
+                ");
 
-                $accId = (int) $admin['id_admin'];
-                $isAdmin = (strtoupper(trim($admin['role'] ?? '')) === 'ADMIN');
-                $roleType = $isAdmin ? 'ADMIN' : 'USER';
-                $displayName = trim(($admin['first_name'] ?? '') . ' ' . ($admin['last_name'] ?? '')) ?: ($admin['username'] ?? 'User');
+                $stmt->execute([
+                    $username,
+                    $username
+                ]);
 
-                // Reset session accounts agar admin tidak melihat akun user lain
-                $_SESSION['accounts'] = [
-                    $accId => [
-                        'id' => $accId,
-                        'username' => $admin['username'] ?? '',
-                        'name' => $displayName,
-                        'email' => $admin['email'] ?? '',
-                        'role' => $roleType,
-                        'raw_role' => $roleType
-                    ]
-                ];
-                $_SESSION['active_account_id'] = $accId;
+                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                $_SESSION['admin_id'] = $accId;
-                $_SESSION['admin_username'] = $admin['username'] ?? '';
-                $_SESSION['admin_name'] = $displayName;
-                $_SESSION['admin_role'] = $roleType;
-                $_SESSION['admin_real_role'] = $roleType;
-                $_SESSION['admin_status'] = $admin['status'] ?? '';
-                $_SESSION['admin_email'] = $admin['email'] ?? '';
-                $_SESSION['active_role'] = $roleType;
+                if (!$admin) {
+                    record_login_attempt($username, false);
+                    $error = 'Username atau password salah.';
+                } else {
 
-                /* =================================================
-                   REDIRECT
-                   Halaman yang digunakan oleh USER sekarang adalah
-                   halaman Admin Dashboard lama (index.php)
-                ================================================= */
+                    /* =================================================
+                       CEK PASSWORD
+                       
+                       Mendukung:
+                       1. password_hash() / password_verify()
+                       2. SHA-256 untuk akun lama
+                    ================================================= */
 
-                header('Location: index.php');
-                exit;
+                    $passwordValid = false;
+                    $needsRehash = false;
+
+                    /* PASSWORD HASH BARU */
+                    if (
+                        !empty($admin['password']) &&
+                        password_verify(
+                            $password,
+                            $admin['password']
+                        )
+                    ) {
+                        $passwordValid = true;
+                        if (password_needs_rehash($admin['password'], PASSWORD_BCRYPT)) {
+                            $needsRehash = true;
+                        }
+                    }
+
+                    /* SHA-256 AKUN LAMA */
+                    if (
+                        !$passwordValid &&
+                        !empty($admin['password']) &&
+                        hash_equals(
+                            $admin['password'],
+                            hash('sha256', $password)
+                        )
+                    ) {
+                        $passwordValid = true;
+                        $needsRehash = true;
+                    }
+
+                    if (!$passwordValid) {
+                        record_login_attempt($username, false);
+                        $error = 'Username atau password salah.';
+                    } elseif (
+                        (int) $admin['email_verified'] !== 1
+                    ) {
+                        $error = 'Email Anda belum diverifikasi. Silakan cek email untuk melakukan verifikasi.';
+                    } elseif (
+                        $admin['status'] === 'pending'
+                    ) {
+                        $error = 'Email sudah diverifikasi. Akun Anda masih menunggu persetujuan administrator.';
+                    } elseif (
+                        $admin['status'] === 'rejected'
+                    ) {
+                        $error = 'Pendaftaran akun Anda ditolak oleh administrator.';
+                    } elseif (
+                        $admin['status'] === 'inactive' ||
+                        $admin['status'] === 'nonaktif'
+                    ) {
+                        $error = 'Akun Anda telah dinonaktifkan oleh administrator. Silakan hubungi administrator utama.';
+                    } elseif (
+                        $admin['status'] !== 'approved'
+                    ) {
+                        $error = 'Status akun tidak valid. Silakan hubungi administrator.';
+                    } else {
+
+                        /* =================================================
+                           LOGIN BERHASIL
+                        ================================================= */
+                        record_login_attempt($username, true);
+                        session_regenerate_id(true);
+
+                        $accId = (int) $admin['id_admin'];
+
+                        // Transparent password upgrade: migrasikan hash lama atau rehash ke Bcrypt modern
+                        if ($needsRehash) {
+                            try {
+                                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                                $updStmt = $conn->prepare("UPDATE admin SET password = ? WHERE id_admin = ?");
+                                $updStmt->execute([$newHash, $accId]);
+                            } catch (Exception $e) {
+                                error_log('[PASSWORD_REHASH_ERROR] Gagal mengupgrade hash password id_admin ' . $accId . ': ' . $e->getMessage());
+                            }
+                        }
+                        $isAdmin = (strtoupper(trim($admin['role'] ?? '')) === 'ADMIN');
+                        $roleType = $isAdmin ? 'ADMIN' : 'USER';
+                        $displayName = trim(($admin['first_name'] ?? '') . ' ' . ($admin['last_name'] ?? '')) ?: ($admin['username'] ?? 'User');
+
+                        // Reset session accounts agar admin tidak melihat akun user lain
+                        $_SESSION['accounts'] = [
+                            $accId => [
+                                'id' => $accId,
+                                'username' => $admin['username'] ?? '',
+                                'name' => $displayName,
+                                'email' => $admin['email'] ?? '',
+                                'role' => $roleType,
+                                'raw_role' => $roleType
+                            ]
+                        ];
+                        $_SESSION['active_account_id'] = $accId;
+
+                        $_SESSION['admin_id'] = $accId;
+                        $_SESSION['admin_username'] = $admin['username'] ?? '';
+                        $_SESSION['admin_name'] = $displayName;
+                        $_SESSION['admin_role'] = $roleType;
+                        $_SESSION['admin_real_role'] = $roleType;
+                        $_SESSION['admin_status'] = $admin['status'] ?? '';
+                        $_SESSION['admin_email'] = $admin['email'] ?? '';
+                        $_SESSION['active_role'] = $roleType;
+                        $_SESSION['auth_source'] = 'dashboard_login';
+                        $_SESSION['auth_time'] = time();
+
+                        // Sinkronkan cookie portal (bps_solsel_session & bps_solsel_auth_user) ke akun admin yang baru login
+                        issue_portal_session_cookies([
+                            'id_admin' => $accId,
+                            'username' => $admin['username'] ?? '',
+                            'name'     => $displayName,
+                            'email'    => $admin['email'] ?? '',
+                            'role'     => $roleType,
+                            'status'   => $admin['status'] ?? 'approved',
+                        ]);
+
+                        /* =================================================
+                           REDIRECT
+                           Halaman yang digunakan oleh USER sekarang adalah
+                           halaman Admin Dashboard lama (index.php)
+                        ================================================= */
+
+                        header('Location: index.php');
+                        exit;
+                    }
+                }
             }
         }
     }
@@ -428,7 +439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         <form method="POST">
-
+            <?= csrf_field(); ?>
             <div class="form-group">
 
                 <label for="username">
