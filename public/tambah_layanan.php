@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $format_diizinkan = ['jpg', 'jpeg', 'png', 'webp'];
 
                     if (in_array($ekstensi, $format_diizinkan, true)) {
-                        $nama_file = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ekstensi;
+                        $nama_file = 'layanan_' . time() . '_' . random_int(100, 999) . '.' . $ekstensi;
                         if (move_uploaded_file($_FILES['logo']['tmp_name'], $folder_upload . $nama_file)) {
                             $logo = $nama_file;
                         }

@@ -49,3 +49,7 @@ database/*.sql
 !database/schema.sql
 *.sql
 !database/schema.sql
+
+# Task trackers & planning notes
+todo.md
+TODO.md

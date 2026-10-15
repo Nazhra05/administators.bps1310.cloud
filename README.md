@@ -1,87 +1,32 @@
-# Dashboard Admin - BPS Kabupaten Solok Selatan
+# Dashboard Admin BPS Solok Selatan
 
-Dashboard administrasi berbasis web untuk pengelolaan katalog layanan, kategori statistik, serta akun administrator internal Badan Pusat Statistik (BPS) Kabupaten Solok Selatan.
+Aplikasi web administrasi internal untuk pengelolaan katalog layanan, kategori statistik, repositori data, dan autentikasi akun pada Badan Pusat Statistik Kabupaten Solok Selatan.
 
----
+## Fitur utama
 
-## 📁 Struktur Direktori
+- Pengelolaan katalog layanan kedinasan dan tautan aplikasi internal
+- Pengelompokan layanan berdasarkan kategori statistik
+- Manajemen repositori portal dan repositori koleksi pengguna
+- Pengelolaan akun administrator dan verifikasi akun pegawai (RBAC)
+- Layanan REST API terproteksi untuk integrasi portal intranet
+- Proteksi formulir dengan token CSRF dan pengamanan sesi terpusat
 
-```text
-administators.bps1310.cloud/
-├── app/
-│   └── services/
-│       ├── mail_service.php     # Layanan pengiriman email transaksi terpusat
-│       └── user_repo_service.php# Layanan repositori privat pegawai
-├── config/
-│   ├── .htaccess                # Proteksi akses langsung web server
-│   ├── auth.php                 # Middleware otentikasi & RBAC
-│   ├── config.php               # Konfigurasi sistem, environment loader & PDO
-│   └── user_repo.php            # Proxy kompatibilitas repositori privat
-├── database/
-│   ├── bps_solsel.sql           # Database dump produksi (data lengkap kategori, layanan & admin)
-│   └── schema.sql               # Skema DDL struktur database & template seed awal
-├── PHPMailer/                   # Library pengiriman email notifikasi & verifikasi
-├── public/
-│   ├── api/
-│   │   ├── auth/loginPortal.php # REST API otentikasi login untuk App B
-│   │   ├── kategori.php         # REST API endpoint kategori (CORS & Key protected)
-│   │   ├── layanan.php          # REST API endpoint layanan CRUD
-│   │   ├── user_repo.php        # REST API repositori privat pegawai
-│   │   └── website.php          # REST API endpoint struktur website publik
-│   ├── css/
-│   │   └── style.css            # Token desain sistem dan kelas utilitas terpusat
-│   ├── partials/
-│   │   ├── account_dropdown.php # Dropdown profil & logout pengguna
-│   │   ├── navbar.php           # Sidebar navigasi bersama terpadu berbasis peran
-│   │   └── sidebar_user.php     # Proxy kompatibilitas navigasi peran pengguna
-│   ├── uploads/
-│   │   ├── .gitkeep
-│   │   ├── .htaccess            # Blokir eksekusi script PHP di folder upload
-│   │   └── logo_bps.jpg         # Logo resmi BPS
-│   ├── index.php                # Dashboard utama (Admin & User)
-│   ├── kategori.php             # Halaman & modal kelola kategori
-│   ├── kelola_admin.php         # Manajemen administrator (undangan admin baru, aktivasi)
-│   ├── kelola_user.php          # Manajemen pengguna (persetujuan registrasi pegawai, status user)
-│   ├── layanan.php              # Halaman & modal kelola layanan
-│   ├── login.php                # Autentikasi akun pengguna & admin
-│   ├── logout.php               # Pembersihan sesi aman
-│   ├── pengaturan.php           # Pengaturan profil dan keamanan akun
-│   ├── register.php             # Pendaftaran mandiri pegawai (role USER)
-│   ├── repositori_portal.php    # Repositori portal layanan
-│   ├── repositori_private.php   # Repositori koleksi privat pegawai
-│   ├── setup_user.php           # Pengaturan akun administrator baru
-│   ├── switch_role.php          # Pergantian peran dinamis administrator
-│   ├── verify_email.php         # Verifikasi token email pendaftar
-│   └── verify_user.php          # Verifikasi token email administrator baru
-├── scripts/
-│   ├── .htaccess                # Proteksi folder cron/script dari web
-│   └── test_api.php             # Alat uji endpoint API internal
-├── tests/                       # Suite pengujian otomatis berbasis Vitest
-├── .env.example                 # Template environment variables (aman untuk commit)
-├── .gitignore                   # Aturan pengabaian file sensitif / rahasia Git
-├── .htaccess                    # Pengamanan direktori root, MIME, dan HTTP headers
-└── README.md
-```
+## Prasyarat sistem
 
----
+- PHP 8.1 atau lebih baru (ekstensi: `pdo_mysql`, `curl`, `json`, `mbstring`, `openssl`, `fileinfo`, `gd`)
+- MySQL 5.7+ atau MariaDB 10.4+
+- Web server Apache dengan modul `mod_rewrite` dan `mod_headers` aktif
 
-## ⚙️ Persyaratan Sistem
+## Instalasi lokal
 
-- **PHP**: Versi 8.1 atau lebih baru
-  - Ekstensi PHP wajib: `pdo_mysql`, `curl`, `json`, `mbstring`, `openssl`, `fileinfo`, `gd`
-- **Database**: MySQL 5.7+ atau MariaDB 10.4+
-- **Web Server**: Apache dengan modul `mod_rewrite` dan `mod_headers` aktif (misalnya XAMPP)
+### 1. Salin konfigurasi environment
 
----
-
-## 🚀 Panduan Instalasi Lokal (XAMPP)
-
-### 1. Salin Konfigurasi Lingkungan (`.env`)
-Salin file `.env.example` menjadi `.env` pada root project:
+Buat file konfigurasi `.env` dari template yang disediakan:
 ```bash
 cp .env.example .env
 ```
-Sesuaikan nilainya sesuai dengan konfigurasi lokal Anda (misal untuk XAMPP default):
+
+Buka file `.env` lalu sesuaikan konfigurasi basis data lokal Anda:
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -91,84 +36,81 @@ DB_PASS=
 
 APP_ENV=development
 APP_DEBUG=true
-APP_URL=http://localhost/administators.bps1310.cloud/public
+APP_URL=http://localhost/Dashboard_Admin/public
 ```
 
-### 2. Impor Skema Database
-Impor file [`database/schema.sql`](file:///c:/xampp/htdocs/administators.bps1310.cloud/database/schema.sql) ke server MySQL Anda melalui phpMyAdmin atau terminal:
+### 2. Impor skema database
+
+Jalankan perintah impor skema tabel awal dari [database/schema.sql](file:///d:/BPS/Rangkiang/Dashboard_Admin/database/schema.sql):
 ```bash
 mysql -u root -p < database/schema.sql
 ```
 
-Akun administrator default yang otomatis dibuat:
-- **Username**: `admin`
-- **Password**: `admin123`
-*(Sangat disarankan segera mengganti password saat pertama kali masuk)*
+File skema menyertakan akun admin awal untuk setup pertama:
+- Username: `admin`
+- Password: password bawaan tercantum di dalam berkas [database/schema.sql](file:///d:/BPS/Rangkiang/Dashboard_Admin/database/schema.sql). Segera ubah kata sandi melalui menu Pengaturan setelah login pertama kali.
 
----
+### 3. Konfigurasi web server
 
-## 🔒 Keamanan & Praktik Sebelum Push ke Git
+Arahkan *DocumentRoot* web server Apache ke direktori `public/`. Jika menggunakan folder subdirektori (misalnya htdocs XAMPP), pastikan modul `mod_rewrite` aktif agar aturan perutean berkas pada `.htaccess` berjalan normal.
 
-Project ini telah diamankan dan disiapkan agar aman di-push ke GitHub / GitLab:
+## Pengujian otomatis
 
-1. **Pemisahan Kredensial Rahasia (`.env`)**:
-   - Password database, Gmail App Password, dan Gemini API Key dipisahkan ke dalam `.env`.
-   - File `.env`, file `*.log`, dan kredensial rahasia otomatis diabaikan oleh [`.gitignore`](file:///c:/xampp/htdocs/administators.bps1310.cloud/.gitignore).
-   - Template aman disediakan pada [`.env.example`](file:///c:/xampp/htdocs/administators.bps1310.cloud/.env.example).
-2. **Proteksi Otentikasi Terpusat**:
-   - Seluruh halaman panel admin (`index.php`, `layanan.php`, `kategori.php`, `kelola_admin.php`, `pengaturan.php`, penambahan/pengubahan/penghapusan) dilindungi melalui [`config/auth.php`](file:///c:/xampp/htdocs/administators.bps1310.cloud/config/auth.php).
-3. **Pencegahan Serangan CSRF (Cross-Site Request Forgery)**:
-   - Formulir penting dilengkapi dengan token CSRF (`csrf_token()`, `csrf_field()`, dan `csrf_verify()`).
-4. **Pencegahan SQL Injection**:
-   - Semua operasi database menggunakan PDO Prepared Statements dengan parameter binding.
-5. **Keamanan Upload Berkas**:
-   - Validasi ketat format gambar (`jpg`, `jpeg`, `png`, `webp`) dengan pemeriksaan `getimagesize()` dan batasan ukuran 5MB.
-   - Folder `public/uploads/` diproteksi dengan `.htaccess` khusus yang mematikan eksekusi skrip PHP.
-6. **Keamanan Sesi & HTTP Headers**:
-   - Sesi menggunakan flag cookie `HttpOnly`, `SameSite=Lax`, dan `Secure` (saat HTTPS aktif).
-   - Proteksi header HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`).
+Proyek ini dilengkapi pengujian otomatis fungsional dan endpoint. Untuk menjalankan pengujian:
+```bash
+npm install
+npm test
+```
 
----
+## Catatan keamanan
 
-## 🌐 Panduan Deployment / Hosting ke VPS
+1. Kredensial rahasia seperti kata sandi basis data dan kunci API disimpan murni pada file `.env` yang dikecualikan dari Git melalui `.gitignore`.
+2. Seluruh permintaan perubahan data (POST, PUT, DELETE) mewajibkan validasi token CSRF.
+3. Kueri basis data memanfaatkan PDO prepared statements untuk mencegah injeksi SQL.
+4. Unggahan berkas divalidasi berdasarkan tipe konten asli serta dibatasi ukurannya. Direktori unggahan mematikan eksekusi skrip PHP secara langsung.
 
-Saat nanti mendeploy project ini ke VPS (Ubuntu / Debian / AlmaLinux dengan Apache/Nginx/aaPanel/cPanel):
+## Panduan deployment VPS
 
-### 1. Buat Database di MySQL VPS
+Langkah penyiapan di server produksi Linux (Apache atau Nginx):
+
+### 1. Buat database dan pengguna
+
 ```sql
-CREATE DATABASE `bps-solsel` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'admin-bps-solsel'@'localhost' IDENTIFIED BY 'PasswordKuatAnda123!';
-GRANT ALL PRIVILEGES ON `bps-solsel`.* TO 'admin-bps-solsel'@'localhost';
+CREATE DATABASE nama_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'pengguna_db'@'localhost' IDENTIFIED BY 'isi_password_kuat_disini';
+GRANT ALL PRIVILEGES ON nama_database.* TO 'pengguna_db'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-### 2. Impor Database Dump Produksi
-Jalankan impor dump database:
+### 2. Impor skema database
+
+Jalankan perintah impor skema:
 ```bash
-mysql -u admin-bps-solsel -p bps-solsel < database/bps_solsel.sql
+mysql -u pengguna_db -p nama_database < database/schema.sql
 ```
 
-### 3. Buat File `.env` di VPS
-Salin template `.env.example` menjadi `.env` di root direktori project pada VPS:
+### 3. Konfigurasi file .env produksi
+
+Salin template konfigurasi:
 ```bash
 cp .env.example .env
-nano .env
 ```
-Sesuaikan variabel berikut untuk VPS:
+
+Sesuaikan nilai variabel:
 ```env
-# Mode Produksi VPS
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://administators.bps1310.cloud
+APP_URL=https://nama-domain-anda.bps.go.id
 
-# Koneksi Database VPS
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=bps-solsel
-DB_USER=admin-bps-solsel
-DB_PASS=PasswordKuatAnda123!
+DB_NAME=nama_database
+DB_USER=pengguna_db
+DB_PASS=isi_password_kuat_disini
 
-# URL Endpoint API Produksi
-API_URL=https://administators.bps1310.cloud/api/layanan.php
+API_URL=https://nama-domain-anda.bps.go.id/api/layanan.php
 ```
 
+## Lisensi dan kepemilikan
+
+Hak Cipta (c) Badan Pusat Statistik Kabupaten Solok Selatan. Digunakan khusus untuk keperluan kedinasan internal.

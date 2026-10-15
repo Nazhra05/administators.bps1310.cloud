@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
                     if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                        $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                        $logoName = 'layanan_' . time() . '_' . random_int(100, 999) . '.' . $ext;
                         if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
                             $logo = $logoName;
                         }
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
                         if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                            $logoName = 'layanan_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                            $logoName = 'layanan_' . time() . '_' . random_int(100, 999) . '.' . $ext;
                             if (move_uploaded_file($_FILES['logo']['tmp_name'], $uploadDir . $logoName)) {
                                 if (!empty($logo) && $logo !== 'logo_bps.jpg' && file_exists($uploadDir . $logo)) {
                                     @unlink($uploadDir . $logo);

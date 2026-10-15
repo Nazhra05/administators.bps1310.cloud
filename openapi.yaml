@@ -9,7 +9,7 @@ info:
   version: 1.0.0
   contact:
     name: Tim Pengembang BPS Solok Selatan
-    email: bps1310@bps.go.id
+    email: bps13100@gmail.com
 
 servers:
   - url: http://localhost/Dashboard_Admin/public

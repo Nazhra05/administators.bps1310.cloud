@@ -144,6 +144,33 @@ require_once __DIR__ . '/portal_session.php';
 
 
 /* =====================================================
+   SECURITY HTTP HEADERS
+===================================================== */
+
+if (!headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-XSS-Protection: 1; mode=block');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
+    header('X-Permitted-Cross-Domain-Policies: none');
+
+    // HSTS (Strict-Transport-Security)
+    $isHttpsRequest = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (defined('APP_ENV') && APP_ENV === 'production');
+
+    if ($isHttpsRequest) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+    }
+
+    // Content-Security-Policy (CSP)
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none';");
+}
+
+
+/* =====================================================
    CSRF PROTECTION HELPERS
 ===================================================== */
 

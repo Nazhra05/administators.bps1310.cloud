@@ -246,11 +246,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             justify-content: center;
 
             align-items: center;
+
+            padding: 16px;
         }
 
         .login-container {
 
-            width: 400px;
+            width: 100%;
+
+            max-width: 400px;
 
             background: white;
 
@@ -261,6 +265,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow:
                 0 8px 25px
                 rgba(0, 0, 0, 0.12);
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 28px 20px;
+                border-radius: 12px;
+            }
         }
 
         .logo {

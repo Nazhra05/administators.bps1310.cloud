@@ -163,6 +163,7 @@ $initial = strtoupper(substr($currentUsername, 0, 1) ?: 'U');
     right: 0;
     top: calc(100% + 8px);
     width: 310px;
+    max-width: calc(100vw - 24px);
     background: white;
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0, 50, 100, 0.16);

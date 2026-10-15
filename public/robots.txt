@@ -1,0 +1,25 @@
+# ==========================================================
+# BPS Solok Selatan - Dashboard Admin Robots Configuration
+# Strictly Disallow All Crawlers, Search Engines & AI Bots
+# ==========================================================
+
+# 1. Block All Standard Search Engines & General Crawlers
+User-agent: *
+Disallow: /
+
+# 2. Specifically Block AI Web Scrapers & Data Harvesters
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: Google-Extended
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Amazonbot
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: DeepSeekBot
+User-agent: Meta-ExternalAgent
+Disallow: /

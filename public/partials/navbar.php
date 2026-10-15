@@ -138,9 +138,14 @@ function closeSidebar() {
 // Pulihkan preferensi pengguna saat halaman dimuat
 (function() {
     try {
-        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        const isMobile = window.innerWidth <= 768;
+        // Di mobile (≤ 768px), selalu default tertutup saat pertama kali halaman dimuat
+        const storedPref = localStorage.getItem('sidebar_collapsed');
+        const isCollapsed = isMobile ? true : (storedPref === 'true');
         if (isCollapsed) {
             document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
         }
         updateSidebarAria(isCollapsed);
     } catch (e) {}
