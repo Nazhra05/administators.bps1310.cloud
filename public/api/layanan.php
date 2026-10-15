@@ -1000,7 +1000,20 @@ if ($method === 'PUT') {
             );
         }
 
-        if ($callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
+        $callerIsAdmin = false;
+        if ($callerUserId > 0) {
+            $uStmt = $conn->prepare("SELECT role FROM admin WHERE id_admin = ? LIMIT 1");
+            $uStmt->execute([$callerUserId]);
+            $dbRole = strtoupper(trim((string) ($uStmt->fetchColumn() ?: '')));
+            if ($dbRole === 'ADMIN') {
+                $callerIsAdmin = true;
+            }
+        }
+        if (strtoupper(trim((string) ($input['user_role'] ?? ''))) === 'ADMIN') {
+            $callerIsAdmin = true;
+        }
+
+        if (!$callerIsAdmin && $callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
             responseJson(
                 false,
                 'Anda tidak memiliki izin untuk mengubah layanan ini',
@@ -1115,7 +1128,20 @@ if ($method === 'DELETE') {
             );
         }
 
-        if ($callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
+        $callerIsAdmin = false;
+        if ($callerUserId > 0) {
+            $uStmt = $conn->prepare("SELECT role FROM admin WHERE id_admin = ? LIMIT 1");
+            $uStmt->execute([$callerUserId]);
+            $dbRole = strtoupper(trim((string) ($uStmt->fetchColumn() ?: '')));
+            if ($dbRole === 'ADMIN') {
+                $callerIsAdmin = true;
+            }
+        }
+        if (strtoupper(trim((string) ($_GET['user_role'] ?? ''))) === 'ADMIN') {
+            $callerIsAdmin = true;
+        }
+
+        if (!$callerIsAdmin && $callerUserId > 0 && (int) ($existing['created_by'] ?? 1) !== $callerUserId) {
             responseJson(
                 false,
                 'Anda tidak memiliki izin untuk menghapus layanan ini',
