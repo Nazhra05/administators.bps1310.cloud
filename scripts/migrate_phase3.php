@@ -59,6 +59,13 @@ try {
         echo "[SUDAH ADA]\n";
     }
 
+    // 3b. Normalisasi Role admin menjadi canonical ENUM('ADMIN', 'USER')
+    echo "3b. Menstandardisasi nilai role pada `admin`... ";
+    $conn->exec("UPDATE `admin` SET `role` = 'ADMIN' WHERE `role` LIKE '%ADMIN%'");
+    $conn->exec("UPDATE `admin` SET `role` = 'USER' WHERE `role` NOT IN ('ADMIN') OR `role` IS NULL");
+    $conn->exec("ALTER TABLE `admin` MODIFY COLUMN `role` ENUM('ADMIN','USER') NOT NULL DEFAULT 'USER'");
+    echo "[ROLE DINORMALISASI JADI ADMIN & USER]\n";
+
     // 4. Tambahkan UNIQUE KEY idx_nama_kategori pada tabel kategori
     echo "4. Memeriksa indeks unik `idx_nama_kategori` pada `kategori`... ";
     $hasKatIdx = false;
