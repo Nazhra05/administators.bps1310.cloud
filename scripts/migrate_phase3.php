@@ -61,6 +61,7 @@ try {
 
     // 3b. Normalisasi Role admin menjadi canonical ENUM('ADMIN', 'USER')
     echo "3b. Menstandardisasi nilai role pada `admin`... ";
+    $conn->exec("ALTER TABLE `admin` MODIFY COLUMN `role` VARCHAR(50) NOT NULL DEFAULT 'USER'");
     $conn->exec("UPDATE `admin` SET `role` = 'ADMIN' WHERE `role` LIKE '%ADMIN%'");
     $conn->exec("UPDATE `admin` SET `role` = 'USER' WHERE `role` NOT IN ('ADMIN') OR `role` IS NULL");
     $conn->exec("ALTER TABLE `admin` MODIFY COLUMN `role` ENUM('ADMIN','USER') NOT NULL DEFAULT 'USER'");
@@ -178,18 +179,7 @@ try {
           KEY `idx_data_link_user` (`id_user`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-        CREATE TABLE IF NOT EXISTS `user_mobile_apps` (
-          `id_app` int(11) NOT NULL AUTO_INCREMENT,
-          `id_user` int(11) NOT NULL,
-          `nama_aplikasi` varchar(200) NOT NULL,
-          `url_aplikasi` varchar(500) NOT NULL,
-          `platform` varchar(50) NOT NULL DEFAULT 'Android',
-          `deskripsi` text DEFAULT NULL,
-          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (`id_app`),
-          KEY `idx_app_user` (`id_user`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        DROP TABLE IF EXISTS `user_mobile_apps`;
 
         CREATE TABLE IF NOT EXISTS `user_drive_links` (
           `id_drive` int(11) NOT NULL AUTO_INCREMENT,
